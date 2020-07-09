@@ -9,7 +9,7 @@
         "webRequest",
         "webRequestBlocking",
         "https://api.securevan.com/*",
-        "*://9000-e77d927e-a890-4454-a1ac-3b3662fbdd6b.ws-us02.gitpod.io",
+        "*://turbovpb-peerjs-server.herokuapp.com/*",
         "<all_urls>"
     ],
     "content_scripts": [
