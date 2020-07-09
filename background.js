@@ -1,9 +1,16 @@
 console.log('Background script loaded')
 
-const messageTemplates = [
-    'Hello [Their Name]',
-    'Sorry I missed you [Their Name]'
-]
+const messageTemplates = {
+    'No Answer': 'Hi [Their Name], sorry I missed you',
+    'Join Team': 'Thanks [Their Name] for your interest in joining the team'
+}
+
+// TODO more intelligent interval
+setInterval(pingHeroku, 5000)
+
+function pingHeroku() {
+    window.fetch('https://turbovpb-peerjs-server.herokuapp.com')
+}
 
 async function getPeerId() {
     let { peerId } = await browser.storage.local.get('peerId')
@@ -22,10 +29,9 @@ async function getPeerId() {
 async function createPeer(id) {
     console.log(`http://localhost:8080/#${id}`)
     const peer = new Peer(id, {
-        host: 'localhost',
-        port: 9000,
+        host: 'turbovpb-peerjs-server.herokuapp.com',
         // port: 443,
-        // secure: true,
+        secure: true,
         debug: 3
     })
     peer.on('error', console.error)
@@ -38,15 +44,24 @@ getPeerId()
     .then((peer) => {
         let phoneNumber
         let firstName
+        const connections = {}
 
         peer.on('connection', (conn) => {
             console.log('got connection')
             conn.on('open', () => {
+                connections[conn.id] = conn
                 if (phoneNumber) {
                     sendDetails(conn)
                 }
             })
-            conn.on('close', () => console.log('connection closed'))
+            conn.on('close', () => {
+                console.log('connection closed')
+                delete connections[conn.id]
+            })
+            conn.on('error', (err) => {
+                console.log('connection error', err)
+                delete connections[conn.id]
+            })
         })
 
         function contactApiListener(details) {
@@ -88,11 +103,10 @@ getPeerId()
                 return
             }
 
-            phoneNumber = contact.preferredPhone.match(/\d+/g).join('')
+            phoneNumber = contact.preferredPhone
             firstName = contact.targets[0].targetPerson.salutation
 
-            for (let conns of Object.values(peer.connections)) {
-                const conn = conns[0]
+            for (let conn of Object.values(connections)) {
                 if (conn.open) {
                     sendDetails(conn)
                 }
