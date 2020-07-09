@@ -1,4 +1,16 @@
-<html>
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+
+</head>
 
 <body>
     <script src="https://unpkg.com/peerjs@1.3.0/dist/peerjs.min.js"></script>
@@ -14,14 +26,16 @@
             connectPeer()
         })
 
-        function setStatus(status) {
+        function setStatus(status, alertType) {
             if (document.readyState === 'complete') {
-                document.getElementById('status').innerText = `Status: ${status}`
+                const statusElement = document.getElementById('status')
+                statusElement.innerText = `Status: ${status}`
+                statusElement.className = statusElement.className.replace(/alert-\w+/, `alert-${alertType}`)
             } else {
                 function listener() {
                     if (document.readyState === 'complete') {
                         document.removeEventListener('readystatechange', listener)
-                        setStatus(status)
+                        setStatus(status, alertType)
                     }
                 }
                 document.addEventListener('readystatechange', listener)
@@ -30,13 +44,13 @@
 
         function connectPeer() {
             if (!peer || peer.destroyed) {
-                setStatus('Connecting to signaling server...')
+                setStatus('Connecting to server...', 'warning')
                 console.log('creating new peer')
                 peer = new Peer({
                     host: 'turbovpb-peerjs-server.herokuapp.com',
                     // port: 9000,
                     secure: true,
-                    debug: 3
+                    // debug: 3
                 })
                 peer.on('disconnect', connectPeer)
                 peer.on('error', (err) => {
@@ -56,25 +70,25 @@
             console.log('establish connection')
             if (conn && conn.open) {
                 console.log('connection already good')
-                setStatus('Connected')
+                setStatus('Connected', 'success')
                 return
             }
 
-            setStatus('Connecting to extension...')
+            setStatus('Connecting to extension...', 'warning')
             conn = peer.connect(remotePeerId, {
                 serialization: 'json'
             })
             conn.once('open', () => {
                 console.log('connection open')
-                setStatus('Connected')
+                setStatus('Connected', 'success')
             })
             conn.once('error', (err) => {
                 console.error(err)
                 conn = null
-                setStatus(`Error (${err.message})`)
+                setStatus(`Error (${err.message})`, 'error')
             })
             conn.once('close', () => {
-                setStatus('Not Connected')
+                setStatus('Not Connected', 'error')
 
                 conn = null
                 setTimeout(() => {
@@ -82,10 +96,15 @@
                 }, 1000)
             })
             conn.on('data', (data) => {
+                console.log('got data', data)
                 if (data.messageTemplates) {
                     messageTemplates = data.messageTemplates
                 }
                 if (data.contact) {
+                    document.getElementById('contactDetails').hidden = false
+                    document.getElementById('instructions').hidden = true
+
+                    console.log(data.contact)
                     document.getElementById('name').innerText = data.contact.firstName
 
                     let phoneNumber = data.contact.phoneNumber.match(/\d+/g).join('')
@@ -94,7 +113,7 @@
                     }
 
                     document.getElementById('phoneNumber').href = "tel:" + phoneNumber
-                    document.getElementById('phoneNumber').innerText = data.contact.phoneNumber
+                    document.getElementById('phoneNumber').innerText = `Call ${data.contact.phoneNumber}`
 
                     // TODO: reuse elements?
                     const textMessageLinks = document.getElementById('textMessageLinks')
@@ -102,23 +121,53 @@
                         textMessageLinks.removeChild(textMessageLinks.firstChild)
                     }
                     for (let templateName in messageTemplates) {
-                        const p = document.createElement('p')
                         const a = document.createElement('a')
+                        a.className = "btn btn-outline-secondary btn-block p-4"
+                        a.role = 'button'
                         a.target = "_blank"
                         a.href = `sms://${phoneNumber}?&body=${messageTemplates[templateName].replace(/\[their name\]/i, data.contact.firstName)}`
                         a.innerText = `Send ${templateName} Message`
-                        p.appendChild(a)
-                        textMessageLinks.appendChild(p)
+                        textMessageLinks.appendChild(a)
                     }
                 }
             })
         }
     </script>
 
-    <h2 id="name"></h2>
-    <p>Call <a href="" target="_blank" id="phoneNumber"></a></p>
-    <div id="textMessageLinks"></div>
-    <h3 id="status">Status: Not Connected</h3>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand">TurboVPB</a>
+    </nav>
+    <div class="container-sm p-3 d-flex">
+
+        <div id="instructions" class="alert alert-info text-justify">
+            <h4 class="alert-heading">
+                Login to OpenVPB on your computer to start calling.
+            </h4>
+            <p>
+                When a contact is loaded in your browser
+                with the TurboVPB extension, the extension will send
+                the contact details here.
+            </p>
+        </div>
+
+        <div id="contactDetails" class="mt-auto" hidden>
+            <div class="card">
+                <div class="card-body">
+                    <h2 id="name" class="card-title"></h2>
+                    <h3>
+                        <a href="" target="_blank" id="phoneNumber" class="btn btn-primary btn-lg btn-block"></a>
+                    </h3>
+                    <div id="textMessageLinks"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <h5 id="status" class="alert alert-warning fixed-bottom">Status: Not Connected</h5>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

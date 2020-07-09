@@ -32,7 +32,7 @@ async function createPeer(id) {
         host: 'turbovpb-peerjs-server.herokuapp.com',
         // port: 443,
         secure: true,
-        debug: 3
+        // debug: 3
     })
     peer.on('error', console.error)
     peer.on('close', () => console.log('close'))
@@ -48,12 +48,14 @@ getPeerId()
 
         peer.on('connection', (conn) => {
             console.log('got connection')
-            conn.on('open', () => {
-                connections[conn.id] = conn
-                if (phoneNumber) {
-                    sendDetails(conn)
-                }
-            })
+            // conn.on('open', () => {
+            connections[conn.id] = conn
+            if (phoneNumber) {
+                sendDetails(conn)
+            } else {
+                console.log('not sending contact')
+            }
+            // })
             conn.on('close', () => {
                 console.log('connection closed')
                 delete connections[conn.id]
@@ -86,15 +88,19 @@ getPeerId()
         }
 
         function sendDetails(conn) {
-            console.log('sending details')
-            conn.send({
-                // TODO only send on change
-                messageTemplates,
-                contact: {
-                    firstName,
-                    phoneNumber
-                }
-            })
+            console.log('sending details', firstName, phoneNumber)
+            if (conn.open) {
+                conn.send({
+                    // TODO only send on change
+                    messageTemplates,
+                    contact: {
+                        firstName,
+                        phoneNumber
+                    }
+                })
+            } else {
+                conn.once('open', () => sendDetails(conn))
+            }
         }
 
 
