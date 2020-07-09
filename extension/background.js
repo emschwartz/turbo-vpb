@@ -1,10 +1,5 @@
 console.log('Background script loaded')
 
-const messageTemplates = {
-    'No Answer': 'Hi [Their Name], sorry I missed you',
-    'Join Team': 'Thanks [Their Name] for your interest in joining the team'
-}
-
 // TODO more intelligent interval
 setInterval(pingHeroku, 5000)
 
@@ -27,7 +22,6 @@ async function getPeerId() {
 }
 
 async function createPeer(id) {
-    console.log(`http://localhost:8080/#${id}`)
     const peer = new Peer(id, {
         host: 'turbovpb-peerjs-server.herokuapp.com',
         // port: 443,
@@ -36,6 +30,7 @@ async function createPeer(id) {
     })
     peer.on('error', console.error)
     peer.on('close', () => console.log('close'))
+    await browser.storage.local.set({ url: `http://192.168.0.182:8080/#${id}` })
     return peer
 }
 
@@ -88,19 +83,22 @@ getPeerId()
         }
 
         function sendDetails(conn) {
-            console.log('sending details', firstName, phoneNumber)
-            if (conn.open) {
-                conn.send({
-                    // TODO only send on change
-                    messageTemplates,
-                    contact: {
-                        firstName,
-                        phoneNumber
+            browser.storage.local.get(['yourName', 'messageTemplates'])
+                .then(({ yourName, messageTemplates }) => {
+                    if (conn.open) {
+                        conn.send({
+                            // TODO only send on change
+                            messageTemplates: JSON.parse(messageTemplates),
+                            yourName,
+                            contact: {
+                                firstName,
+                                phoneNumber
+                            }
+                        })
+                    } else {
+                        conn.once('open', () => sendDetails(conn))
                     }
                 })
-            } else {
-                conn.once('open', () => sendDetails(conn))
-            }
         }
 
 

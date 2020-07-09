@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="bootstrap.min.css">
+    </link>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand">TurboVPB</a>
+    </nav>
+    <div class="container p-3">
+        <form id="settings">
+            <div class="form-group">
+                <label for="yourName">Your Name</label>
+                <input type="text" class="form-control" id="yourName" placeholder="First Name" />
+            </div>
+            <div>
+                <label>Follow-up Text Messages</label>
+            </div>
+            <input type="text" id="messageLabel1" value="First Message" />
+            <textarea class="form-control" id="messageText1"
+                placeholder="Hi [Their Name], this is [Your Name] from..."></textarea>
+            <br />
+            <input type="text" id="messageLabel2" value="Second Message" />
+            <textarea class="form-control" id="messageText2"
+                placeholder="Another follow-up text message option"></textarea>
+        </form>
+        <div class="col mx-auto">
+            <p id="qrcodeLabel" hidden>
+                Scan this QR code on your phone to start your TurboVPB:
+            </p>
+            <a id="qrcodeLink" target="_blank">
+                <div id="qrcodePlaceholder"></div>
+            </a>
+        </div>
+    </div>
+    <script src="qrcode.js"></script>
+    <script src="popup.js"></script>
+</body>
+
+</html>

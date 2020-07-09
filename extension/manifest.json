@@ -30,6 +30,8 @@
         ]
     },
     "browser_action": {
-        "default_icon": "icon-grey.svg"
+        "default_icon": "phone-outgoing.svg",
+        "default_popup": "popup.html",
+        "browser_style": true
     }
 }

@@ -16,6 +16,7 @@
     <script src="https://unpkg.com/peerjs@1.3.0/dist/peerjs.min.js"></script>
     <script>
         let messageTemplates = {}
+        let yourName = ''
         const remotePeerId = window.location.hash.slice(1)
         let peer
         let conn
@@ -97,6 +98,9 @@
             })
             conn.on('data', (data) => {
                 console.log('got data', data)
+                if (data.yourName) {
+                    yourName = data.yourName
+                }
                 if (data.messageTemplates) {
                     messageTemplates = data.messageTemplates
                 }
@@ -120,13 +124,16 @@
                     while (textMessageLinks.firstChild) {
                         textMessageLinks.removeChild(textMessageLinks.firstChild)
                     }
-                    for (let templateName in messageTemplates) {
+                    for (let { label, message } of messageTemplates) {
                         const a = document.createElement('a')
                         a.className = "btn btn-outline-secondary btn-block p-2 h2"
                         a.role = 'button'
                         a.target = "_blank"
-                        a.href = `sms://${phoneNumber}?&body=${messageTemplates[templateName].replace(/\[their name\]/i, data.contact.firstName)}`
-                        a.innerText = `Send ${templateName} Message`
+                        const messageBody = message
+                            .replace(/\[their name\]/i, data.contact.firstName)
+                            .replace(/\[your name\]/i, yourName)
+                        a.href = `sms://${phoneNumber}?&body=${messageBody}`
+                        a.innerText = `Send ${label}`
                         textMessageLinks.appendChild(a)
                     }
                 }
@@ -141,7 +148,7 @@
 
         <div class="row">
             <div class="col">
-                <h5 id="status" class="alert alert-warning">Status: Not Connected</h5>
+                <h6 id="status" class="alert alert-warning">Status: Not Connected</h6>
             </div>
         </div>
 
