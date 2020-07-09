@@ -1,0 +1,65 @@
+<html>
+
+<body>
+    <script src="https://unpkg.com/peerjs@1.3.0/dist/peerjs.min.js"></script>
+    <script>
+        let messageTemplates = []
+        const peer = new Peer({
+            host: 'localhost',
+            port: 9000,
+            // secure: true,
+            // debug: 3
+        })
+        peer.once('open', () => {
+            console.log('opened')
+            const conn = peer.connect(window.location.hash.slice(1), {
+                serialization: 'json'
+            });
+            conn.once('open', () => {
+                document.getElementById('status').innerText = "Status: Connected"
+                console.log('connection opened')
+            })
+            conn.once('error', (err) => {
+                console.error(err)
+                document.getElementById('status').innerText = `Status: Error (${err.message})`
+            })
+            conn.once('close', () => {
+                console.log('connection closed')
+                document.getElementById('status').innerText = 'Status: Not Connected'
+            })
+            conn.on('data', (data) => {
+                console.log(data)
+                if (data.messageTemplates) {
+                    messageTemplates = data.messageTemplates
+                }
+                if (data.contact) {
+                    document.getElementById('name').innerText = data.contact.firstName
+
+                    document.getElementById('phoneNumber').href = "tel:" + data.contact.phoneNumber
+                    document.getElementById('phoneNumber').innerText = data.contact.phoneNumber
+
+                    // TODO: reuse elements?
+                    const textMessageLinks = document.getElementById('textMessageLinks')
+                    while (textMessageLinks.firstChild) {
+                        textMessageLinks.removeChild(textMessageLinks.firstChild)
+                    }
+                    for (let i = 0; i < messageTemplates.length; i++) {
+                        const p = document.createElement('p')
+                        const a = document.createElement('a')
+                        a.href = `sms://${data.contact.phoneNumber}?body=${messageTemplates[i].replace(/\[their name\]/i, data.contact.firstName)}`
+                        a.innerText = `Send text message ${i + 1}`
+                        p.appendChild(a)
+                        textMessageLinks.appendChild(p)
+                    }
+                }
+            })
+        })
+    </script>
+
+    <h2 id="name"></h2>
+    <p>Call <a href="" target="_blank" id="phoneNumber"></a></p>
+    <div id="textMessageLinks"></div>
+    <h3 id="status">Status: Not Connected</h3>
+</body>
+
+</html>
