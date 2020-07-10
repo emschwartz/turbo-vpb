@@ -36,12 +36,13 @@ browser.storage.local.get(['yourName', 'messageTemplates', 'url'])
         }
         if (url) {
             document.getElementById('qrcodeLabel').removeAttribute('hidden')
-            const qr = qrcode(0, 'L')
+            const qr = qrcode(0, 'H')
             qr.addData(url)
             qr.make()
             document.getElementById('qrcodeLink').href = url
             document.getElementById('qrcodePlaceholder').innerHTML = qr.createSvgTag({
-                cellSize: 5
+                cellSize: 4,
+                margin: 0
             })
         }
     })
