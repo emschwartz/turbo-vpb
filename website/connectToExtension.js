@@ -49,14 +49,19 @@ function connectPeer() {
         peer.on('disconnect', connectPeer)
         peer.on('error', (err) => {
             console.error(err)
-            connectPeer()
+            setStatus('Error (Cannot connect to extension. Try re-opening the QR code or link from the extension.)', 'danger')
         })
-        peer.once('open', establishConnection)
-    }
-    if (peer.disconnected) {
+        peer.once('open', () => {
+            opened = true
+            establishConnection()
+        })
+    } else if (peer.disconnected) {
         console.log('peer was disconnected')
         peer.reconnect()
-        peer.once('open', establishConnection)
+        peer.once('open', () => {
+            opened = true
+            establishConnection()
+        })
     }
 }
 
