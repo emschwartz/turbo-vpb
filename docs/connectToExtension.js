@@ -56,6 +56,7 @@ function connectPeer() {
             establishConnection()
         })
     } else if (peer.disconnected) {
+        setStatus('Not connected', 'warning')
         console.log('peer was disconnected')
         peer.reconnect()
         peer.once('open', () => {
