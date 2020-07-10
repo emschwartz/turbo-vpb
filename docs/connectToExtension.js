@@ -41,8 +41,8 @@ function connectPeer() {
         setStatus('Connecting to server...', 'warning')
         console.log('creating new peer')
         peer = new Peer({
+            // host: 'peerjs.turbovpb.com',
             host: 'turbovpb-peerjs-server.herokuapp.com',
-            // port: 9000,
             secure: true,
             // debug: 3
         })

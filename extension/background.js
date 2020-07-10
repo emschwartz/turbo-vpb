@@ -1,12 +1,5 @@
 console.log('Background script loaded')
 
-// TODO more intelligent interval
-setInterval(pingHeroku, 5000)
-
-function pingHeroku() {
-    window.fetch('https://turbovpb-peerjs-server.herokuapp.com')
-}
-
 async function getPeerId() {
     let { peerId } = await browser.storage.local.get('peerId')
 
@@ -23,14 +16,20 @@ async function getPeerId() {
 
 async function createPeer(id) {
     const peer = new Peer(id, {
+        // Note this uses the herokuapp domain because
+        // configuring a custom domain with SSL requires
+        // a paid plan.
+        // Google Appengine does it for free but doesn't
+        // support websockets on the standard environment.
         host: 'turbovpb-peerjs-server.herokuapp.com',
-        // port: 443,
+        // host: 'peerjs.turbovpb.com',
+        path: '/',
         secure: true,
         // debug: 3
     })
     peer.on('error', console.error)
     peer.on('close', () => console.log('close'))
-    await browser.storage.local.set({ url: `http://192.168.0.182:8080/#${id}` })
+    await browser.storage.local.set({ url: `https://turbovpb.com/#${id}` })
     return peer
 }
 

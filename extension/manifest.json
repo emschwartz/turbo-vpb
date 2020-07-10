@@ -9,6 +9,8 @@
         "webRequest",
         "webRequestBlocking",
         "https://api.securevan.com/*",
+        "*://*.turbovpb.com/*",
+        "*://turbovpb.com/*",
         "*://turbovpb-peerjs-server.herokuapp.com/*"
     ],
     "content_scripts": [
