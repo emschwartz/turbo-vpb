@@ -9,8 +9,7 @@
         "webRequest",
         "webRequestBlocking",
         "https://api.securevan.com/*",
-        "*://turbovpb-peerjs-server.herokuapp.com/*",
-        "<all_urls>"
+        "*://turbovpb-peerjs-server.herokuapp.com/*"
     ],
     "content_scripts": [
         {
@@ -29,9 +28,13 @@
             "background.js"
         ]
     },
-    "browser_action": {
+    "page_action": {
         "default_icon": "phone-outgoing.svg",
         "default_popup": "popup.html",
-        "browser_style": true
+        "browser_style": true,
+        "show_matches": [
+            "https://openvpb.com/*",
+            "https://*.openvpb.com/*"
+        ]
     }
 }
