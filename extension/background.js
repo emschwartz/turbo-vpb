@@ -29,7 +29,7 @@ async function createPeer(id) {
     })
     peer.on('error', console.error)
     peer.on('close', () => console.log('close'))
-    await browser.storage.local.set({ url: `https://turbovpb.com/#${id}` })
+    await browser.storage.local.set({ url: `https://turbovpb.com/connect#${id}` })
     return peer
 }
 

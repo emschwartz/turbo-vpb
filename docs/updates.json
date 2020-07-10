@@ -1,0 +1,10 @@
+{
+    "addons": {
+        "updates": [
+            {
+                "version": "0.1.0",
+                "update_link": "https://turbovpb.com/downloads/turbovpb-0.1.0-fx.xpi"
+            }
+        ]
+    }
+}

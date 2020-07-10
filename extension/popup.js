@@ -25,14 +25,16 @@ browser.storage.local.get(['yourName', 'messageTemplates', 'url'])
         if (yourName) {
             document.getElementById('yourName').value = yourName
         }
-        messageTemplates = JSON.parse(messageTemplates)
-        if (messageTemplates && messageTemplates.length >= 1) {
-            document.getElementById('messageLabel1').value = messageTemplates[0].label
-            document.getElementById('messageText1').value = messageTemplates[0].message
-        }
-        if (messageTemplates && messageTemplates.length >= 2) {
-            document.getElementById('messageLabel2').value = messageTemplates[1].label
-            document.getElementById('messageText2').value = messageTemplates[1].message
+        if (messageTemplates) {
+            messageTemplates = JSON.parse(messageTemplates)
+            if (messageTemplates && messageTemplates.length >= 1) {
+                document.getElementById('messageLabel1').value = messageTemplates[0].label
+                document.getElementById('messageText1').value = messageTemplates[0].message
+            }
+            if (messageTemplates && messageTemplates.length >= 2) {
+                document.getElementById('messageLabel2').value = messageTemplates[1].label
+                document.getElementById('messageText2').value = messageTemplates[1].message
+            }
         }
         if (url) {
             document.getElementById('qrcodeLabel').removeAttribute('hidden')

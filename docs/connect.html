@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="bootstrap.min.css">
+</head>
+
+<body>
+    <script src="peerjs.min.js"></script>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand">TurboVPB</a>
+    </nav>
+    <div class="container-sm p-3" id="warningContainer" hidden>
+        <div class="alert alert-danger text-justify">
+            <h4 class="alert-heading">
+                Uh oh! Looks like something went wrong
+            </h4>
+            <p>
+                In order for this page to work, you need to
+                copy the full URL including the # sign with the
+                random-looking letters after it. Try scanning
+                the QR code from the extension on your phone.
+            </p>
+        </div>
+    </div>
+    <div class="container-sm p-3" id="mainContainer">
+
+        <div class="row">
+            <div class="col">
+                <h6 id="status" class="alert alert-warning">Status: Not Connected</h6>
+            </div>
+        </div>
+
+        <div id="instructions" class="alert alert-info text-justify">
+            <h4 class="alert-heading">
+                Login to OpenVPB on your computer to start calling.
+            </h4>
+            <p>
+                When a contact is loaded in your browser
+                with the TurboVPB extension, the extension will send
+                the contact details here.
+            </p>
+        </div>
+        <div id="contactDetails" class="row fixed-bottom pb-3 m-auto" hidden>
+            <div class="col"></div>
+            <div class="col-md">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 id="name" class="card-title"></h2>
+                        <a href="" target="_blank" id="phoneNumber" class="btn btn-primary btn-lg btn-block h2"></a>
+                        <div id="textMessageLinks"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col"></div>
+        </div>
+
+    </div>
+    <script src="connectToExtension.js"></script>
+
+</body>
+
+</html>

@@ -8,10 +8,9 @@
         "activeTab",
         "webRequest",
         "webRequestBlocking",
-        "https://api.securevan.com/*",
         "*://*.turbovpb.com/*",
-        "*://turbovpb.com/*",
-        "*://turbovpb-peerjs-server.herokuapp.com/*"
+        "*://turbovpb-peerjs-server.herokuapp.com/*",
+        "https://api.securevan.com/*"
     ],
     "content_scripts": [
         {
@@ -30,13 +29,14 @@
             "background.js"
         ]
     },
-    "page_action": {
+    "browser_action": {
         "default_icon": "phone-outgoing.svg",
         "default_popup": "popup.html",
-        "browser_style": true,
-        "show_matches": [
-            "https://openvpb.com/*",
-            "https://*.openvpb.com/*"
-        ]
+        "browser_style": true
+    },
+    "browser_specific_settings": {
+        "gecko": {
+            "update_url": "https://turbovpb.com/updates.json"
+        }
     }
 }

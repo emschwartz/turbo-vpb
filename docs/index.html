@@ -8,59 +8,71 @@
 </head>
 
 <body>
-    <script src="peerjs.min.js"></script>
-
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <a class="navbar-brand">TurboVPB</a>
     </nav>
-    <div class="container-sm p-3" id="warningContainer" hidden>
-        <div class="alert alert-danger text-justify">
-            <h4 class="alert-heading">
-                Uh oh! Looks like something went wrong
-            </h4>
-            <p>
-                In order for this page to work, you need to
-                copy the full URL including the # sign with the
-                random-looking letters after it. Try scanning
-                the QR code from the extension on your phone.
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4 mx-auto text-centered">Turbocharge OpenVPB Phonebanking</h1>
+            <p class="lead mx-auto text-centered">
+                TurboVPB is a Firefox Extension that speeds up
+                <a href="https://openvpb.com">OpenVPB</a> phonebanking.
+                It automatically sends contact details to your phone so you can
+                make more calls instead of wasting time typing in phone numbers.
             </p>
+            <a class="btn btn-primary btn-lg" id="downloadLink">
+                Install Firefox Extension
+                <span class="badge badge-light">beta</span>
+            </a>
         </div>
     </div>
-    <div class="container-sm p-3" id="mainContainer">
-
+    <div class="container">
         <div class="row">
-            <div class="col">
-                <h6 id="status" class="alert alert-warning">Status: Not Connected</h6>
+            <div class="col-md"></div>
+            <div class="col-md-6">
+                <h3>Getting Started</h3>
+                <p>Once you have the extension installed:</p>
+                <ol>
+                    <li>Login to an OpenVPB phone bank</li>
+                    <li>Click TurboVPB icon in the toolbar to open the settings</li>
+                    <li>Scan the QR code on your phone to open the TurboVPB link</li>
+                    <li>Now, when you load each contact, the TurboVPB page on your phone will have links to quickly call
+                        each contact and send follow-up text messages</li>
+                </ol>
             </div>
+            <div class="col-md"></div>
         </div>
-
-        <div id="instructions" class="alert alert-info text-justify">
-            <h4 class="alert-heading">
-                Login to OpenVPB on your computer to start calling.
-            </h4>
-            <p>
-                When a contact is loaded in your browser
-                with the TurboVPB extension, the extension will send
-                the contact details here.
-            </p>
-        </div>
-        <div id="contactDetails" class="row fixed-bottom pb-3 m-auto" hidden>
-            <div class="col"></div>
-            <div class="col-md">
-                <div class="card">
-                    <div class="card-body">
-                        <h2 id="name" class="card-title"></h2>
-                        <a href="" target="_blank" id="phoneNumber" class="btn btn-primary btn-lg btn-block h2"></a>
-                        <div id="textMessageLinks"></div>
-                    </div>
-                </div>
+        <div class="row">
+            <div class="col-md"></div>
+            <div class="col-md-6">
+                <h3>How it works</h3>
+                <p>TurboVPB uses
+                    <a href="https://peerjs.com">PeerJS</a>, based on <a href="https://webrtc.org">WebRTC</a>,
+                    to connect the browser extension and the
+                    website opened on your phone.
+                    Contact details are sent directly from your browser to your phone.
+                    They are never sent to TurboVPB.
+                </p>
+                <p>
+                    TurboVPB turns contact details into <code>tel:</code> and <code>sms:</code> links
+                    that are automatically handled by the phone and messaging apps
+                    on your phone.
+                </p>
             </div>
-            <div class="col"></div>
+            <div class="col-md"></div>
         </div>
-
     </div>
-    <script src="connectToExtension.js"></script>
-
+    <script>
+        fetch('updates.json')
+            .then((response) => response.json())
+            .then((manifest) => {
+                const updates = manifest.addons.updates
+                const latest = updates[updates.length - 1]
+                const latestLink = latest.update_link
+                document.getElementById('downloadLink').href = latestLink
+            })
+    </script>
 </body>
 
 </html>
