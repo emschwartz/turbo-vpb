@@ -88,7 +88,7 @@ getPeerId()
                     if (conn.open) {
                         conn.send({
                             // TODO only send on change
-                            messageTemplates: JSON.parse(messageTemplates),
+                            messageTemplates: messageTemplates ? JSON.parse(messageTemplates) : null,
                             yourName,
                             contact: {
                                 firstName,
@@ -104,6 +104,7 @@ getPeerId()
 
 
         function handleContact(contact) {
+            console.log('got new contact')
             if (phoneNumber === contact.preferredPhone) {
                 return
             }

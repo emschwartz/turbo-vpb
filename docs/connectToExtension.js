@@ -1,4 +1,4 @@
-let messageTemplates = {}
+let messageTemplates = []
 let yourName = ''
 
 let peer
@@ -134,6 +134,7 @@ function establishConnection() {
                 a.innerText = `Send ${label}`
                 textMessageLinks.appendChild(a)
             }
+            document.getElementById('phoneNumber').click()
         }
     })
 }
