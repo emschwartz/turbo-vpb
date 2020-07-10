@@ -39,6 +39,7 @@ getPeerId()
     .then((peer) => {
         let phoneNumber
         let firstName
+        let lastName
         const connections = {}
 
         peer.on('connection', (conn) => {
@@ -92,6 +93,7 @@ getPeerId()
                             yourName,
                             contact: {
                                 firstName,
+                                lastName,
                                 phoneNumber
                             }
                         })
@@ -109,6 +111,7 @@ getPeerId()
 
             phoneNumber = contact.preferredPhone
             firstName = contact.targets[0].targetPerson.salutation
+            lastName = contact.targets[0].targetPerson.lastName
 
             for (let conn of Object.values(connections)) {
                 if (conn.open) {
