@@ -17,23 +17,26 @@ if (remotePeerId) {
 function connectToExtension() {
     connectPeer()
 
-    // Based on https://stackoverflow.com/a/35215953
-    // this uses multiple methods to detect when the page may have been
-    // put to sleep by the browser and then reopened
     window.addEventListener('focus', connectPeer)
     window.addEventListener('pageshow', connectPeer)
-    window.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
+
+    let visibilityChange
+    let hidden
+    if (typeof document.hidden !== "undefined") {
+        hidden = "hidden";
+        visibilityChange = "visibilitychange";
+    } else if (typeof document.msHidden !== "undefined") {
+        hidden = "msHidden";
+        visibilityChange = "msvisibilitychange";
+    } else if (typeof document.webkitHidden !== "undefined") {
+        hidden = "webkitHidden";
+        visibilityChange = "webkitvisibilitychange";
+    }
+    window.addEventListener(visibilityChange, () => {
+        if (!document[hidden]) {
             connectPeer()
         }
     })
-}
-
-function checkTime() {
-    if (Date.now() - lastTimeCheck > 5000) {
-        connectPeer()
-    }
-    setTimeout(checkTime, 500)
 }
 
 function setStatus(status, alertType) {
