@@ -87,6 +87,13 @@ function contactApiListener(details) {
         firstName = contact.targets[0].targetPerson.salutation
         lastName = contact.targets[0].targetPerson.lastName
 
+        setTimeout(() => {
+            console.log('expiring contact details')
+            phoneNumber = ''
+            firstName = ''
+            lastName = ''
+        }, 1800000)
+
         for (let conn of Object.values(connections)) {
             sendDetails(conn)
         }
