@@ -3,6 +3,8 @@
     "name": "TurboVPB",
     "version": "0.1.2",
     "description": "Make OpenVPB more efficient",
+    "author": "Evan Schwartz",
+    "homepage_url": "https://turbovpb.com",
     "permissions": [
         "storage",
         "activeTab",
@@ -13,6 +15,10 @@
         "https://api.securevan.com/*",
         "https://*.openvpb.com/*"
     ],
+    "icons": {
+        "48": "phone-outgoing.svg",
+        "96": "phone-outgoing.svg"
+    },
     "content_scripts": [
         {
             "matches": [

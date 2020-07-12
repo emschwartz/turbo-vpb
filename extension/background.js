@@ -1,6 +1,17 @@
 console.log('Background script loaded')
 
-async function getPeerId() {
+let peer
+let connections = {}
+let phoneNumber
+let firstName
+let lastName
+
+async function createPeer() {
+    if (peer && !peer.disconnected) {
+        console.log('peer already connected')
+        return
+    }
+
     let { peerId } = await browser.storage.local.get('peerId')
 
     if (!peerId) {
@@ -11,11 +22,8 @@ async function getPeerId() {
         await browser.storage.local.set({ peerId })
     }
 
-    return peerId
-}
-
-async function createPeer(id) {
-    const peer = new Peer(id, {
+    console.log('creating peer')
+    peer = new Peer(peerId, {
         // Note this uses the herokuapp domain because
         // configuring a custom domain with SSL requires
         // a paid plan.
@@ -27,105 +35,101 @@ async function createPeer(id) {
         secure: true,
         // debug: 3
     })
+    connections = {}
+
     peer.on('error', console.error)
     peer.on('close', () => console.log('close'))
-    await browser.storage.local.set({ url: `https://turbovpb.com/connect#${id}` })
-    return peer
+
+    peer.on('connection', (conn) => {
+        console.log('got connection')
+        // conn.on('open', () => {
+        connections[conn.id] = conn
+        if (phoneNumber) {
+            sendDetails(conn)
+        } else {
+            console.log('not sending contact')
+        }
+        // })
+        conn.on('close', () => {
+            console.log('connection closed')
+            delete connections[conn.id]
+        })
+        conn.on('error', (err) => {
+            console.log('connection error', err)
+            delete connections[conn.id]
+        })
+    })
+
+    await browser.storage.local.set({ url: `https://turbovpb.com/connect#${peerId}` })
 }
 
-getPeerId()
-    .then(createPeer)
-    .then((peer) => {
-        let phoneNumber
-        let firstName
-        let lastName
-        const connections = {}
+function contactApiListener(details) {
+    if (details.method !== 'GET') {
+        return
+    }
+    let filter = browser.webRequest.filterResponseData(details.requestId);
+    let decoder = new TextDecoder("utf-8");
+    let responseString = ""
 
-        peer.on('connection', (conn) => {
-            console.log('got connection')
-            // conn.on('open', () => {
-            connections[conn.id] = conn
-            if (phoneNumber) {
-                sendDetails(conn)
-            } else {
-                console.log('not sending contact')
-            }
-            // })
-            conn.on('close', () => {
-                console.log('connection closed')
-                delete connections[conn.id]
-            })
-            conn.on('error', (err) => {
-                console.log('connection error', err)
-                delete connections[conn.id]
-            })
-        })
-
-        function contactApiListener(details) {
-            if (details.method !== 'GET') {
-                return
-            }
-            let filter = browser.webRequest.filterResponseData(details.requestId);
-            let decoder = new TextDecoder("utf-8");
-            let responseString = ""
-
-            filter.ondata = event => {
-                responseString += decoder.decode(event.data, { stream: true })
-                filter.write(event.data);
-            }
-            filter.onstop = event => {
-                const response = JSON.parse(responseString)
-                handleContact(response)
-                filter.disconnect()
-            }
-
-            return {};
+    filter.ondata = event => {
+        responseString += decoder.decode(event.data, { stream: true })
+        filter.write(event.data);
+    }
+    filter.onstop = event => {
+        const contact = JSON.parse(responseString)
+        filter.disconnect()
+        if (phoneNumber === contact.preferredPhone) {
+            return
         }
+        console.log('got new contact')
 
-        function sendDetails(conn) {
-            browser.storage.local.get(['yourName', 'messageTemplates'])
-                .then(({ yourName, messageTemplates }) => {
-                    if (conn.open) {
-                        conn.send({
-                            // TODO only send on change
-                            messageTemplates: messageTemplates ? JSON.parse(messageTemplates) : null,
-                            yourName,
-                            contact: {
-                                firstName,
-                                lastName,
-                                phoneNumber
-                            }
-                        })
-                    } else {
-                        conn.once('open', () => sendDetails(conn))
+        phoneNumber = contact.preferredPhone
+        firstName = contact.targets[0].targetPerson.salutation
+        lastName = contact.targets[0].targetPerson.lastName
+
+        for (let conn of Object.values(connections)) {
+            sendDetails(conn)
+        }
+    }
+
+    return {};
+}
+
+function sendDetails(conn) {
+    browser.storage.local.get(['yourName', 'messageTemplates'])
+        .then(({ yourName, messageTemplates }) => {
+            if (conn.open) {
+                conn.send({
+                    // TODO only send on change
+                    messageTemplates: messageTemplates ? JSON.parse(messageTemplates) : null,
+                    yourName,
+                    contact: {
+                        firstName,
+                        lastName,
+                        phoneNumber
                     }
                 })
-        }
-
-
-        function handleContact(contact) {
-            console.log('got new contact')
-            if (phoneNumber === contact.preferredPhone) {
-                return
+            } else {
+                conn.once('open', () => sendDetails(conn))
             }
+        })
+}
 
-            phoneNumber = contact.preferredPhone
-            firstName = contact.targets[0].targetPerson.salutation
-            lastName = contact.targets[0].targetPerson.lastName
+createPeer()
 
-            for (let conn of Object.values(connections)) {
-                if (conn.open) {
-                    sendDetails(conn)
-                }
-            }
-        }
+browser.webRequest.onBeforeRequest.addListener(
+    contactApiListener,
+    {
+        urls: ["https://api.securevan.com/*/nextTarget*"],
+        types: ["xmlhttprequest"]
+    },
+    ["blocking"]
+);
 
-        browser.webRequest.onBeforeRequest.addListener(
-            contactApiListener,
-            {
-                urls: ["https://api.securevan.com/*/nextTarget*"],
-                types: ["xmlhttprequest"]
-            },
-            ["blocking"]
-        );
-    })
+browser.webRequest.onBeforeRequest.addListener(
+    createPeer,
+    {
+        urls: ["https://*.openvpb.com/*"],
+        types: ["main_frame"]
+    }
+)
