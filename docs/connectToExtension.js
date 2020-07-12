@@ -4,6 +4,8 @@ let yourName = ''
 let peer
 let conn
 
+let lastTimeCheck
+
 const remotePeerId = window.location.hash.slice(1)
 if (remotePeerId) {
     connectToExtension()
@@ -14,10 +16,21 @@ if (remotePeerId) {
 
 function connectToExtension() {
     connectPeer()
-    window.addEventListener('focus', () => {
-        console.log('window focused')
-        connectPeer()
-    })
+
+    // Based on https://stackoverflow.com/a/35215953
+    // this uses multiple methods to detect when the page may have been
+    // put to sleep by the browser and then reopened
+    window.addEventListener('focus', connectPeer)
+    window.addEventListener('pageshow', connectPeer)
+    document.addEventListener('visibilitychange', connectPeer)
+
+    lastTimeCheck = Date.now()
+    setInterval(() => {
+        if (Date.now() - lastTimeCheck > 5000) {
+            connectPeer()
+        }
+        lastTimeCheck = Date.now()
+    }, 500)
 }
 
 function setStatus(status, alertType) {
