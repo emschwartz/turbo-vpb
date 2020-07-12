@@ -138,7 +138,7 @@ function establishConnection() {
             }
             for (let { label, message } of messageTemplates) {
                 const a = document.createElement('a')
-                a.className = "btn btn-outline-secondary btn-block p-2 h2"
+                a.className = "btn btn-outline-secondary btn-block p-3 my-3"
                 a.role = 'button'
                 a.target = "_blank"
                 const messageBody = message
