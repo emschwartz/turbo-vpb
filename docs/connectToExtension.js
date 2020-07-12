@@ -22,15 +22,18 @@ function connectToExtension() {
     // put to sleep by the browser and then reopened
     window.addEventListener('focus', connectPeer)
     window.addEventListener('pageshow', connectPeer)
-    document.addEventListener('visibilitychange', connectPeer)
-
-    lastTimeCheck = Date.now()
-    setInterval(() => {
-        if (Date.now() - lastTimeCheck > 5000) {
+    window.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
             connectPeer()
         }
-        lastTimeCheck = Date.now()
-    }, 500)
+    })
+}
+
+function checkTime() {
+    if (Date.now() - lastTimeCheck > 5000) {
+        connectPeer()
+    }
+    setTimeout(checkTime, 500)
 }
 
 function setStatus(status, alertType) {
