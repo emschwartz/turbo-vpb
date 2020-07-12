@@ -9,6 +9,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://turbovpb.com" />
     <meta property="og:description" content="Turbocharge EveryAction's Open Virtual Phone Bank (OpenVPB)" />
+    <meta property="og:image" content="https://turbovpb.com/phone-outgoing.svg" />
 </head>
 
 <body>
@@ -88,7 +89,7 @@
         fetch('updates.json')
             .then((response) => response.json())
             .then((manifest) => {
-                const updates = manifest.addons.updates
+                const updates = manifest.addons["{5ac6de74-7640-4236-a7ed-e19b356b666b}"].updates
                 const latest = updates[updates.length - 1]
                 const latestLink = latest.update_link
                 document.getElementById('downloadLink').href = latestLink
