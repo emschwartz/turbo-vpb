@@ -1,10 +1,14 @@
 console.log('Background script loaded')
 
+const SESSION_TIMEOUT = 1800000
+const SUCCESSFUL_CALL_MIN_DURATION = 60000
+
 let peer
 let connections = {}
 let phoneNumber
 let firstName
 let lastName
+let stats
 
 async function createPeer() {
     if (peer && !peer.disconnected) {
@@ -86,13 +90,13 @@ function contactApiListener(details) {
         phoneNumber = contact.preferredPhone
         firstName = contact.targets[0].targetPerson.salutation
         lastName = contact.targets[0].targetPerson.lastName
+        stats.calls += 1
+        if (Date.now() - lastContactLoadTime >= SUCCESSFUL_CALL_MIN_DURATION) {
+            stats.successfulCalls += 1
+        }
+        stats.lastContactLoadTime = Date.now()
 
-        setTimeout(() => {
-            console.log('expiring contact details')
-            phoneNumber = ''
-            firstName = ''
-            lastName = ''
-        }, 1800000)
+        setTimeout(() => resetSession, SESSION_TIMEOUT)
 
         for (let conn of Object.values(connections)) {
             sendDetails(conn)
@@ -114,7 +118,8 @@ function sendDetails(conn) {
                         firstName,
                         lastName,
                         phoneNumber
-                    }
+                    },
+                    stats
                 })
             } else {
                 conn.once('open', () => sendDetails(conn))
@@ -122,6 +127,20 @@ function sendDetails(conn) {
         })
 }
 
+function resetSession() {
+    firstName = ''
+    lastName = ''
+    phoneNumber = ''
+    stats = {
+        // Start at -1 because it will count contacts loaded (rather than calls completed)
+        calls: -1,
+        successfulCalls: 0,
+        startTime: Date.now(),
+        lastContactLoadTime: Date.now()
+    }
+}
+
+resetSession()
 createPeer()
 
 browser.webRequest.onBeforeRequest.addListener(
@@ -134,7 +153,12 @@ browser.webRequest.onBeforeRequest.addListener(
 );
 
 browser.webRequest.onBeforeRequest.addListener(
-    createPeer,
+    () => {
+        if (Date.now() - stats.lastContactLoadTime > SESSION_TIMEOUT) {
+            resetSession()
+        }
+        createPeer()
+    },
     {
         urls: ["https://*.openvpb.com/*"],
         types: ["main_frame"]

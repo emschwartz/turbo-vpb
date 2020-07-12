@@ -16,6 +16,7 @@
                 <path fill-rule="evenodd"
                     d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
             </svg> TurboVPB</a>
+        <span id="status" class="badge badge-warning ml-auto">Not Connected</span>
     </nav>
     <div class="container-sm p-3" id="warningContainer" hidden>
         <div class="alert alert-danger text-justify">
@@ -32,12 +33,6 @@
     </div>
     <div class="container-sm p-3" id="mainContainer">
 
-        <div class="row">
-            <div class="col">
-                <h6 id="status" class="alert alert-warning">Status: Not Connected</h6>
-            </div>
-        </div>
-
         <div id="instructions" class="alert alert-info text-justify">
             <h4 class="alert-heading">
                 Login to OpenVPB on your computer to start calling.
@@ -48,21 +43,43 @@
                 the contact details here.
             </p>
         </div>
-        <div id="contactDetails" class="row fixed-bottom pb-3 m-auto" hidden>
-            <div class="col"></div>
-            <div class="col-md">
-                <div class="card">
-                    <div class="card-body">
-                        <h2 id="name" class="card-title"></h2>
-                        <a href="" target="_blank" id="phoneNumber"
-                            class="btn btn-primary btn-lg btn-block p-3 my-3 h2"></a>
-                        <div id="textMessageLinks"></div>
-                    </div>
+
+        <div id="statistics" class="text-center mt-2 container" hidden>
+            <h4 class="card-title"><span id="numCalls">0 Calls</span></h4>
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <td>Calls Longer Than 1 Min</td>
+                        <td id="sucessfulCalls">0</td>
+                    </tr>
+                    <tr>
+                        <td>Avg Time Per Contact</td>
+                        <td id="avgCallTime">00:00</td>
+                    </tr>
+                    <tr>
+                        <td>Total Session Time</td>
+                        <td id="sessionTime">00:00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <div id="contactDetails" class="row mt-auto p-1 fixed-bottom" hidden>
+        <div class="col"></div>
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <h2 id="name" class="card-title"></h2>
+                    <a href="" target="_blank" id="phoneNumber"
+                        class="btn btn-primary btn-lg btn-block p-3 my-3 h2"></a>
+                    <div id="textMessageLinks"></div>
                 </div>
             </div>
-            <div class="col"></div>
         </div>
     </div>
+    <div class="col"></div>
     <script src="connectToExtension.js"></script>
 
 </body>

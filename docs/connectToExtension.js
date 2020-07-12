@@ -4,7 +4,8 @@ let yourName = ''
 let peer
 let conn
 
-let lastTimeCheck
+let startTime = Date.now()
+let lastTimeCheck = Date.now()
 
 const remotePeerId = window.location.hash.slice(1)
 if (remotePeerId) {
@@ -37,13 +38,23 @@ function connectToExtension() {
             connectPeer()
         }
     })
+
+    checkTime()
+}
+
+function checkTime() {
+    if (Date.now() - lastTimeCheck > 5000) {
+        connectPeer()
+    }
+    lastTimeCheck = Date.now()
+    setTimeout(checkTime, 500)
 }
 
 function setStatus(status, alertType) {
     if (document.readyState === 'complete') {
         const statusElement = document.getElementById('status')
-        statusElement.innerText = `Status: ${status}`
-        statusElement.className = statusElement.className.replace(/alert-\w+/, `alert-${alertType}`)
+        statusElement.innerText = status
+        statusElement.className = statusElement.className.replace(/badge-\w+/, `badge-${alertType}`)
     } else {
         function listener() {
             if (document.readyState === 'complete') {
@@ -57,7 +68,7 @@ function setStatus(status, alertType) {
 
 function connectPeer() {
     if (!peer || peer.destroyed) {
-        setStatus('Connecting to server...', 'warning')
+        setStatus('Connecting to server', 'warning')
         console.log('creating new peer')
         peer = new Peer({
             // host: 'peerjs.turbovpb.com',
@@ -68,14 +79,14 @@ function connectPeer() {
         peer.on('disconnect', connectPeer)
         peer.on('error', (err) => {
             console.error(err)
-            setStatus('Error (Cannot connect to extension. Try re-opening the QR code or link from the extension.)', 'danger')
+            setStatus('Error. Reload Tab.', 'danger')
         })
         peer.once('open', () => {
             opened = true
             establishConnection()
         })
     } else if (peer.disconnected) {
-        setStatus('Not connected', 'warning')
+        setStatus('Not Connected', 'warning')
         console.log('peer was disconnected')
         peer.reconnect()
         peer.once('open', () => {
@@ -92,8 +103,12 @@ function establishConnection() {
         setStatus('Connected', 'success')
         return
     }
+    // Update session time
+    setInterval(() => {
+        document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
+    }, 1000)
 
-    setStatus('Connecting to extension...', 'warning')
+    setStatus('Connecting to Extension', 'warning')
     conn = peer.connect(remotePeerId, {
         serialization: 'json'
     })
@@ -104,7 +119,7 @@ function establishConnection() {
     conn.once('error', (err) => {
         console.error(err)
         conn = null
-        setStatus(`Error (${err.message})`, 'danger')
+        setStatus('Error. Reload Tab.', 'danger')
     })
     conn.once('close', () => {
         setStatus('Not Connected', 'danger')
@@ -124,6 +139,7 @@ function establishConnection() {
         }
         if (data.contact) {
             document.getElementById('contactDetails').hidden = false
+            document.getElementById('statistics').hidden = false
             document.getElementById('instructions').hidden = true
 
             console.log(data.contact)
@@ -156,5 +172,40 @@ function establishConnection() {
             }
             document.getElementById('phoneNumber').click()
         }
+
+        if (data.stats) {
+            if (data.stats.startTime) {
+                startTime = data.stats.startTime
+            }
+            if (data.stats.numCalls && data.stats.numCalls > 0) {
+                document.getElementById('numCalls').innerText = `${data.stats.numCalls} Call${data.stats.numCalls > 1 ? 's' : ''}`
+                document.getElementById('avgCallTime').innerText = msToTimeString((Date.now() - startTime) / data.stats.numCalls)
+            }
+            if (data.stats.successfulCalls) {
+                document.getElementById('successfulCalls').innerText = data.stats.successfulCalls
+            }
+        }
     })
+}
+
+function msToTimeString(ms) {
+    let time = ''
+    const hours = Math.floor(ms / 3600000)
+    const min = Math.floor((ms % 3600000) / 60000)
+    const sec = Math.floor((ms % 60000) / 1000)
+    if (hours > 0) {
+        time += hours + ':'
+    }
+    if (min < 10) {
+        time += '0' + min
+    } else {
+        time += min
+    }
+    time += ':'
+    if (sec < 10) {
+        time += '0' + sec
+    } else {
+        time += sec
+    }
+    return time
 }
