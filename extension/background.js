@@ -1,33 +1,50 @@
-console.log('Background script loaded')
+const peers = {}
 
-const SESSION_TIMEOUT = 1800000
-const SUCCESSFUL_CALL_MIN_DURATION = 60000
-
-let peer
-let connections = {}
-let phoneNumber
-let firstName
-let lastName
-let stats
-
-async function createPeer() {
-    if (peer && !peer.disconnected) {
-        console.log('peer already connected')
+browser.runtime.onMessage.addListener((message, sender) => {
+    if (typeof message !== 'object') {
+        console.log('got message that was not an object', message)
         return
     }
 
-    let { peerId } = await browser.storage.local.get('peerId')
+    if (message.type === 'connect') {
+        const peerId = message.peerId
+        createPeer(peerId, sender.tab.id)
+    } else if (message.type === 'contact') {
+        const peerId = message.peerId
+        createPeer(peerId, sender.tab.id)
 
-    if (!peerId) {
-        const array = new Uint8Array(16)
-        crypto.getRandomValues(array)
-        peerId = [...array].map(byte => byte.toString(16).padStart(2, '0')).join('')
-        console.log('Using new peerId:', peerId)
-        await browser.storage.local.set({ peerId })
+        const connections = Object.values(peers[peerId].connections)
+        for (let conn of connections) {
+            console.log('sending contact to peer', peerId)
+            if (conn.open) {
+                conn.send(message.data)
+            } else {
+                conn.once('open', () => {
+                    conn.send(message.data)
+                })
+            }
+        }
+        if (connections.length === 0) {
+            console.log('not sending contact because there is no open connection for peer', peerId)
+        }
+    } else {
+        console.log('got unexpected message', message)
+    }
+})
+
+function createPeer(peerId, tabId) {
+    if (peers[peerId]) {
+        // TODO reconnect
+        return
     }
 
-    console.log('creating peer', peerId)
-    peer = new Peer(peerId, {
+    console.log(`creating peer ${peerId} for tab ${tabId}`)
+
+    // Note that PeerJS peers are created in the background script instead
+    // of in the content_script because loading the peerjs.js script as
+    // part of the content_script caused an error. It complained about the
+    // webrtc-adapter peerjs is using internally trying to set a read-only property
+    const peer = new Peer(peerId, {
         // Note this uses the herokuapp domain because
         // configuring a custom domain with SSL requires
         // a paid plan.
@@ -39,131 +56,45 @@ async function createPeer() {
         secure: true,
         // debug: 3
     })
-    connections = {}
+    const connections = {}
 
-    peer.on('error', console.error)
-    peer.on('close', () => console.log('close'))
+    peers[peerId] = {
+        peer,
+        tabId,
+        connections
+    }
 
-    peer.on('connection', (conn) => {
-        console.log('got connection')
-        // conn.on('open', () => {
-        connections[conn.id] = conn
-        if (phoneNumber) {
-            sendDetails(conn)
-        } else {
-            console.log('not sending contact')
-        }
-        // })
-        conn.on('close', () => {
-            console.log('connection closed')
-            delete connections[conn.id]
-        })
-        conn.on('error', (err) => {
-            console.log('connection error', err)
-            delete connections[conn.id]
-        })
+    peer.on('open', () => console.log(`peer ${peerId} listening for connections`))
+    peer.on('error', (err) => {
+        delete peers[peerId]
+        console.error(err)
+    })
+    peer.on('close', () => {
+        delete peers[peerId]
+        console.log(`peer ${peerId} closed`)
     })
 
-    await browser.storage.local.set({ url: `https://turbovpb.com/connect#${peerId}` })
-}
-
-function contactApiListener(details) {
-    if (details.method !== 'GET') {
-        return
-    }
-    let filter = browser.webRequest.filterResponseData(details.requestId);
-    let decoder = new TextDecoder("utf-8");
-    let responseString = ""
-
-    filter.ondata = event => {
-        responseString += decoder.decode(event.data, { stream: true })
-        filter.write(event.data);
-    }
-    filter.onstop = event => {
-        const contact = JSON.parse(responseString)
-        filter.disconnect()
-        if (phoneNumber === contact.preferredPhone) {
-            return
-        }
-        console.log('got new contact')
-
-        phoneNumber = contact.preferredPhone
-        firstName = contact.targets[0].targetPerson.salutation
-        lastName = contact.targets[0].targetPerson.lastName
-        stats.calls += 1
-        if (Date.now() - stats.lastContactLoadTime >= SUCCESSFUL_CALL_MIN_DURATION) {
-            stats.successfulCalls += 1
-        }
-        stats.lastContactLoadTime = Date.now()
-
-        setTimeout(() => resetSession, SESSION_TIMEOUT)
-
-        for (let conn of Object.values(connections)) {
-            sendDetails(conn)
-        }
-    }
-
-    return {};
-}
-
-function sendDetails(conn) {
-    browser.storage.local.get(['yourName', 'messageTemplates'])
-        .then(({ yourName, messageTemplates }) => {
-            if (conn.open) {
-                conn.send({
-                    // TODO only send on change
-                    messageTemplates: messageTemplates ? JSON.parse(messageTemplates) : null,
-                    yourName,
-                    contact: {
-                        firstName,
-                        lastName,
-                        phoneNumber
-                    },
-                    stats
-                })
-            } else {
-                conn.once('open', () => sendDetails(conn))
-            }
+    peer.on('connection', async (conn) => {
+        console.log(`peer ${peerId} got connection`)
+        peers[peerId].connections[conn.id] = conn
+        conn.on('close', () => {
+            console.log(`peer ${peerId} connection closed`)
+            delete peers[peerId].connections[conn.id]
         })
-}
-
-function resetSession() {
-    firstName = ''
-    lastName = ''
-    phoneNumber = ''
-    stats = {
-        // Start at -1 because it will count contacts loaded (rather than calls completed)
-        calls: -1,
-        successfulCalls: 0,
-        startTime: Date.now(),
-        lastContactLoadTime: Date.now()
-    }
-}
-
-resetSession()
-createPeer()
-
-browser.webRequest.onBeforeRequest.addListener(
-    contactApiListener,
-    {
-        urls: ["https://api.securevan.com/*/nextTarget*"],
-        types: ["xmlhttprequest"]
-    },
-    ["blocking"]
-);
-
-browser.webRequest.onBeforeRequest.addListener(
-    () => {
-        if (Date.now() - stats.lastContactLoadTime > SESSION_TIMEOUT) {
-            resetSession()
+        conn.on('error', (err) => {
+            console.log(`peer ${peerId} connection error`, err)
+            delete peers[peerId].connections[conn.id]
+        })
+        try {
+            console.log('requesting contact from content script')
+            await browser.tabs.sendMessage(tabId, {
+                type: 'contactRequest'
+            })
+        } catch (err) {
+            console.error('Error sending contact request to content_script', err)
         }
-        createPeer()
-    },
-    {
-        urls: ["https://*.openvpb.com/*"],
-        types: ["main_frame"]
-    }
-)
+    })
+}
 
 browser.runtime.onInstalled.addListener(({ reason, temporary }) => {
     if (temporary) {

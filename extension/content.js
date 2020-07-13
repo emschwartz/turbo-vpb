@@ -1,22 +1,50 @@
 console.log("Content script loaded")
 
-// TODO get a better way to find these details
-const checkForDetailsInterval = setInterval(getContactDetails, 50)
+const SUCCESSFUL_CALL_MIN_DURATION = 60000
+
 let firstName
+let lastName
 let phoneNumber
+let peerId
+let connections = {}
+let stats = {
+    // Start at -1 because it will count contacts loaded (rather than calls completed)
+    calls: -1,
+    successfulCalls: 0,
+    startTime: Date.now(),
+    lastContactLoadTime: Date.now()
+}
+
+// TODO get a better way to find these details
+setInterval(getContactDetails, 50)
+createPeer()
+
+browser.runtime.onMessage.addListener((message) => {
+    if (message.type === 'contactRequest') {
+        console.log('got contact request from background')
+        sendDetails()
+    }
+})
 
 function getContactDetails() {
-    if (document.getElementById('contactName').innerText && document.getElementById('openvpbphonelink').innerText !== phoneNumber) {
-        fullName = document.getElementById('contactName').innerText
-        phoneNumber = document.getElementById('openvpbphonelink').innerText
-    }
     if (!document.getElementById('turbovpbcontainer')) {
         createTurboVpbContainer()
     }
+
+    if (document.getElementById('contactName').innerText && document.getElementById('openvpbphonelink').innerText !== phoneNumber) {
+        handleContact(
+            document.getElementById('contactName').innerText,
+            document.getElementById('openvpbphonelink').innerText
+        )
+    }
 }
 
-async function createTurboVpbContainer() {
-    const { url } = await browser.storage.local.get(['url'])
+function createTurboVpbContainer() {
+    if (!document.getElementById('openvpbsidebarcontainer')) {
+        return
+    }
+
+    const url = window.sessionStorage.getItem('url')
 
     if (url) {
         const container = document.createElement('div')
@@ -57,4 +85,64 @@ async function createTurboVpbContainer() {
         console.log('not creating TurboVPB container, no URL yet')
     }
 
+}
+
+function createPeer() {
+    peerId = window.sessionStorage.getItem('peerId')
+
+    if (!peerId) {
+        const array = new Uint8Array(16)
+        crypto.getRandomValues(array)
+        peerId = [...array].map(byte => byte.toString(16).padStart(2, '0')).join('')
+        window.sessionStorage.setItem('peerId', peerId)
+    }
+
+    console.log('using peerId:', peerId)
+
+    window.sessionStorage.setItem('url', `https://turbovpb.com/connect#${peerId}`)
+
+    browser.runtime.sendMessage({
+        type: 'connect',
+        peerId
+    })
+}
+
+function handleContact(fullName, phone) {
+    console.log('got new contact')
+
+    phoneNumber = phone
+    firstName = fullName.split(' ')[0]
+    lastName = fullName.split(' ').slice(1).join(' ')
+    window.sessionStorage
+    stats.calls += 1
+    if (Date.now() - stats.lastContactLoadTime >= SUCCESSFUL_CALL_MIN_DURATION) {
+        stats.successfulCalls += 1
+    }
+    stats.lastContactLoadTime = Date.now()
+
+    sendDetails()
+}
+
+async function sendDetails() {
+    console.log('sending details')
+    const { yourName, messageTemplates } = await browser.storage.local.get(['yourName', 'messageTemplates'])
+    try {
+        await browser.runtime.sendMessage({
+            type: 'contact',
+            peerId,
+            data: {
+                messageTemplates: messageTemplates ? JSON.parse(messageTemplates) : null,
+                yourName,
+                contact: {
+                    firstName,
+                    lastName,
+                    phoneNumber
+                },
+                stats
+            }
+        })
+    } catch (err) {
+        console.error(err)
+    }
+    console.log('sent contact')
 }

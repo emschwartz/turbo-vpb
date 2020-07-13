@@ -8,12 +8,7 @@
     "permissions": [
         "storage",
         "activeTab",
-        "webRequest",
-        "webRequestBlocking",
-        "*://*.turbovpb.com/*",
-        "*://turbovpb-peerjs-server.herokuapp.com/*",
-        "https://api.securevan.com/*",
-        "https://*.openvpb.com/*"
+        "*://turbovpb-peerjs-server.herokuapp.com/*"
     ],
     "icons": {
         "48": "phone-outgoing.svg",
@@ -25,14 +20,14 @@
                 "https://www.openvpb.com/VirtualPhoneBank/*"
             ],
             "js": [
-                "qrcode.js",
+                "dependencies/qrcode.js",
                 "content.js"
             ]
         }
     ],
     "background": {
         "scripts": [
-            "peerjs.min.js",
+            "dependencies/peerjs.js",
             "background.js"
         ]
     },
