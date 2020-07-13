@@ -91,7 +91,7 @@ function contactApiListener(details) {
         firstName = contact.targets[0].targetPerson.salutation
         lastName = contact.targets[0].targetPerson.lastName
         stats.calls += 1
-        if (Date.now() - lastContactLoadTime >= SUCCESSFUL_CALL_MIN_DURATION) {
+        if (Date.now() - stats.lastContactLoadTime >= SUCCESSFUL_CALL_MIN_DURATION) {
             stats.successfulCalls += 1
         }
         stats.lastContactLoadTime = Date.now()
