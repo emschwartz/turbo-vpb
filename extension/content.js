@@ -31,7 +31,9 @@ function getContactDetails() {
         createTurboVpbContainer()
     }
 
-    if (document.getElementById('contactName').innerText && document.getElementById('openvpbphonelink').innerText !== phoneNumber) {
+    if (document.getElementById('contactName')
+        && document.getElementById('openvpbphonelink')
+        && document.getElementById('openvpbphonelink').innerText !== phoneNumber) {
         handleContact(
             document.getElementById('contactName').innerText,
             document.getElementById('openvpbphonelink').innerText
