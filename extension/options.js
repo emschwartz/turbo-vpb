@@ -1,5 +1,4 @@
 
-console.log('popup opened')
 document.getElementById('settings')
     .addEventListener('input', (event) => {
         const messageTemplates = []
@@ -36,15 +35,15 @@ browser.storage.local.get(['yourName', 'messageTemplates', 'url'])
                 document.getElementById('messageText2').value = messageTemplates[1].message
             }
         }
-        if (url) {
-            document.getElementById('qrcodeLabel').removeAttribute('hidden')
-            const qr = qrcode(0, 'H')
-            qr.addData(url)
-            qr.make()
-            document.getElementById('qrcodeLink').href = url
-            document.getElementById('qrcodePlaceholder').innerHTML = qr.createSvgTag({
-                cellSize: 4,
-                margin: 0
-            })
-        }
+        // if (url) {
+        //     document.getElementById('qrcodeLabel').removeAttribute('hidden')
+        //     const qr = qrcode(0, 'H')
+        //     qr.addData(url)
+        //     qr.make()
+        //     document.getElementById('qrcodeLink').href = url
+        //     document.getElementById('qrcodePlaceholder').innerHTML = qr.createSvgTag({
+        //         cellSize: 4,
+        //         margin: 0
+        //     })
+        // }
     })

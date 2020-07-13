@@ -9,17 +9,23 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand">TurboVPB</a>
-    </nav>
     <div class="container p-3">
         <form id="settings">
             <div class="form-group">
-                <label for="yourName">Your Name</label>
+                <label for="yourName"><strong>Your Name</strong></label>
                 <input type="text" class="form-control" id="yourName" placeholder="First Name" />
             </div>
+            <hr />
             <div>
-                <label>Follow-up Text Messages</label>
+                <label>
+                    <p><strong>Follow-up Text Messages</strong></p>
+                    <p>
+                        When you load the TurboVPB page on your phone, there will be buttons to send each of the
+                        messages you configure.
+                        TurboVPB will automatically fill in <code>[Their Name]</code> with the contact's first name and
+                        <code>[Your Name]</code> with the name you entered above.
+                    </p>
+                </label>
             </div>
             <input type="text" id="messageLabel1" value="First Message" />
             <textarea class="form-control" id="messageText1"
@@ -30,17 +36,17 @@
                 placeholder="Another follow-up text message option"></textarea>
             <br />
         </form>
-        <div class="col mx-auto">
+        <!-- <div class="col mx-auto">
             <p id="qrcodeLabel" class="text-wrap" style="width: 15rem" hidden>
                 Scan this QR code on your phone to start your TurboVPB:
             </p>
             <a id="qrcodeLink">
                 <div id="qrcodePlaceholder"></div>
             </a>
-        </div>
+        </div> -->
     </div>
-    <script src="qrcode.js"></script>
-    <script src="popup.js"></script>
+    <!-- <script src="qrcode.js"></script> -->
+    <script src="options.js"></script>
 </body>
 
 </html>
