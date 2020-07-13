@@ -21,12 +21,12 @@ async function createPeer() {
     if (!peerId) {
         const array = new Uint8Array(16)
         crypto.getRandomValues(array)
-        peerId = base64url.encode(array)
+        peerId = [...array].map(byte => byte.toString(16).padStart(2, '0')).join('')
         console.log('Using new peerId:', peerId)
         await browser.storage.local.set({ peerId })
     }
 
-    console.log('creating peer')
+    console.log('creating peer', peerId)
     peer = new Peer(peerId, {
         // Note this uses the herokuapp domain because
         // configuring a custom domain with SSL requires
@@ -164,3 +164,13 @@ browser.webRequest.onBeforeRequest.addListener(
         types: ["main_frame"]
     }
 )
+
+browser.runtime.onInstalled.addListener(({ reason, temporary }) => {
+    if (temporary) {
+        return
+    }
+
+    if (reason === 'install') {
+        browser.runtime.openOptionsPage()
+    }
+})

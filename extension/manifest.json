@@ -25,13 +25,13 @@
                 "https://www.openvpb.com/VirtualPhoneBank/*"
             ],
             "js": [
+                "qrcode.js",
                 "content.js"
             ]
         }
     ],
     "background": {
         "scripts": [
-            "base64url-arraybuffer.js",
             "peerjs.min.js",
             "background.js"
         ]
