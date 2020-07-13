@@ -170,16 +170,15 @@ function establishConnection() {
                 a.innerText = `Send ${label}`
                 textMessageLinks.appendChild(a)
             }
-            document.getElementById('phoneNumber').click()
         }
 
         if (data.stats) {
             if (data.stats.startTime) {
                 startTime = data.stats.startTime
             }
-            if (data.stats.numCalls && data.stats.numCalls > 0) {
-                document.getElementById('numCalls').innerText = `${data.stats.numCalls} Call${data.stats.numCalls > 1 ? 's' : ''}`
-                document.getElementById('avgCallTime').innerText = msToTimeString((Date.now() - startTime) / data.stats.numCalls)
+            if (data.stats.calls && data.stats.calls > 0) {
+                document.getElementById('numCalls').innerText = `${data.stats.calls} Call${data.stats.calls > 1 ? 's' : ''}`
+                document.getElementById('avgCallTime').innerText = msToTimeString((Date.now() - startTime) / data.stats.calls)
             }
             if (data.stats.successfulCalls) {
                 document.getElementById('successfulCalls').innerText = data.stats.successfulCalls
