@@ -1,7 +1,5 @@
 console.log("Content script loaded")
 
-const SUCCESSFUL_CALL_MIN_DURATION = 60000
-
 let firstName
 let lastName
 let phoneNumber
@@ -31,6 +29,10 @@ window.onfocus.addListener(() => {
         console.log('sending connect message to background to ensure peer is still connected')
         sendConnect()
     }
+})
+
+document.getElementById('openvpbsavenextbutton').addListener('click', () => {
+    successfulCalls += 1
 })
 
 function getContactDetails() {
@@ -121,9 +123,6 @@ function handleContact(fullName, phone) {
     lastName = fullName.split(' ').slice(1).join(' ')
     window.sessionStorage
     stats.calls += 1
-    if (Date.now() - stats.lastContactLoadTime >= SUCCESSFUL_CALL_MIN_DURATION) {
-        stats.successfulCalls += 1
-    }
     stats.lastContactLoadTime = Date.now()
 
     sendDetails()

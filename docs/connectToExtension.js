@@ -142,7 +142,6 @@ function establishConnection() {
             document.getElementById('statistics').hidden = false
             document.getElementById('instructions').hidden = true
 
-            console.log(data.contact)
             document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
 
             let phoneNumber = data.contact.phoneNumber.match(/\d+/g).join('')
