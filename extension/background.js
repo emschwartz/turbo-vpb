@@ -16,7 +16,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
         const connections = Object.values(peers[peerId].connections)
         for (let conn of connections) {
             console.log('sending contact to peer', peerId)
-            if (conn.open) {
+            if (conn && conn.open) {
                 conn.send(message.data)
             } else {
                 conn.once('open', () => {
@@ -56,12 +56,11 @@ function createPeer(peerId, tabId) {
         secure: true,
         // debug: 3
     })
-    const connections = {}
 
     peers[peerId] = {
         peer,
         tabId,
-        connections
+        connections: []
     }
 
     peer.on('open', () => console.log(`peer ${peerId} listening for connections`))
@@ -76,14 +75,15 @@ function createPeer(peerId, tabId) {
 
     peer.on('connection', async (conn) => {
         console.log(`peer ${peerId} got connection`)
-        peers[peerId].connections[conn.id] = conn
+        peers[peerId].connections.push(conn)
+        const connIndex = peers[peerId].connections.length - 1
         conn.on('close', () => {
             console.log(`peer ${peerId} connection closed`)
-            delete peers[peerId].connections[conn.id]
+            delete peers[peerId].connections[connIndex]
         })
         conn.on('error', (err) => {
             console.log(`peer ${peerId} connection error`, err)
-            delete peers[peerId].connections[conn.id]
+            delete peers[peerId].connections[connIndex]
         })
         try {
             console.log('requesting contact from content script')
