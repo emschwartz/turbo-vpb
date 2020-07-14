@@ -24,15 +24,11 @@ browser.runtime.onMessage.addListener((message) => {
     }
 })
 
-window.onfocus.addListener(() => {
+window.addEventListener('focus', () => {
     if (Date.now() - lastContactLoadTime > 600000) {
         console.log('sending connect message to background to ensure peer is still connected')
         sendConnect()
     }
-})
-
-document.getElementById('openvpbsavenextbutton').addListener('click', () => {
-    successfulCalls += 1
 })
 
 function getContactDetails() {
@@ -43,10 +39,18 @@ function getContactDetails() {
     if (document.getElementById('contactName')
         && document.getElementById('openvpbphonelink')
         && document.getElementById('openvpbphonelink').innerText !== phoneNumber) {
+        console.log('new contact')
+
+        document.getElementById('openvpbsavenextbutton').addEventListener('click', () => {
+            console.log('logged successful call')
+            stats.successfulCalls += 1
+        })
+
         handleContact(
             document.getElementById('contactName').innerText,
             document.getElementById('openvpbphonelink').innerText
         )
+
     }
 }
 
