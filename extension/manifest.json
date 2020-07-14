@@ -7,7 +7,6 @@
     "homepage_url": "https://turbovpb.com",
     "permissions": [
         "storage",
-        "activeTab",
         "*://turbovpb-peerjs-server.herokuapp.com/*"
     ],
     "icons": {
@@ -41,5 +40,6 @@
         "gecko": {
             "update_url": "https://turbovpb.com/updates.json"
         }
-    }
+    },
+    "update_url": "https://turbovpb.com/updates.xml"
 }
