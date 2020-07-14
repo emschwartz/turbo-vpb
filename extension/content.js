@@ -26,6 +26,13 @@ browser.runtime.onMessage.addListener((message) => {
     }
 })
 
+window.onfocus.addListener(() => {
+    if (Date.now() - lastContactLoadTime > 600000) {
+        console.log('sending connect message to background to ensure peer is still connected')
+        sendConnect()
+    }
+})
+
 function getContactDetails() {
     if (!document.getElementById('turbovpbcontainer')) {
         createTurboVpbContainer()
@@ -103,10 +110,7 @@ function createPeer() {
 
     window.sessionStorage.setItem('url', `https://turbovpb.com/connect#${peerId}`)
 
-    browser.runtime.sendMessage({
-        type: 'connect',
-        peerId
-    })
+    sendConnect()
 }
 
 function handleContact(fullName, phone) {
@@ -123,6 +127,17 @@ function handleContact(fullName, phone) {
     stats.lastContactLoadTime = Date.now()
 
     sendDetails()
+}
+
+async function sendConnect() {
+    try {
+        await browser.runtime.sendMessage({
+            type: 'connect',
+            peerId
+        })
+    } catch (err) {
+        console.err(err)
+    }
 }
 
 async function sendDetails() {

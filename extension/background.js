@@ -33,7 +33,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
 })
 
 function createPeer(peerId, tabId) {
-    if (peers[peerId]) {
+    if (peers[peerId] && !peers[peerId].destroyed && !peers[peerId].disconnected) {
         // TODO reconnect
         return
     }
