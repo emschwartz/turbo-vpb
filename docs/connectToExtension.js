@@ -5,9 +5,29 @@ let peer
 let conn
 
 let startTime = Date.now()
-let lastTimeCheck = Date.now()
 
 const remotePeerId = window.location.hash.slice(1)
+const debugMode = window.location.search.includes('debug=true')
+const log = debugMode ? debugLog : console.log
+function debugLog() {
+    console.log.apply(null, arguments)
+    if (debugMode) {
+        const p = document.createElement('p')
+        p.innerText = Array.prototype.map.call(arguments, s => {
+            if (typeof s === 'string') {
+                return s
+            } else {
+                return JSON.stringify(s)
+            }
+        }).join(' ')
+        document.getElementById('debug').appendChild(p)
+    }
+}
+if (debugMode) {
+    log('debug mode enabled')
+    document.getElementById('contactDetails').classList.remove('fixed-bottom')
+}
+
 if (remotePeerId) {
     connectToExtension()
 } else {
@@ -15,12 +35,9 @@ if (remotePeerId) {
     document.getElementById('warningContainer').removeAttribute('hidden')
 }
 
+
 function connectToExtension() {
     connectPeer()
-
-    window.addEventListener('focus', connectPeer)
-    window.addEventListener('pageshow', connectPeer)
-
     let visibilityChange
     let hidden
     if (typeof document.hidden !== "undefined") {
@@ -33,21 +50,21 @@ function connectToExtension() {
         hidden = "webkitHidden";
         visibilityChange = "webkitvisibilitychange";
     }
-    window.addEventListener(visibilityChange, () => {
+
+    document.addEventListener(visibilityChange, () => {
+        log(visibilityChange)
         if (!document[hidden]) {
             connectPeer()
         }
     })
-
-    checkTime()
-}
-
-function checkTime() {
-    if (Date.now() - lastTimeCheck > 5000) {
+    window.addEventListener('focus', () => {
+        log('focus')
         connectPeer()
-    }
-    lastTimeCheck = Date.now()
-    setTimeout(checkTime, 500)
+    })
+    window.addEventListener('pageshow', () => {
+        log('pageshow')
+        connectPeer()
+    })
 }
 
 function setStatus(status, alertType) {
@@ -67,39 +84,36 @@ function setStatus(status, alertType) {
 }
 
 function connectPeer() {
-    if (!peer || peer.destroyed) {
-        setStatus('Connecting to server', 'warning')
-        console.log('creating new peer')
-        peer = new Peer({
-            // host: 'peerjs.turbovpb.com',
-            host: 'turbovpb-peerjs-server.herokuapp.com',
-            secure: true,
-            // debug: 3
-        })
-        peer.on('disconnect', connectPeer)
-        peer.on('error', (err) => {
-            console.error(err)
-            setStatus('Error. Reload Tab.', 'danger')
-        })
-        peer.once('open', () => {
-            opened = true
-            establishConnection()
-        })
-    } else if (peer.disconnected) {
-        setStatus('Not Connected', 'warning')
-        console.log('peer was disconnected')
-        peer.reconnect()
-        peer.once('open', () => {
-            opened = true
-            establishConnection()
-        })
+    if (peer && !peer.destroyed && !peer.disconnected) {
+        establishConnection()
+        return
     }
+
+    setStatus('Connecting to Server', 'warning')
+    log('creating new peer')
+    peer = new Peer({
+        host: 'turbovpb-peerjs-server.herokuapp.com',
+        secure: true,
+    })
+    peer.on('disconnect', () => {
+        log('peer disconnected')
+        connectPeer()
+    })
+    peer.on('error', (err) => {
+        log(err)
+        setStatus('Error. Reload Tab.', 'danger')
+    })
+    peer.once('open', () => {
+        log('peer opened')
+        opened = true
+        establishConnection()
+    })
 }
 
 function establishConnection() {
-    console.log('establish connection')
+    log('establish connection')
     if (conn && conn.open) {
-        console.log('connection already good')
+        log('connection already good')
         setStatus('Connected', 'success')
         return
     }
@@ -109,16 +123,18 @@ function establishConnection() {
     }, 1000)
 
     setStatus('Connecting to Extension', 'warning')
+    log('connecting to ', remotePeerId)
     conn = peer.connect(remotePeerId, {
         serialization: 'json'
     })
     conn.once('open', () => {
-        console.log('connection open')
+        log('connection open')
         setStatus('Connected', 'success')
     })
     conn.once('error', (err) => {
-        console.error(err)
+        log(err)
         conn = null
+
         setStatus('Error. Reload Tab.', 'danger')
     })
     conn.once('close', () => {
@@ -126,11 +142,11 @@ function establishConnection() {
 
         conn = null
         setTimeout(() => {
-            establishConnection()
+            connectPeer()
         }, 1000)
     })
     conn.on('data', (data) => {
-        console.log('got data', data)
+        log('got data', data)
         if (data.yourName) {
             yourName = data.yourName
         }
@@ -140,7 +156,6 @@ function establishConnection() {
         if (data.contact) {
             document.getElementById('contactDetails').hidden = false
             document.getElementById('statistics').hidden = false
-            document.getElementById('instructions').hidden = true
 
             document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
 

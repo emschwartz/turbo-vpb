@@ -33,18 +33,6 @@
         </div>
     </div>
     <div class="container-sm p-3" id="mainContainer">
-
-        <div id="instructions" class="alert alert-info text-justify">
-            <h4 class="alert-heading">
-                Login to OpenVPB on your computer to start calling.
-            </h4>
-            <p>
-                When a contact is loaded in your browser
-                with the TurboVPB extension, the extension will send
-                the contact details here.
-            </p>
-        </div>
-
         <div id="statistics" class="text-center mt-2 container" hidden>
             <h4 class="card-title"><span id="numCalls">0 Calls</span></h4>
             <table class="table table-bordered">
@@ -64,7 +52,6 @@
                 </tbody>
             </table>
         </div>
-
     </div>
 
     <div id="contactDetails" class="row mt-auto p-1 fixed-bottom" hidden>
@@ -80,6 +67,8 @@
             </div>
         </div>
     </div>
+
+    <div id="debug"></div>
     <div class="col"></div>
     <script src="connectToExtension.js"></script>
 
