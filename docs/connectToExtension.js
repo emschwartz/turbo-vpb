@@ -52,7 +52,7 @@ function connectToExtension() {
     }
 
     document.addEventListener(visibilityChange, () => {
-        log(visibilityChange)
+        log(visibilityChange, 'hidden:', document[hidden])
         if (!document[hidden]) {
             connectPeer()
         }

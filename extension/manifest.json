@@ -10,8 +10,9 @@
         "*://turbovpb-peerjs-server.herokuapp.com/*"
     ],
     "icons": {
-        "48": "phone-outgoing.svg",
-        "96": "phone-outgoing.svg"
+        "48": "icons/phone-outgoing-48.png",
+        "96": "icons/phone-outgoing-96.png",
+        "128": "icons/phone-outgoing-128.png"
     },
     "content_scripts": [
         {
