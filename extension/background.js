@@ -34,6 +34,11 @@ browser.runtime.onMessage.addListener((message, sender) => {
 
 function createPeer(peerId, tabId) {
     if (peers[peerId] && !peers[peerId].destroyed && !peers[peerId].disconnected) {
+        if (peers[peerId].tabId !== tabId) {
+            console.log(`peer ${peerId} is now in tab ${tabId}`)
+            peers[peerId].tabId = tabId
+        }
+
         // TODO reconnect
         return
     }
@@ -87,7 +92,7 @@ function createPeer(peerId, tabId) {
         })
         try {
             console.log('requesting contact from content script')
-            await browser.tabs.sendMessage(tabId, {
+            await browser.tabs.sendMessage(peers[peerId].tabId, {
                 type: 'contactRequest'
             })
         } catch (err) {
