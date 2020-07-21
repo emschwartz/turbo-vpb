@@ -102,7 +102,7 @@ function createTurboVpbContainer() {
 
 }
 
-function createPeer() {
+async function createPeer() {
     peerId = window.sessionStorage.getItem('peerId')
 
     if (!peerId) {
@@ -114,7 +114,22 @@ function createPeer() {
 
     console.log('using peerId:', peerId)
 
-    window.sessionStorage.setItem('url', `https://turbovpb.com/connect#${peerId}`)
+    // This uses half of a SHA-256 hash of the peerId as a session ID
+    // The session ID is currently used only to ensure that the mobile browser
+    // reloads the tab if you open a different link (the tab will not be reloaded
+    // if only the hash changes)
+    const peerIdArray = [...peerId].reduce((result, char, index, array) => {
+        if (index % 2 === 0) {
+            result.push(parseInt(array.slice(index, index + 2).join(''), 16))
+        }
+        return result
+    }, [])
+    const peerIdHashArray = new Uint8Array(await window.crypto.subtle.digest('SHA-256', Uint8Array.from(peerIdArray)))
+    const peerIdHash = [...peerIdHashArray].map(byte => byte.toString(16).padStart(2, '0')).join('')
+    const sessionId = peerIdHash.slice(0, 16)
+
+    const url = `https://turbovpb.com/connect?session=${sessionId}#${peerId}`
+    window.sessionStorage.setItem('url', url)
 
     sendConnect()
 }
