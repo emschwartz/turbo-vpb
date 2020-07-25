@@ -172,7 +172,7 @@ function establishConnection() {
             while (textMessageLinks.firstChild) {
                 textMessageLinks.removeChild(textMessageLinks.firstChild)
             }
-            for (let { label, message } of messageTemplates) {
+            for (let { label, message, result } of messageTemplates) {
                 const a = document.createElement('a')
                 a.className = "btn btn-outline-secondary btn-block p-3 my-3"
                 a.role = 'button'
@@ -182,6 +182,15 @@ function establishConnection() {
                     .replace(/\[your name\]/i, yourName)
                 a.href = `sms://${phoneNumber}?&body=${messageBody}`
                 a.innerText = `Send ${label}`
+                if (result) {
+                    a.addEventListener('click', () => {
+                        log(`sending call result: ${result}`)
+                        conn.send({
+                            type: 'callResult',
+                            result
+                        })
+                    })
+                }
                 textMessageLinks.appendChild(a)
             }
         }

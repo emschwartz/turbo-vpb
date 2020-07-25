@@ -90,6 +90,23 @@ function createPeer(peerId, tabId) {
             console.log(`peer ${peerId} connection error`, err)
             delete peers[peerId].connections[connIndex]
         })
+        if (conn.serialization === 'json') {
+            conn.on('data', async (message) => {
+                if (message.type === 'callResult') {
+                    console.log(`peer ${peerId} sent call result:`, message)
+                    try {
+                        await browser.tabs.sendMessage(peers[peerId].tabId, {
+                            type: 'callResult',
+                            result: message.result
+                        })
+                    } catch (err) {
+                        console.error('Error sending call result to content_script', err)
+                    }
+                }
+            })
+        } else {
+            console.warn(`Peer connection for peerId ${peerId} serialization should be json but it is: ${conn.serialization}`)
+        }
         try {
             console.log('requesting contact from content script')
             await browser.tabs.sendMessage(peers[peerId].tabId, {

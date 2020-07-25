@@ -5,13 +5,15 @@ document.getElementById('settings')
         if (document.getElementById('messageText1').value) {
             messageTemplates.push({
                 label: document.getElementById('messageLabel1').value || 'First Message',
-                message: document.getElementById('messageText1').value
+                message: document.getElementById('messageText1').value,
+                result: document.getElementById('messageResultTexted1').value === 'on' ? 'Texted' : null
             })
         }
         if (document.getElementById('messageText2').value) {
             messageTemplates.push({
                 label: document.getElementById('messageLabel2').value || 'Second Message',
-                message: document.getElementById('messageText2').value
+                message: document.getElementById('messageText2').value,
+                result: document.getElementById('messageResultTexted2').value === 'on' ? 'Texted' : null
             })
         }
         browser.storage.local.set({
@@ -29,10 +31,16 @@ browser.storage.local.get(['yourName', 'messageTemplates', 'url'])
             if (messageTemplates && messageTemplates.length >= 1) {
                 document.getElementById('messageLabel1').value = messageTemplates[0].label
                 document.getElementById('messageText1').value = messageTemplates[0].message
+                if (messageTemplates[0].result === 'Texted') {
+                    document.getElementById('messageResultTexted1').value = 'on'
+                }
             }
             if (messageTemplates && messageTemplates.length >= 2) {
                 document.getElementById('messageLabel2').value = messageTemplates[1].label
                 document.getElementById('messageText2').value = messageTemplates[1].message
+                if (messageTemplates[1].result === 'Texted') {
+                    document.getElementById('messageResultTexted2').value = 'on'
+                }
             }
         }
     })

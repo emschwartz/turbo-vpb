@@ -13,7 +13,8 @@
         <form id="settings">
             <div class="form-group">
                 <label for="yourName"><strong>Your Name</strong></label>
-                <input type="text" class="form-control" id="yourName" placeholder="First Name" />
+                <input type="text" class="form-control" id="yourName"
+                    placeholder="First Name (Used in the follow-up text messages below)" />
             </div>
             <hr />
             <div>
@@ -27,13 +28,23 @@
                     </p>
                 </label>
             </div>
-            <input type="text" id="messageLabel1" value="First Message" />
-            <textarea class="form-control" id="messageText1"
-                placeholder="Hi [Their Name], this is [Your Name] from..."></textarea>
+            <input type="text" id="messageLabel1" value="First Message" class="form-control" />
+            <textarea class="form-control" id="messageText1" placeholder="Hi [Their Name], this is [Your Name] from..."
+                rows="4"></textarea>
+            <div class="form-group form-check">
+                <input type="checkbox" id="messageResultTexted1" class="form-check-input">
+                <label for="messageResultTexted1" class="form-check-label">Mark <code>Texted</code> after sending
+                    message?</label>
+            </div>
             <br />
-            <input type="text" id="messageLabel2" value="Second Message" />
-            <textarea class="form-control" id="messageText2"
-                placeholder="Another follow-up text message option"></textarea>
+            <input type="text" id="messageLabel2" value="Second Message" class="form-control" />
+            <textarea class="form-control" id="messageText2" placeholder="Another follow-up text message option"
+                rows="4"></textarea>
+            <div class="form-group form-check">
+                <input type="checkbox" id="messageResultTexted2" class="form-check-input">
+                <label for="messageResultTexted2" class="form-check-label">Mark <code>Texted</code> after sending
+                    message?</label>
+            </div>
             <br />
         </form>
     </div>

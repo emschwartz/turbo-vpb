@@ -21,6 +21,8 @@ browser.runtime.onMessage.addListener((message) => {
     if (message.type === 'contactRequest') {
         console.log('got contact request from background')
         sendDetails()
+    } else if (message.type === 'callResult') {
+        markResult(message.result)
     }
 })
 
@@ -180,4 +182,21 @@ async function sendDetails() {
         console.error(err)
     }
     console.log('sent contact')
+}
+
+function markResult(result) {
+    const resultCode = result.toLowerCase()
+    try {
+        document.getElementById('displaycontactresultsbutton').click()
+        for (let radioUnit of document.getElementsByClassName('contact-results')[0].childNodes.values()) {
+            if (resultCode === radioUnit.getElementsByClassName('radio-label')[0].innerText.toLowerCase()) {
+                radioUnit.getElementsByClassName('radio')[0].click()
+                document.getElementById('contactresultssavenextbutton').click()
+                return
+            }
+        }
+        console.warn('Result code not found:', result)
+    } catch (err) {
+        console.error(err)
+    }
 }
