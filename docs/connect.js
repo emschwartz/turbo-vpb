@@ -102,6 +102,22 @@ function connectPeer() {
     peer.on('error', (err) => {
         log(err)
         setStatus('Error. Reload Tab.', 'danger')
+
+        // Display full error message
+        document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
+        document.getElementById('warningText1').innerText = `Error details: ${err.message}`
+        document.getElementById('warningText2').innerText =
+            `Sorry about this!
+            Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code.`
+        document.getElementById('warningText2').hidden = false
+        document.getElementById('warningContainer').hidden = false
+
+        // Clear the contact details
+        document.getElementById('contactDetails').hidden = true
+        document.getElementById('statistics').hidden = true
+        document.getElementById('name').innerText = ''
+        document.getElementById('phoneNumber').href = ''
+        document.getElementById('phoneNumber').innerText = ''
     })
     peer.once('open', () => {
         log('peer opened')

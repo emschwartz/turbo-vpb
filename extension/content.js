@@ -33,6 +33,13 @@ window.addEventListener('focus', () => {
     }
 })
 
+window.addEventListener('beforeunload', async () => {
+    await browser.runtime.sendMessage({
+        type: 'disconnect',
+        peerId
+    })
+})
+
 function getContactDetails() {
     if (!document.getElementById('turbovpbcontainer')) {
         createTurboVpbContainer()

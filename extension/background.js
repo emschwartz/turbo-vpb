@@ -27,6 +27,20 @@ browser.runtime.onMessage.addListener((message, sender) => {
         if (connections.length === 0) {
             console.log('not sending contact because there is no open connection for peer', peerId)
         }
+    } else if (message.type === 'disconnect') {
+        const peerId = message.peerId
+        if (!peers[peerId]) {
+            return
+        }
+        if (peers[peerId].tabId !== sender.tab.id) {
+            console.warn(`got disconnect message for peer ${peerId} from unexpected tab. expected: ${peers[peerId].tabId}, actual: ${sender.tab.id}`)
+            return
+        }
+        console.log(`destroying peer ${peerId} because tab ${sender.tab.id} was closed`)
+        if (peers[peerId]) {
+            peers[peerId].peer.destroy()
+        }
+        delete peers[peerId]
     } else {
         console.log('got unexpected message', message)
     }

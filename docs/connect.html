@@ -20,16 +20,17 @@
         <span id="status" class="badge badge-warning ml-auto">Not Connected</span>
     </nav>
     <div class="container-sm p-3" id="warningContainer" hidden>
-        <div class="alert alert-danger text-justify">
-            <h4 class="alert-heading">
+        <div class="alert alert-danger">
+            <h4 class="alert-heading" id="warningHeading">
                 Uh oh! Looks like something went wrong
             </h4>
-            <p>
+            <p id="warningText1">
                 In order for this page to work, you need to
                 copy the full URL including the # sign with the
                 random-looking letters after it. Try scanning
                 the QR code from the extension on your phone.
             </p>
+            <p id="warningText2" hidden></p>
         </div>
     </div>
     <div class="container-sm p-3" id="mainContainer">
