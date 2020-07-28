@@ -1,3 +1,4 @@
+console.log('options script loaded')
 
 document.getElementById('settings')
     .addEventListener('input', (event) => {
