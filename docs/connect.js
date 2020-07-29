@@ -90,6 +90,7 @@ function connectPeer() {
     }
 
     setStatus('Connecting to Server', 'warning')
+    document.getElementById('warningContainer').hidden = true
     log('creating new peer')
     peer = new Peer({
         host: 'turbovpb-peerjs-server.herokuapp.com',
@@ -107,8 +108,7 @@ function connectPeer() {
         document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
         document.getElementById('warningText1').innerText = `Error details: ${err.message}`
         document.getElementById('warningText2').innerText =
-            `Sorry about this!
-            Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code.`
+            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code.`
         document.getElementById('warningText2').hidden = false
         document.getElementById('warningContainer').hidden = false
 
@@ -131,6 +131,7 @@ function establishConnection() {
     if (conn && conn.open) {
         log('connection already good')
         setStatus('Connected', 'success')
+        document.getElementById('warningContainer').hidden = true
         return
     }
     // Update session time
@@ -139,6 +140,7 @@ function establishConnection() {
     }, 1000)
 
     setStatus('Connecting to Extension', 'warning')
+    document.getElementById('warningContainer').hidden = true
     log('connecting to ', remotePeerId)
     conn = peer.connect(remotePeerId, {
         serialization: 'json'
