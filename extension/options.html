@@ -10,22 +10,25 @@
 
 <body>
     <div class="container p-3">
+        <p>When you connect to TurboVPB on your phone, you will be able to call and/or text contacts with the push of a
+            button.</p>
+        <p>To send text messages (optional), enter the content to send in the First Message
+            and/or Second Message fields below. A button to send each text message will appear on your phone.</p>
         <form id="settings">
             <div class="form-group">
                 <label for="yourName"><strong>Your Name</strong></label>
                 <input type="text" class="form-control" id="yourName"
-                    placeholder="First Name (Used in the follow-up text messages below)" />
+                    placeholder="First Name (Used in the text messages below)" />
             </div>
             <hr />
             <div>
                 <label>
-                    <p><strong>Follow-up Text Messages</strong></p>
-                    <p>
-                        When you load the TurboVPB page on your phone, there will be buttons to send each of the
-                        messages you configure.
-                        TurboVPB will automatically fill in <code>[Their Name]</code> with the contact's first name and
-                        <code>[Your Name]</code> with the name you entered above.
-                    </p>
+                    <p><strong>Text Message Templates</strong></p>
+                    <p>TurboVPB will automatically fill in <code>[Their Name]</code> with the contact's first name and
+                        <code>[Your Name]</code> with the name you entered above.</p>
+                    <p>You can rename the messages by editing the "First Message".
+                        This will change the label on the button to send the message (but will not affect the message
+                        that is sent to each contact).</p>
                 </label>
             </div>
             <input type="text" id="messageLabel1" value="First Message" class="form-control" />
@@ -34,7 +37,7 @@
             <div class="form-group form-check">
                 <input type="checkbox" id="messageResultTexted1" class="form-check-input">
                 <label for="messageResultTexted1" class="form-check-label">Mark <code>Texted</code> after sending
-                    message?</label>
+                    message? *</label>
             </div>
             <br />
             <input type="text" id="messageLabel2" value="Second Message" class="form-control" />
@@ -43,8 +46,13 @@
             <div class="form-group form-check">
                 <input type="checkbox" id="messageResultTexted2" class="form-check-input">
                 <label for="messageResultTexted2" class="form-check-label">Mark <code>Texted</code> after sending
-                    message?</label>
+                    message? *</label>
             </div>
+            <p>*Note: If this option is selected, after sending the message, TurboVPB will
+                click the "I Couldn't Reach ___" button on OpenVPB, select the "Texted" option (if it is available), and
+                click "Save & Next Call" to load
+                the next contact.
+            </p>
             <p class="text-muted"><small>Options are saved automatically.</small></p>
         </form>
     </div>
