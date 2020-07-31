@@ -3,50 +3,6 @@
         "{5ac6de74-7640-4236-a7ed-e19b356b666b}": {
             "updates": [
                 {
-                    "version": "0.1.0",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.1.0-fx.xpi"
-                },
-                {
-                    "version": "0.1.1",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.1.1-an+fx.xpi"
-                },
-                {
-                    "version": "0.1.2",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.1.2-an+fx.xpi"
-                },
-                {
-                    "version": "0.1.3",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.1.3-an+fx.xpi"
-                },
-                {
-                    "version": "0.2.0",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.2.0-an+fx.xpi"
-                },
-                {
-                    "version": "0.2.1",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.2.1-an+fx.xpi"
-                },
-                {
-                    "version": "0.3.0",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.3.0-an+fx.xpi"
-                },
-                {
-                    "version": "0.3.1",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.3.1-an+fx.xpi"
-                },
-                {
-                    "version": "0.3.2",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.3.2-an+fx.xpi"
-                },
-                {
-                    "version": "0.3.3",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.3.3-an+fx.xpi"
-                },
-                {
-                    "version": "0.3.4",
-                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.3.4-an+fx.xpi"
-                },
-                {
                     "version": "0.4.0",
                     "update_link": "https://turbovpb.com/downloads/turbovpb-0.4.0-an+fx.xpi"
                 },
