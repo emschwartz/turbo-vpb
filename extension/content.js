@@ -101,7 +101,7 @@ function createTurboVpbContainer() {
             height: qrWidth,
             correctLevel: QRCode.CorrectLevel.M,
             dotScale: 0.8,
-            logo: browser.runtime.getURL('icons/phone-outgoing-48.png'),
+            logo: browser.runtime.getURL('icons/phone-outgoing-blue-55.png'),
             logoWidth: 55,
             logoHeight: 55,
             tooltip: true
