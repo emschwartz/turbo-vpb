@@ -54,15 +54,18 @@ function connectToExtension() {
     document.addEventListener(visibilityChange, () => {
         log(visibilityChange, 'hidden:', document[hidden])
         if (!document[hidden]) {
+            unfocusButtons()
             connectPeer()
         }
     })
     window.addEventListener('focus', () => {
         log('focus')
+        unfocusButtons()
         connectPeer()
     })
     window.addEventListener('pageshow', () => {
         log('pageshow')
+        unfocusButtons()
         connectPeer()
     })
 }
@@ -80,6 +83,13 @@ function setStatus(status, alertType) {
             }
         }
         document.addEventListener('readystatechange', listener)
+    }
+}
+
+function unfocusButtons() {
+    const buttons = document.getElementsByClassName('btn')
+    for (let i = 0; i < buttons.length; i++) {
+        buttons[i].blur()
     }
 }
 
