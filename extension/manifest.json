@@ -21,10 +21,13 @@
             ],
             "js": [
                 "dependencies/browser-polyfill.js",
-                "dependencies/qrcode.js",
+                "dependencies/easy.qrcode.js",
                 "content.js"
             ]
         }
+    ],
+    "web_accessible_resources": [
+        "icons/phone-outgoing-48.png"
     ],
     "background": {
         "scripts": [

@@ -90,16 +90,21 @@ function createTurboVpbContainer() {
         label.innerText = 'Scan the QR code with your phone to start TurboVPB:'
         container.appendChild(label)
 
-        const qr = qrcode(0, 'H')
-        qr.addData(url)
-        qr.make()
         const qrLink = document.createElement('a')
         qrLink.href = url
         qrLink.target = '_blank'
         const qrPlaceholder = document.createElement('div')
-        qrPlaceholder.innerHTML = qr.createSvgTag({
-            cellSize: 5,
-            margin: 1
+        const qrWidth = (document.getElementById('openvpb-sidebar-content') && document.getElementById('openvpb-sidebar-content').clientWidth) || 240
+        new QRCode(qrPlaceholder, {
+            text: url,
+            width: qrWidth,
+            height: qrWidth,
+            correctLevel: QRCode.CorrectLevel.M,
+            dotScale: 0.8,
+            logo: browser.runtime.getURL('icons/phone-outgoing-48.png'),
+            logoWidth: 55,
+            logoHeight: 55,
+            tooltip: true
         })
         qrLink.appendChild(qrPlaceholder)
         container.appendChild(qrLink)
