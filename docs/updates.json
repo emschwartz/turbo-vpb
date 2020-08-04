@@ -21,6 +21,10 @@
                 {
                     "version": "0.4.4",
                     "update_link": "https://turbovpb.com/downloads/turbovpb-0.4.4-an+fx.xpi"
+                },
+                {
+                    "version": "0.5.0",
+                    "update_link": "https://turbovpb.com/downloads/turbovpb-0.5.0-an+fx.xpi"
                 }
             ]
         }
