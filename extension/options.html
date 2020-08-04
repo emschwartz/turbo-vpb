@@ -8,53 +8,113 @@
     </link>
 </head>
 
+<style>
+    /* Chrome opens the options page in a smaller window unless we specify the min-width */
+    @supports not (-moz-appearance: none) {
+        html {
+            min-width: 768px;
+        }
+    }
+</style>
+
+<template id="message-template">
+    <div class="message-template card pt-2 px-2 mb-3 bg-light">
+        <div class="form-row">
+            <div class="col">
+                <input type="text" class="form-control message-template-label"
+                    placeholder="Message Label (e.g. Didn't Get Through Message, More Info, etc.)" />
+            </div>
+            <div class="col-auto">
+                <button type="button btn-sm align-middle" class="close" aria-label="Delete message template">
+                    <svg width=".8em" height=".8em" viewBox="0 0 16 16" class="bi bi-trash-fill" fill="currentColor"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5a.5.5 0 0 0-1 0v7a.5.5 0 0 0 1 0v-7z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <textarea class="form-control message-template-message" rows="4" placeholder="Message Contents
+(for example: Hi [Their Name], this is [Your Name] from...)"></textarea>
+        <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input message-template-result-texted">
+            <label class="form-check-label">Select <code>Texted</code> in OpenVPB and load next contact after
+                sending?
+            </label>
+        </div>
+    </div>
+</template>
+
 <body>
-    <div class="container p-3">
-        <p>When you connect to TurboVPB on your phone, you will be able to call and/or text contacts with the push of a
-            button.</p>
-        <p>To send text messages (optional), enter the content to send in the First Message
-            and/or Second Message fields below. A button to send each text message will appear on your phone.</p>
+    <div id="install-info" class=" alert alert-info alert-dismissible m-2" role="alert" hidden>
+        <button type="button" id="hide-info" class="close" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+        <h3>Congrats on installing TurboVPB!</h3>
+        <p class="lead"> You'll soon be calling and texting faster than ever!</p>
+        <hr>
+        <p>When you load OpenVPB, there will be a QR Code to scan
+            with your phone. Once your phone is connected, you'll be able to call and (optionally) text
+            contacts with the push of a button.</p>
+        <p>Use the following settings to enable TurboVPB's easy texting functionality.
+            <br>
+            (You don't need to configure anything if you
+            only want to make calls.)</p>
+    </div>
+    <div class="container container-md py-3">
         <form id="settings">
-            <div class="form-group">
-                <label for="yourName"><strong>Your Name</strong></label>
-                <input type="text" class="form-control" id="yourName"
-                    placeholder="First Name (Used in the text messages below)" />
-            </div>
-            <hr />
-            <div>
-                <label>
-                    <p><strong>Text Message Templates</strong></p>
-                    <p>TurboVPB will automatically fill in <code>[Their Name]</code> with the contact's first name and
-                        <code>[Your Name]</code> with the name you entered above.</p>
-                    <p>You can rename the messages by editing the "First Message".
-                        This will change the label on the button to send the message (but will not affect the message
-                        that is sent to each contact).</p>
-                </label>
-            </div>
-            <input type="text" id="messageLabel1" value="First Message" class="form-control" />
-            <textarea class="form-control" id="messageText1"
-                rows="4">Hi [Their Name], this is [Your Name] from .... Please give me a call back!</textarea>
-            <div class="form-group form-check">
-                <input type="checkbox" id="messageResultTexted1" class="form-check-input">
-                <label for="messageResultTexted1" class="form-check-label">Mark <code>Texted</code> after sending
-                    message? *</label>
-            </div>
-            <br />
-            <input type="text" id="messageLabel2" value="Second Message" class="form-control" />
-            <textarea class="form-control" id="messageText2" placeholder="Another follow-up text message option"
-                rows="4"></textarea>
-            <div class="form-group form-check">
-                <input type="checkbox" id="messageResultTexted2" class="form-check-input">
-                <label for="messageResultTexted2" class="form-check-label">Mark <code>Texted</code> after sending
-                    message? *</label>
-            </div>
-            <p>*Note: If this option is selected, after sending the message, TurboVPB will
-                click the "I Couldn't Reach ___" button on OpenVPB, select the "Texted" option (if it is available), and
-                click "Save & Next Call" to load
-                the next contact.
-            </p>
-            <p class="text-muted"><small>Options are saved automatically.</small></p>
+            <h4 class="pb-2">Text Message Settings</h4>
+            <p>Create one or more message templates to enable one-click texting.
+                <br>
+                A button to send each message will appear on TurboVPB
+                on your phone.</p>
+            <h5>Message Templates</h5>
+
+            <div id="messages"></div>
+
+            <button class="btn btn-primary" id="add-message-template">Add Another Message Template</button>
+
+            <h5 class="mt-4">Automatic Text Replacement</h5>
+            <p>TurboVPB will automatically replace the following keywords (including the brackets) in the message
+                templates with the value on the right:</p>
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td class="align-middle text-center"><code>[Your Name]</code></td>
+                        <td class="align-middle text-center">
+                            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-arrow-right"
+                                fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd"
+                                    d="M10.146 4.646a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L12.793 8l-2.647-2.646a.5.5 0 0 1 0-.708z" />
+                                <path fill-rule="evenodd"
+                                    d="M2 8a.5.5 0 0 1 .5-.5H13a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 8z" />
+                            </svg>
+                        </td>
+                        <td class="align-middle text-center">
+
+                            <input type="text" class="form-control" id="yourName" placeholder="Your first name" />
+                        </td>
+                    </tr>
+                    <tr class="align-middle text-center">
+                        <td class="align-middle text-center"><code>[Their Name]</code></td>
+                        <td class="align-middle text-center">
+                            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-arrow-right"
+                                fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd"
+                                    d="M10.146 4.646a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L12.793 8l-2.647-2.646a.5.5 0 0 1 0-.708z" />
+                                <path fill-rule="evenodd"
+                                    d="M2 8a.5.5 0 0 1 .5-.5H13a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 8z" />
+                            </svg>
+                        </td>
+                        <td class="align-middle text-center">
+
+                            <input type="text" class="form-control" placeholder="(Contact's first name)" disabled />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </form>
+        <p class="text-muted mt-3"><small>Settings are saved automatically.</small></p>
     </div>
     <script src="dependencies/browser-polyfill.js"></script>
     <script src="options.js"></script>

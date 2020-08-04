@@ -1,47 +1,86 @@
 console.log('options script loaded')
 
-document.getElementById('settings')
-    .addEventListener('input', (event) => {
-        const messageTemplates = []
-        if (document.getElementById('messageText1').value) {
-            messageTemplates.push({
-                label: document.getElementById('messageLabel1').value || 'First Message',
-                message: document.getElementById('messageText1').value,
-                result: document.getElementById('messageResultTexted1').checked ? 'Texted' : null
-            })
-        }
-        if (document.getElementById('messageText2').value) {
-            messageTemplates.push({
-                label: document.getElementById('messageLabel2').value || 'Second Message',
-                message: document.getElementById('messageText2').value,
-                result: document.getElementById('messageResultTexted2').checked ? 'Texted' : null
-            })
-        }
-        browser.storage.local.set({
-            yourName: document.getElementById('yourName').value,
-            messageTemplates: JSON.stringify(messageTemplates)
+const messageContainer = document.getElementById('messages')
+const messageTemplateHtml = document.getElementById('message-template')
+let messageIndex = 0
+
+document.getElementById('hide-info').addEventListener('click', () => {
+    document.getElementById('install-info').setAttribute('hidden', 'true')
+    return browser.storage.local.set({
+        hideInfo: true
+    })
+})
+document.getElementById('add-message-template')
+    .addEventListener('click', (event) => {
+        event.preventDefault()
+        addMessageTemplate({
+            label: '',
+            message: '',
+            result: null
         })
     })
-browser.storage.local.get(['yourName', 'messageTemplates', 'url'])
-    .then(({ yourName, messageTemplates, url }) => {
+
+document.getElementById('settings').addEventListener('input', saveSettings)
+
+browser.storage.local.get(['yourName', 'messageTemplates', 'hideInfo'])
+    .then(({ yourName, messageTemplates, hideInfo }) => {
         if (yourName) {
             document.getElementById('yourName').value = yourName
         }
-        if (messageTemplates) {
+        if (typeof messageTemplates === 'string') {
+            // For backwards compatibility
             messageTemplates = JSON.parse(messageTemplates)
-            if (messageTemplates && messageTemplates.length >= 1) {
-                document.getElementById('messageLabel1').value = messageTemplates[0].label
-                document.getElementById('messageText1').value = messageTemplates[0].message
-                if (messageTemplates[0].result === 'Texted') {
-                    document.getElementById('messageResultTexted1').checked = true
-                }
-            }
-            if (messageTemplates && messageTemplates.length >= 2) {
-                document.getElementById('messageLabel2').value = messageTemplates[1].label
-                document.getElementById('messageText2').value = messageTemplates[1].message
-                if (messageTemplates[1].result === 'Texted') {
-                    document.getElementById('messageResultTexted2').checked = true
-                }
-            }
+            browser.storage.local.set({
+                messageTemplates
+            })
+        }
+        if (messageTemplates && messageTemplates.length > 0) {
+            messageTemplates.forEach(addMessageTemplate)
+        } else {
+            addMessageTemplate({
+                label: '',
+                message: ''
+            })
+        }
+
+        if (!hideInfo) {
+            document.getElementById('install-info').removeAttribute('hidden')
         }
     })
+
+function addMessageTemplate(template) {
+    if (!template) {
+        return
+    }
+    const { label, message, result } = template
+    const id = `message-template-${messageIndex++}`
+
+    const messageTemplateNode = messageTemplateHtml.content.firstElementChild.cloneNode(true)
+    messageTemplateNode.id = id
+    messageTemplateNode.querySelector('.message-template-label').value = label
+    messageTemplateNode.querySelector('.message-template-message').value = message
+    messageTemplateNode.querySelector('.message-template-result-texted').checked = result === 'Texted'
+    messageTemplateNode.querySelector('.close').addEventListener('click', (event) => {
+        event.preventDefault()
+        document.getElementById(id).remove()
+        saveSettings()
+    })
+    messageContainer.appendChild(messageTemplateNode)
+}
+function saveSettings() {
+    const messageTemplates = []
+    for (let elem of document.getElementsByClassName('message-template')) {
+        const label = elem.querySelector('.message-template-label').value
+        if (label) {
+            messageTemplates.push({
+                label,
+                message: elem.querySelector('.message-template-message').value,
+                result: elem.querySelector('.message-template-result-texted').checked ? 'Texted' : null
+            })
+        }
+    }
+    return browser.storage.local.set({
+        yourName: document.getElementById('yourName').value,
+        messageTemplates
+    })
+}
