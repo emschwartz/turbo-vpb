@@ -93,20 +93,16 @@ function createTurboVpbContainer() {
         const qrLink = document.createElement('a')
         qrLink.href = url
         qrLink.target = '_blank'
-        const qrPlaceholder = document.createElement('div')
         const qrWidth = (document.getElementById('openvpb-sidebar-content') && document.getElementById('openvpb-sidebar-content').clientWidth) || 240
-        new QRCode(qrPlaceholder, {
+        const qrCode = kjua({
             text: url,
-            width: qrWidth,
-            height: qrWidth,
-            correctLevel: QRCode.CorrectLevel.M,
-            dotScale: 0.8,
-            logo: browser.runtime.getURL('icons/phone-outgoing-blue-55.png'),
-            logoWidth: 55,
-            logoHeight: 55,
-            tooltip: true
+            crisp: true,
+            size: qrWidth,
+            rounded: 60,
+            quiet: 0,
+            back: '#f8f9fa'
         })
-        qrLink.appendChild(qrPlaceholder)
+        qrLink.appendChild(qrCode)
         container.appendChild(qrLink)
 
         document.getElementById('openvpbsidebarcontainer').appendChild(container)

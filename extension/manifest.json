@@ -21,13 +21,10 @@
             ],
             "js": [
                 "dependencies/browser-polyfill.js",
-                "dependencies/easy.qrcode.js",
+                "dependencies/kjua.js",
                 "content.js"
             ]
         }
-    ],
-    "web_accessible_resources": [
-        "icons/phone-outgoing-blue-55.png"
     ],
     "background": {
         "scripts": [
