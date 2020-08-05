@@ -174,13 +174,16 @@ async function sendConnect() {
 
 async function sendDetails() {
     console.log('sending details')
-    const { yourName, messageTemplates } = await browser.storage.local.get(['yourName', 'messageTemplates'])
+    let { yourName, messageTemplates } = await browser.storage.local.get(['yourName', 'messageTemplates'])
+    if (typeof messageTemplates === 'string') {
+        messageTemplates = JSON.parse(messageTemplates)
+    }
     try {
         await browser.runtime.sendMessage({
             type: 'contact',
             peerId,
             data: {
-                messageTemplates: messageTemplates ? JSON.parse(messageTemplates) : null,
+                messageTemplates,
                 yourName,
                 contact: {
                     firstName,
