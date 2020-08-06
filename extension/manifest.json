@@ -36,10 +36,5 @@
     "options_ui": {
         "page": "options.html",
         "browser_style": true
-    },
-    "browser_specific_settings": {
-        "gecko": {
-            "update_url": "https://turbovpb.com/updates.json"
-        }
     }
 }
