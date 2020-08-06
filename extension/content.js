@@ -40,31 +40,38 @@ window.addEventListener('beforeunload', async () => {
     })
 })
 
+
 function getContactDetails() {
     if (!document.getElementById('turbovpbcontainer')) {
         createTurboVpbContainer()
     }
 
+    const currentPhoneNumber = (document.getElementById('openVpbPhoneLink')
+        || document.getElementById('openvpbphonelink')
+        || Array.from(document.getElementsByTagName('a')).find((a) => a.href.startsWith('tel:'))
+        || {}).innerText
+
     if (document.getElementById('contactName')
-        && document.getElementById('openvpbphonelink')
-        && document.getElementById('openvpbphonelink').innerText !== phoneNumber) {
+        && currentPhoneNumber !== phoneNumber) {
         console.log('new contact')
 
-        document.getElementById('openvpbsavenextbutton').addEventListener('click', () => {
+        const saveNextButton = document.getElementById('openvpbsavenextbutton') || document.getElementById('openVpbSaveNextButton')
+        saveNextButton.addEventListener('click', () => {
             console.log('logged successful call')
             stats.successfulCalls += 1
         })
 
         handleContact(
             document.getElementById('contactName').innerText,
-            document.getElementById('openvpbphonelink').innerText
+            currentPhoneNumber
         )
 
     }
 }
 
 function createTurboVpbContainer() {
-    if (!document.getElementById('openvpbsidebarcontainer')) {
+    const sidebarContainer = document.getElementById('openvpbsidebarcontainer') || document.getElementById('openVpbSideBarContainer')
+    if (!sidebarContainer) {
         return
     }
 
@@ -107,7 +114,7 @@ function createTurboVpbContainer() {
         qrLink.appendChild(qrCode)
         container.appendChild(qrLink)
 
-        document.getElementById('openvpbsidebarcontainer').appendChild(container)
+        sidebarContainer.appendChild(container)
     } else {
         console.log('not creating TurboVPB container, no URL yet')
     }
@@ -200,11 +207,11 @@ async function sendDetails() {
 function markResult(result) {
     const resultCode = result.toLowerCase()
     try {
-        document.getElementById('displaycontactresultsbutton').click()
+        (document.getElementById('displaycontactresultsbutton') || document.getElementById('displayContactResultsButton')).click()
         for (let radioUnit of document.getElementsByClassName('contact-results')[0].childNodes.values()) {
             if (resultCode === radioUnit.getElementsByClassName('radio-label')[0].innerText.toLowerCase()) {
                 radioUnit.getElementsByClassName('radio')[0].click()
-                document.getElementById('contactresultssavenextbutton').click()
+                    (document.getElementById('contactresultssavenextbutton') || document.getElementById('contactResultsSaveNextButton')).click()
                 return
             }
         }
