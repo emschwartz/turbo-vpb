@@ -33,6 +33,9 @@
                 {
                     "version": "0.5.2",
                     "update_link": "https://turbovpb.com/downloads/turbovpb-0.5.2-an+fx.xpi"
+                },
+                {
+                    "version": "0.5.3"
                 }
             ]
         }
