@@ -93,8 +93,9 @@ function createTurboVpbContainer() {
         const qrLink = document.createElement('a')
         qrLink.href = url
         qrLink.target = '_blank'
-        const qrWidth = (document.getElementById('openvpb-sidebar-content') && document.getElementById('openvpb-sidebar-content').clientWidth) || 240
+        const qrWidth = (document.querySelector('.openvpb-sidebar-content') && document.querySelector('.openvpb-sidebar-content').clientWidth) || 240
         const qrCode = kjua({
+            render: 'svg',
             text: url,
             crisp: true,
             size: qrWidth,
@@ -102,6 +103,7 @@ function createTurboVpbContainer() {
             quiet: 0,
             back: '#f8f9fa'
         })
+        qrCode.style = 'width: 100%; height: 100%; max-width: 400px; max-height: 400px'
         qrLink.appendChild(qrCode)
         container.appendChild(qrLink)
 
