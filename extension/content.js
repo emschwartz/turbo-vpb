@@ -3,6 +3,7 @@ console.log("Content script loaded")
 let firstName
 let lastName
 let phoneNumber
+let couldntReachContact = false
 let peerId
 let connections = {}
 let stats = {
@@ -54,11 +55,25 @@ function getContactDetails() {
     if (document.getElementById('contactName')
         && currentPhoneNumber !== phoneNumber) {
         console.log('new contact')
+        couldntReachContact = false
+
+        // Determine if they couldn't reach the contact
+        const contactResultsButton = document.getElementById('displaycontactresultsbutton') || document.getElementById('displayContactResultsButton')
+        contactResultsButton.addEventListener('click', () => {
+            couldntReachContact = true
+
+            const cancelButton = document.getElementById('contactresultscancelbutton') || document.getElementById('contactResultsCancelButton')
+            cancelButton.addEventListener('click', () => {
+                couldntReachContact = false
+            })
+        })
 
         const saveNextButton = document.getElementById('openvpbsavenextbutton') || document.getElementById('openVpbSaveNextButton')
         saveNextButton.addEventListener('click', () => {
-            console.log('logged successful call')
-            stats.successfulCalls += 1
+            if (!couldntReachContact) {
+                console.log('logged successful call')
+                stats.successfulCalls += 1
+            }
         })
 
         handleContact(
