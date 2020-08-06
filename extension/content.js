@@ -226,7 +226,13 @@ function markResult(result) {
         for (let radioUnit of document.getElementsByClassName('contact-results')[0].childNodes.values()) {
             if (resultCode === radioUnit.getElementsByClassName('radio-label')[0].innerText.toLowerCase()) {
                 radioUnit.getElementsByClassName('radio')[0].click()
-                    (document.getElementById('contactresultssavenextbutton') || document.getElementById('contactResultsSaveNextButton')).click()
+                setTimeout(() => {
+                    const saveNextButton = document.getElementById('contactresultssavenextbutton')
+                        || document.getElementById('contactResultsSaveNextButton')
+                        || document.getElementById('openvpbsavenextbutton')
+                        || document.getElementById('openVpbSaveNextButton')
+                    saveNextButton.click()
+                }, 1)
                 return
             }
         }
