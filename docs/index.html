@@ -65,6 +65,41 @@
         </div>
     </div>
     <div class="container text-justify">
+        <div class="row mb-4">
+            <div class="col-md"></div>
+            <div class="col-md-8">
+                <div id="screenshots" class="carousel slide w-100" data-ride="carousel">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <img src="images/turbovpb-desktop-screenshot.png" class="d-block w-100 h-100"
+                                alt="TurboVPB adds a QR code to OpenVPB">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="images/turbovpb-phone.png" class="d-block w-100 h-100"
+                                alt="TurboVPB loads contact details on the phone">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="images/turbovpb-options-1.png" class="d-block w-100 h-100"
+                                alt="TurboVPB loads contact details on the phone">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="images/turbovpb-options-2.png" class="d-block w-100 h-100"
+                                alt="TurboVPB loads contact details on the phone">
+                        </div>
+                    </div>
+                    <a class="carousel-control-prev" href="#screenshots" role="button" data-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                    <a class="carousel-control-next" href="#screenshots" role="button" data-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md"></div>
+        </div>
         <div class="row">
             <div class="col-md"></div>
             <div class="col-md-6">
@@ -88,7 +123,8 @@
                     to send more information after a call.</p>
                 <ol>
                     <li>Open the exension options (if you have TurboVPB installed, click <a
-                            id="openOptionsPage">here</a>).</li>
+                            id="openOptionsPage">here</a>).
+                    </li>
                     <li>Fill in the Text Message Template(s) with your message content</li>
                     <li>Now, the TurboVPB page on your phone will also have buttons to send the configured text
                         messages. Also, TurboVPB will replace <code>[Their Name]</code> in the message with each
@@ -137,7 +173,14 @@
                 Movement</a> by <a href="https://github.com/emschwartz">Evan
                 Schwartz</a></span>
     </footer>
+    <script src="jquery-3.5.1.slim.min.js"></script>
     <script src="bootstrap.min.js"></script>
+    <style>
+        .carousel-control-next,
+        .carousel-control-prev {
+            filter: invert(100%);
+        }
+    </style>
 </body>
 
 </html>
