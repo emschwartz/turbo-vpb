@@ -263,12 +263,13 @@ function msToTimeString(ms) {
 // Analytics
 const tracker = ackeeTracker.create({
     server: 'https://turbovpb-analytics.herokuapp.com',
-    domainId: 'ba4e27b0-02b9-4a09-a72f-a95057057533'
+    domainId: 'ce7e5171-35be-4728-9e90-575ab21f850f'
 })
 
 const url = new URL(window.location.href)
 url.hash = ''
 const stopTracking = tracker.record({
-    siteLocation: url.toString()
+    siteLocation: url.toString(),
+    siteReferrer: document.referrer
 })
 window.addEventListener('beforeunload', () => stopTracking())
