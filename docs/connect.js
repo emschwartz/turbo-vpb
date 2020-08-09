@@ -6,6 +6,21 @@ let conn
 
 let startTime = Date.now()
 
+// Analytics
+const tracker = ackeeTracker.create({
+    server: 'https://turbovpb-analytics.herokuapp.com',
+    domainId: 'ce7e5171-35be-4728-9e90-575ab21f850f'
+})
+
+const url = new URL(window.location.href)
+url.hash = ''
+const stopTracking = tracker.record({
+    siteLocation: url.toString(),
+    siteReferrer: document.referrer
+})
+window.addEventListener('beforeunload', () => stopTracking())
+
+
 const remotePeerId = window.location.hash.slice(1)
 const debugMode = window.location.search.includes('debug=true')
 const log = debugMode ? debugLog : console.log
@@ -259,17 +274,3 @@ function msToTimeString(ms) {
     }
     return time
 }
-
-// Analytics
-const tracker = ackeeTracker.create({
-    server: 'https://turbovpb-analytics.herokuapp.com',
-    domainId: 'ce7e5171-35be-4728-9e90-575ab21f850f'
-})
-
-const url = new URL(window.location.href)
-url.hash = ''
-const stopTracking = tracker.record({
-    siteLocation: url.toString(),
-    siteReferrer: document.referrer
-})
-window.addEventListener('beforeunload', () => stopTracking())
