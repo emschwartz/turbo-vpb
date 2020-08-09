@@ -16,7 +16,7 @@ const url = new URL(window.location.href)
 url.hash = ''
 const stopTracking = tracker.record({
     siteLocation: url.toString(),
-    siteReferrer: document.referrer
+    siteReferrer: document.referrer || null
 })
 window.addEventListener('beforeunload', () => stopTracking())
 
