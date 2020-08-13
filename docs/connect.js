@@ -8,7 +8,7 @@ let startTime = Date.now()
 
 // Analytics
 const tracker = ackeeTracker.create({
-    server: 'https://turbovpb-analytics.herokuapp.com',
+    server: 'https://analytics.turbovpb.com',
     domainId: 'ce7e5171-35be-4728-9e90-575ab21f850f'
 })
 
@@ -118,7 +118,7 @@ function connectPeer() {
     document.getElementById('warningContainer').hidden = true
     log('creating new peer')
     peer = new Peer({
-        host: 'turbovpb-peerjs-server.herokuapp.com',
+        host: 'peerjs.turbovpb.com',
         secure: true,
     })
     peer.on('disconnect', () => {

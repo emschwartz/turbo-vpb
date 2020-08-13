@@ -65,13 +65,7 @@ function createPeer(peerId, tabId) {
     // part of the content_script caused an error. It complained about the
     // webrtc-adapter peerjs is using internally trying to set a read-only property
     const peer = new Peer(peerId, {
-        // Note this uses the herokuapp domain because
-        // configuring a custom domain with SSL requires
-        // a paid plan.
-        // Google Appengine does it for free but doesn't
-        // support websockets on the standard environment.
-        host: 'turbovpb-peerjs-server.herokuapp.com',
-        // host: 'peerjs.turbovpb.com',
+        host: 'peerjs.turbovpb.com',
         path: '/',
         secure: true,
         // debug: 3

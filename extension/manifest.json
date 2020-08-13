@@ -7,7 +7,7 @@
     "homepage_url": "https://turbovpb.com",
     "permissions": [
         "storage",
-        "*://turbovpb-peerjs-server.herokuapp.com/*"
+        "*://*.turbovpb.com/*"
     ],
     "optional_permissions": [
         "https://*.everyaction.com/ContactDetailScript*"

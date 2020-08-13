@@ -40,6 +40,7 @@ document.getElementById('enable-on-everyaction')
                     await backgroundPage.enableOrigin(EVERYACTION_ORIGIN)
                 }
                 event.target.checked = permissionGranted
+                saveSettings()
             } else {
                 await backgroundPage.disableOrigin(EVERYACTION_ORIGIN)
             }
@@ -48,7 +49,7 @@ document.getElementById('enable-on-everyaction')
         }
     })
 
-document.getElementById('settings').addEventListener('input', saveSettings)
+document.getElementById('settings').addEventListener('change', saveSettings)
 
 browser.storage.local.get(['yourName', 'messageTemplates', 'hideInfo', 'enableOnOrigins'])
     .then(({ yourName, messageTemplates, hideInfo, enableOnOrigins }) => {
