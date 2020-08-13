@@ -45,12 +45,11 @@ function createQrCode(backgroundColor) {
             render: 'svg',
             text: url,
             crisp: true,
-            // size: width || 240,
-            rounded: 60,
+            rounded: 50,
             quiet: 0,
-            back: backgroundColor || undefined
+            back: backgroundColor || '#fff'
         })
-        qrCode.style = 'width: 100%; height: 100%; max-width: 400px; max-height: 400px'
+        qrCode.style = 'width: 100%; height: 100%; max-width: 30vh; max-height: 30vh; min-width: 200px; min-height: 200px'
         qrLink.appendChild(qrCode)
         container.appendChild(qrLink)
         return container
