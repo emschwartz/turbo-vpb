@@ -79,10 +79,12 @@ function createPeer(peerId, tabId) {
 
     peer.on('open', () => console.log(`peer ${peerId} listening for connections`))
     peer.on('error', (err) => {
+        peers[peerId].peer.destroy()
         delete peers[peerId]
         console.error(err)
     })
     peer.on('close', () => {
+        peers[peerId].peer.destroy()
         delete peers[peerId]
         console.log(`peer ${peerId} closed`)
     })
