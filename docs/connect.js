@@ -105,6 +105,7 @@ function unfocusButtons() {
     const buttons = document.getElementsByClassName('btn')
     for (let i = 0; i < buttons.length; i++) {
         buttons[i].blur()
+        buttons[i].classList.remove('active')
     }
 }
 
