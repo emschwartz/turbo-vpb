@@ -1,5 +1,7 @@
 console.log('options script loaded')
 
+const EVERYACTION_ORIGIN = "https://*.everyaction.com/ContactDetailScript*"
+
 const messageContainer = document.getElementById('messages')
 const messageTemplateHtml = document.getElementById('message-template')
 let messageIndex = 0
@@ -20,10 +22,36 @@ document.getElementById('add-message-template')
         })
     })
 
+browser.permissions.contains({ origins: [EVERYACTION_ORIGIN] }).then((enabled) => {
+    document.getElementById('enable-on-everyaction').checked = enabled
+})
+
+document.getElementById('enable-on-everyaction')
+    .addEventListener('change', async (event) => {
+        // event.preventDefault()
+        const backgroundPage = await browser.runtime.getBackgroundPage()
+        try {
+            if (event.target.checked) {
+                const permissionGranted = await browser.permissions.request({
+                    origins: [EVERYACTION_ORIGIN],
+                    permissions: []
+                })
+                if (permissionGranted) {
+                    await backgroundPage.enableOrigin(EVERYACTION_ORIGIN)
+                }
+                event.target.checked = permissionGranted
+            } else {
+                await backgroundPage.disableOrigin(EVERYACTION_ORIGIN)
+            }
+        } catch (err) {
+            console.error(err)
+        }
+    })
+
 document.getElementById('settings').addEventListener('input', saveSettings)
 
-browser.storage.local.get(['yourName', 'messageTemplates', 'hideInfo'])
-    .then(({ yourName, messageTemplates, hideInfo }) => {
+browser.storage.local.get(['yourName', 'messageTemplates', 'hideInfo', 'enableOnOrigins'])
+    .then(({ yourName, messageTemplates, hideInfo, enableOnOrigins }) => {
         if (yourName) {
             document.getElementById('yourName').value = yourName
         }
@@ -45,6 +73,12 @@ browser.storage.local.get(['yourName', 'messageTemplates', 'hideInfo'])
 
         if (!hideInfo) {
             document.getElementById('install-info').removeAttribute('hidden')
+        }
+
+        if (enableOnOrigins) {
+            if (enableOnOrigins.includes(EVERYACTION_ORIGIN)) {
+                document.getElementById('enable-on-everyaction').checked = true
+            }
         }
     })
 
@@ -68,6 +102,7 @@ function addMessageTemplate(template) {
     messageContainer.appendChild(messageTemplateNode)
 }
 function saveSettings() {
+    console.log('saving settings')
     const messageTemplates = []
     for (let elem of document.getElementsByClassName('message-template')) {
         const label = elem.querySelector('.message-template-label').value
@@ -79,8 +114,14 @@ function saveSettings() {
             })
         }
     }
+    const enableOnOrigins = []
+    if (document.getElementById('enable-on-everyaction').checked) {
+        enableOnOrigins.push(EVERYACTION_ORIGIN)
+    }
+
     return browser.storage.local.set({
         yourName: document.getElementById('yourName').value,
-        messageTemplates
+        messageTemplates,
+        enableOnOrigins
     })
 }

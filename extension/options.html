@@ -37,7 +37,7 @@
         <textarea class="form-control message-template-message" rows="4" placeholder="Message Contents
 (for example: Hi [Their Name], this is [Your Name] from...)"></textarea>
         <div class="form-group form-check">
-            <input type="checkbox" class="form-check-input message-template-result-texted">
+            <input type="checkbox" class="form-check-input message-template-result-texted" />
             <label class="form-check-label">Select <code>Texted</code> in OpenVPB and load next contact after
                 sending?
             </label>
@@ -113,8 +113,18 @@
                     </tr>
                 </tbody>
             </table>
+            <h4>Enable TurboVPB on Other Sites</h4>
+            <p>By default, TurboVPB will only work on OpenVPB. Use the following options to enable it on other sites
+                (the browser will prompt you to ask for additional permissions).
+            </p>
+            <div class="form-group form-check">
+                <input type="checkbox" id="enable-on-everyaction" class="form-check-input" />
+                <label class="form-check-label" for="enable-on-everyaction">
+                    Enable for EveryAction / VAN Virtual Phone Banks
+                </label>
+            </div>
         </form>
-        <p class="text-muted mt-3"><small>Settings are saved automatically.</small></p>
+        <p class="text-muted mt-5"><small>Settings are saved automatically.</small></p>
     </div>
     <script src="dependencies/browser-polyfill.js"></script>
     <script src="options.js"></script>

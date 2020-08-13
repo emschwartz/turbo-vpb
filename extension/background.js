@@ -1,4 +1,5 @@
 const peers = {}
+const unregisterContentScripts = {}
 
 browser.runtime.onMessage.addListener((message, sender) => {
     if (typeof message !== 'object') {
@@ -141,3 +142,59 @@ browser.runtime.onInstalled.addListener(({ reason, temporary }) => {
         browser.runtime.openOptionsPage()
     }
 })
+
+// Register content scripts on new origin when settings change
+browser.storage.onChanged.addListener(async (changes, area) => {
+    if (area !== 'local') {
+        return
+    }
+    if (changes.enableOnOrigins) {
+        if (changes.enableOnOrigins.oldValue) {
+            await Promise.all(changes.enableOnOrigins.oldValue
+                .filter(c => changes.enableOnOrigins.newValue.includes(c))
+                .map(disableOrigin))
+            await Promise.all(changes.enableOnOrigins.newValue
+                .filter(c => changes.enableOnOrigins.oldValue.includes(c))
+                .map(enableOrigin))
+        } else {
+            await Promise.all(changes.enableOnOrigins.newValue.map(enableOrigin))
+        }
+    }
+})
+browser.storage.local.get('enableOnOrigins')
+    .then(async ({ enableOnOrigins }) => {
+        if (enableOnOrigins && Array.isArray(enableOnOrigins)) {
+            await Promise.all(enableOnOrigins.map(enableOrigin))
+        }
+    })
+
+async function enableOrigin(origin) {
+    console.log(`registering content scripts for ${origin}`)
+    let originSpecificJs
+    if (/https:\/\/.*\.everyaction.com/i.test(origin)) {
+        originSpecificJs = { file: 'everyaction.js' }
+    } else {
+        console.error(`unknown origin ${origin}`)
+        return
+    }
+    const { unregister } = await browser.contentScripts.register({
+        matches: [origin],
+        js: [
+            { file: 'dependencies/browser-polyfill.js' },
+            { file: 'dependencies/kjua.js' },
+            { file: 'content.js' },
+            originSpecificJs
+        ]
+    })
+    unregisterContentScripts[origin] = unregister
+}
+
+async function disableOrigin(origin) {
+    if (typeof unregisterContentScripts[origin] === 'function') {
+        (unregisterContentScripts[origin])()
+        delete unregisterContentScripts[origin]
+        return true
+    } else {
+        return false
+    }
+}

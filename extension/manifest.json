@@ -9,6 +9,9 @@
         "storage",
         "*://turbovpb-peerjs-server.herokuapp.com/*"
     ],
+    "optional_permissions": [
+        "https://*.everyaction.com/ContactDetailScript*"
+    ],
     "icons": {
         "48": "icons/phone-outgoing-48.png",
         "96": "icons/phone-outgoing-96.png",
@@ -22,7 +25,8 @@
             "js": [
                 "dependencies/browser-polyfill.js",
                 "dependencies/kjua.js",
-                "content.js"
+                "content.js",
+                "openvpb.js"
             ]
         }
     ],
