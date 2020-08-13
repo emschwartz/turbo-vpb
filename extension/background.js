@@ -150,10 +150,10 @@ browser.storage.onChanged.addListener(async (changes, area) => {
     if (changes.enableOnOrigins) {
         if (changes.enableOnOrigins.oldValue) {
             await Promise.all(changes.enableOnOrigins.oldValue
-                .filter(c => changes.enableOnOrigins.newValue.includes(c))
+                .filter(c => !changes.enableOnOrigins.newValue.includes(c))
                 .map(disableOrigin))
             await Promise.all(changes.enableOnOrigins.newValue
-                .filter(c => changes.enableOnOrigins.oldValue.includes(c))
+                .filter(c => !changes.enableOnOrigins.oldValue.includes(c))
                 .map(enableOrigin))
         } else {
             await Promise.all(changes.enableOnOrigins.newValue.map(enableOrigin))
@@ -194,6 +194,7 @@ async function disableOrigin(origin) {
     if (typeof unregisterContentScripts[origin] === 'function') {
         (unregisterContentScripts[origin])()
         delete unregisterContentScripts[origin]
+        console.log(`disabled content scripts for ${origin}`)
         return true
     } else {
         return false

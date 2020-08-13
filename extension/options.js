@@ -32,13 +32,7 @@ document.getElementById('enable-on-everyaction')
                     origins: [EVERYACTION_ORIGIN],
                     permissions: []
                 })
-                if (permissionGranted) {
-                    await backgroundPage.enableOrigin(EVERYACTION_ORIGIN)
-                }
                 event.target.checked = permissionGranted
-                saveSettings()
-            } else {
-                await backgroundPage.disableOrigin(EVERYACTION_ORIGIN)
             }
         } catch (err) {
             console.error(err)
@@ -57,7 +51,6 @@ document.getElementById('enable-on-bluevote')
                     await backgroundPage.enableOrigin(BLUEVOTE_ORIGIN)
                 }
                 event.target.checked = permissionGranted
-                saveSettings()
             } else {
                 await backgroundPage.disableOrigin(BLUEVOTE_ORIGIN)
             }
