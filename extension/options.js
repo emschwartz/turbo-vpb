@@ -1,6 +1,7 @@
 console.log('options script loaded')
 
-const EVERYACTION_ORIGIN = "https://*.everyaction.com/ContactDetailScript*"
+const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
+const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 
 const messageContainer = document.getElementById('messages')
 const messageTemplateHtml = document.getElementById('message-template')
@@ -22,13 +23,8 @@ document.getElementById('add-message-template')
         })
     })
 
-browser.permissions.contains({ origins: [EVERYACTION_ORIGIN] }).then((enabled) => {
-    document.getElementById('enable-on-everyaction').checked = enabled
-})
-
 document.getElementById('enable-on-everyaction')
     .addEventListener('change', async (event) => {
-        // event.preventDefault()
         const backgroundPage = await browser.runtime.getBackgroundPage()
         try {
             if (event.target.checked) {
@@ -43,6 +39,27 @@ document.getElementById('enable-on-everyaction')
                 saveSettings()
             } else {
                 await backgroundPage.disableOrigin(EVERYACTION_ORIGIN)
+            }
+        } catch (err) {
+            console.error(err)
+        }
+    })
+document.getElementById('enable-on-bluevote')
+    .addEventListener('change', async (event) => {
+        const backgroundPage = await browser.runtime.getBackgroundPage()
+        try {
+            if (event.target.checked) {
+                const permissionGranted = await browser.permissions.request({
+                    origins: [BLUEVOTE_ORIGIN],
+                    permissions: []
+                })
+                if (permissionGranted) {
+                    await backgroundPage.enableOrigin(BLUEVOTE_ORIGIN)
+                }
+                event.target.checked = permissionGranted
+                saveSettings()
+            } else {
+                await backgroundPage.disableOrigin(BLUEVOTE_ORIGIN)
             }
         } catch (err) {
             console.error(err)
@@ -79,6 +96,9 @@ browser.storage.local.get(['yourName', 'messageTemplates', 'hideInfo', 'enableOn
         if (enableOnOrigins) {
             if (enableOnOrigins.includes(EVERYACTION_ORIGIN)) {
                 document.getElementById('enable-on-everyaction').checked = true
+            }
+            if (enableOnOrigins.includes(BLUEVOTE_ORIGIN)) {
+                document.getElementById('enable-on-bluevote')
             }
         }
     })
@@ -118,6 +138,9 @@ function saveSettings() {
     const enableOnOrigins = []
     if (document.getElementById('enable-on-everyaction').checked) {
         enableOnOrigins.push(EVERYACTION_ORIGIN)
+    }
+    if (document.getElementById('enable-on-bluevote').checked) {
+        enableOnOrigins.push(BLUEVOTE_ORIGIN)
     }
 
     return browser.storage.local.set({

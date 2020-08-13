@@ -1,6 +1,9 @@
 const peers = {}
 const unregisterContentScripts = {}
 
+const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
+const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
+
 browser.runtime.onMessage.addListener((message, sender) => {
     if (typeof message !== 'object') {
         console.log('got message that was not an object', message)
@@ -79,14 +82,14 @@ function createPeer(peerId, tabId) {
 
     peer.on('open', () => console.log(`peer ${peerId} listening for connections`))
     peer.on('error', (err) => {
+        console.error(err)
         peers[peerId].peer.destroy()
         delete peers[peerId]
-        console.error(err)
     })
     peer.on('close', () => {
+        console.log(`peer ${peerId} closed`)
         peers[peerId].peer.destroy()
         delete peers[peerId]
-        console.log(`peer ${peerId} closed`)
     })
 
     peer.on('connection', async (conn) => {
@@ -167,8 +170,10 @@ browser.storage.local.get('enableOnOrigins')
 async function enableOrigin(origin) {
     console.log(`registering content scripts for ${origin}`)
     let originSpecificJs
-    if (/https:\/\/.*\.everyaction.com/i.test(origin)) {
+    if (origin === EVERYACTION_ORIGIN) {
         originSpecificJs = { file: 'everyaction.js' }
+    } else if (origin === BLUEVOTE_ORIGIN) {
+        originSpecificJs = { file: 'bluevote.js' }
     } else {
         console.error(`unknown origin ${origin}`)
         return

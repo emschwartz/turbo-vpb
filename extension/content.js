@@ -49,7 +49,7 @@ function createQrCode(backgroundColor) {
             quiet: 0,
             back: backgroundColor || '#fff'
         })
-        qrCode.style = 'width: 100%; height: 100%; max-width: 30vh; max-height: 30vh; min-width: 200px; min-height: 200px'
+        qrCode.style = 'width: 100%; height: 100%; max-width: 30vh; max-height: 30vh'
         qrLink.appendChild(qrCode)
         container.appendChild(qrLink)
         return container

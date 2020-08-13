@@ -30,7 +30,6 @@ function getContactDetails() {
         if (sidebarContainer) {
             const qrCode = createQrCode('#f8f9fa')
             if (qrCode) {
-                console.log('got here')
                 const container = document.createElement('div')
                 container.id = "turbovpbcontainer"
                 container.style = "margin-top: 2rem"

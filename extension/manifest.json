@@ -10,7 +10,8 @@
         "*://*.turbovpb.com/*"
     ],
     "optional_permissions": [
-        "https://*.everyaction.com/ContactDetailScript*"
+        "https://*.everyaction.com/ContactDetailScript*",
+        "https://phonebank.bluevote.com/*"
     ],
     "icons": {
         "48": "icons/phone-outgoing-48.png",
