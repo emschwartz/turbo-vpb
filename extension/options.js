@@ -24,40 +24,34 @@ document.getElementById('add-message-template')
     })
 
 document.getElementById('enable-on-everyaction')
-    .addEventListener('change', async (event) => {
-        const backgroundPage = await browser.runtime.getBackgroundPage()
-        try {
-            if (event.target.checked) {
-                const permissionGranted = await browser.permissions.request({
-                    origins: [EVERYACTION_ORIGIN],
-                    permissions: []
-                })
-                event.target.checked = permissionGranted
-            }
-        } catch (err) {
-            console.error(err)
-        }
-    })
+    .addEventListener('change', handleOriginCheckboxChange.bind(null, EVERYACTION_ORIGIN)
+    )
 document.getElementById('enable-on-bluevote')
-    .addEventListener('change', async (event) => {
-        const backgroundPage = await browser.runtime.getBackgroundPage()
-        try {
-            if (event.target.checked) {
-                const permissionGranted = await browser.permissions.request({
-                    origins: [BLUEVOTE_ORIGIN],
-                    permissions: []
-                })
-                if (permissionGranted) {
-                    await backgroundPage.enableOrigin(BLUEVOTE_ORIGIN)
-                }
-                event.target.checked = permissionGranted
+    .addEventListener('change', handleOriginCheckboxChange.bind(null, BLUEVOTE_ORIGIN)
+    )
+async function handleOriginCheckboxChange(origin, event) {
+    try {
+        if (event.target.checked) {
+            console.log('requesting permission for:', origin)
+            const permissionGranted = await browser.permissions.request({
+                origins: [origin],
+                permissions: []
+            })
+            if (permissionGranted) {
+                const backgroundPage = await browser.runtime.getBackgroundPage()
+                await backgroundPage.enableOrigin(origin)
             } else {
-                await backgroundPage.disableOrigin(BLUEVOTE_ORIGIN)
+                console.log('permission denied')
             }
-        } catch (err) {
-            console.error(err)
+            event.target.checked = permissionGranted
+        } else {
+            const backgroundPage = await browser.runtime.getBackgroundPage()
+            await backgroundPage.disableOrigin(origin)
         }
-    })
+    } catch (err) {
+        console.error(err)
+    }
+}
 
 document.getElementById('settings').addEventListener('change', saveSettings)
 
@@ -91,7 +85,7 @@ browser.storage.local.get(['yourName', 'messageTemplates', 'hideInfo', 'enableOn
                 document.getElementById('enable-on-everyaction').checked = true
             }
             if (enableOnOrigins.includes(BLUEVOTE_ORIGIN)) {
-                document.getElementById('enable-on-bluevote')
+                document.getElementById('enable-on-bluevote').checked = true
             }
         }
     })
