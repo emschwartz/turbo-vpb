@@ -14,11 +14,32 @@ const tracker = ackeeTracker.create({
 
 const url = new URL(window.location.href)
 url.hash = ''
-const stopTracking = tracker.record({
+const attributes = {
     siteLocation: url.toString(),
     siteReferrer: document.referrer || null
-})
-window.addEventListener('beforeunload', () => stopTracking())
+}
+
+// Save the Ackee recordId to session storage so it counts as one record
+// even if the user reloads the page multiple times or the page is put to
+// sleep while they are making calls
+Promise.resolve(window.sessionStorage.getItem('ackeeRecordId'))
+    .then((recordId) => {
+        if (recordId) {
+            return recordId
+        }
+        return tracker.createRecord(attributes)
+            .then(recordId => {
+                window.sessionStorage.setItem('ackeeRecordId', recordId)
+                return recordId
+            })
+    })
+    .then((recordId) => {
+        const stopTracking = tracker.recordWithId(recordId, attributes)
+        window.addEventListener('beforeunload', () => stopTracking())
+    })
+    .catch((err) => {
+        console.error('error setting up tracker', err)
+    })
 
 
 const remotePeerId = window.location.hash.slice(1)
