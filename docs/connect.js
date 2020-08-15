@@ -9,7 +9,7 @@ let startTime = Date.now()
 // Analytics
 const tracker = ackeeTracker.create({
     server: 'https://analytics.turbovpb.com',
-    domainId: 'ce7e5171-35be-4728-9e90-575ab21f850f'
+    domainId: 'ed7f1c2b-46bc-4858-8221-4b9133ac88ca'
 })
 
 const url = new URL(window.location.href)
@@ -19,27 +19,8 @@ const attributes = {
     siteReferrer: document.referrer || null
 }
 
-// Save the Ackee recordId to session storage so it counts as one record
-// even if the user reloads the page multiple times or the page is put to
-// sleep while they are making calls
-Promise.resolve(window.sessionStorage.getItem('ackeeRecordId'))
-    .then((recordId) => {
-        if (recordId) {
-            return recordId
-        }
-        return tracker.createRecord(attributes)
-            .then(recordId => {
-                window.sessionStorage.setItem('ackeeRecordId', recordId)
-                return recordId
-            })
-    })
-    .then((recordId) => {
-        const stopTracking = tracker.recordWithId(recordId, attributes)
-        window.addEventListener('beforeunload', () => stopTracking())
-    })
-    .catch((err) => {
-        console.error('error setting up tracker', err)
-    })
+const { stop: stopTracking } = tracker.record(attributes)
+window.addEventListener('beforeunload', () => stopTracking())
 
 
 const remotePeerId = window.location.hash.slice(1)
