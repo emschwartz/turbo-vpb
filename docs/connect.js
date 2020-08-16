@@ -7,18 +7,22 @@ let conn
 let startTime = Date.now()
 
 // Analytics
-const tracker = ackeeTracker.create({
-    server: 'https://analytics.turbovpb.com',
-    domainId: 'ed7f1c2b-46bc-4858-8221-4b9133ac88ca'
-})
+try {
+    const tracker = ackeeTracker.create({
+        server: 'https://analytics.turbovpb.com',
+        domainId: 'ed7f1c2b-46bc-4858-8221-4b9133ac88ca'
+    })
 
-const url = new URL(window.location.href)
-url.hash = ''
-const attributes = tracker.attributes(true)
-attributes.siteLocation = url.toString()
+    const url = new URL(window.location.href)
+    url.hash = ''
+    const attributes = ackeeTracker.attributes(true)
+    attributes.siteLocation = url.toString()
 
-const { stop: stopTracking } = tracker.record(attributes)
-window.addEventListener('beforeunload', () => stopTracking())
+    const { stop: stopTracking } = tracker.record(attributes)
+    window.addEventListener('beforeunload', () => stopTracking())
+} catch (err) {
+    log('error setting up tracking', err)
+}
 
 
 const remotePeerId = window.location.hash.slice(1)
