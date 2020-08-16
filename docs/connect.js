@@ -10,16 +10,12 @@ let startTime = Date.now()
 const tracker = ackeeTracker.create({
     server: 'https://analytics.turbovpb.com',
     domainId: 'ed7f1c2b-46bc-4858-8221-4b9133ac88ca'
-}, {
-    detailed: true
 })
 
 const url = new URL(window.location.href)
 url.hash = ''
-const attributes = {
-    siteLocation: url.toString(),
-    siteReferrer: document.referrer || null
-}
+const attributes = tracker.attributes(true)
+attributes.siteLocation = url.toString()
 
 const { stop: stopTracking } = tracker.record(attributes)
 window.addEventListener('beforeunload', () => stopTracking())
