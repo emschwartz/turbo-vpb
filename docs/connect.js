@@ -26,7 +26,8 @@ window.addEventListener('beforeunload', () => stopTracking())
 
 
 const remotePeerId = window.location.hash.slice(1)
-const debugMode = window.location.search.includes('debug=true')
+    .replace(/&.*/, '')
+const debugMode = window.location.href.includes('debug')
 const log = debugMode ? debugLog : console.log
 function debugLog() {
     console.log.apply(null, arguments)
