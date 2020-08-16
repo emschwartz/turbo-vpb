@@ -128,6 +128,11 @@ function createPeer(peerId, tabId) {
             })
         } catch (err) {
             console.error('Error sending contact request to content_script', err)
+            if (err.message === 'tab is null') {
+                console.warn('destroying peer because tab was closed')
+                peers[peerId].peer.destroy()
+                delete peers[peerId]
+            }
         }
     })
 }
