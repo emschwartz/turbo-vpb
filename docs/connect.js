@@ -220,6 +220,13 @@ function establishConnection() {
             while (textMessageLinks.firstChild) {
                 textMessageLinks.removeChild(textMessageLinks.firstChild)
             }
+            if (messageTemplates.length === 0) {
+                document.getElementById('textMessageInstructions')
+                    .removeAttribute('hidden')
+            } else {
+                document.getElementById('textMessageInstructions')
+                    .setAttribute('hidden', 'true')
+            }
             for (let { label, message, result } of messageTemplates) {
                 const a = document.createElement('a')
                 a.className = "btn btn-outline-secondary btn-block p-3 my-3"
