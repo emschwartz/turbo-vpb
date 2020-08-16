@@ -136,7 +136,7 @@ function connectPeer() {
 
         // Display full error message
         document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
-        document.getElementById('warningText1').innerText = `Error details: ${err.message}`
+        document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
         document.getElementById('warningText2').innerText =
             `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code.`
         document.getElementById('warningText2').hidden = false
