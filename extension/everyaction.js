@@ -53,7 +53,7 @@ function getContactDetails() {
         || {}).innerText
 
     const contactName = document.querySelector('.person-phone-panel')
-        && document.querySelector('.person-phone-panel').firstElementChild.innerText.replace(/ [–-] \d+/, '')
+        && document.querySelector('.person-phone-panel').firstElementChild.innerText.replace(/ [–-] \d+(?:\s+\w)?/, '')
 
     // Figure out if this is a new contact
     if (contactName && isNewContact(currentPhoneNumber)) {

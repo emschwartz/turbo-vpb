@@ -11,6 +11,7 @@
     ],
     "optional_permissions": [
         "https://*.everyaction.com/ContactDetailScript*",
+        "https://www.votebuilder.com/ContactDetailScript*",
         "https://phonebank.bluevote.com/*"
     ],
     "icons": {

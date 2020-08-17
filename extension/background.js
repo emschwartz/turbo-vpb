@@ -2,6 +2,7 @@ const peers = {}
 const unregisterContentScripts = {}
 
 const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
+const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 
 browser.runtime.onMessage.addListener((message, sender) => {
@@ -157,7 +158,7 @@ browser.storage.local.get('enableOnOrigins')
 async function enableOrigin(origin) {
     console.log(`registering content scripts for ${origin}`)
     let originSpecificJs
-    if (origin === EVERYACTION_ORIGIN) {
+    if (origin === EVERYACTION_ORIGIN || origin === VOTEBUILDER_ORIGIN) {
         originSpecificJs = { file: 'everyaction.js' }
     } else if (origin === BLUEVOTE_ORIGIN) {
         originSpecificJs = { file: 'bluevote.js' }

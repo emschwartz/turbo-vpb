@@ -1,6 +1,7 @@
 console.log('options script loaded')
 
 const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
+const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 
 const messageContainer = document.getElementById('messages')
@@ -25,6 +26,9 @@ document.getElementById('add-message-template')
 
 document.getElementById('enable-on-everyaction')
     .addEventListener('change', handleOriginCheckboxChange.bind(null, EVERYACTION_ORIGIN)
+    )
+document.getElementById('enable-on-votebuilder')
+    .addEventListener('change', handleOriginCheckboxChange.bind(null, VOTEBUILDER_ORIGIN)
     )
 document.getElementById('enable-on-bluevote')
     .addEventListener('change', handleOriginCheckboxChange.bind(null, BLUEVOTE_ORIGIN)
@@ -84,6 +88,9 @@ browser.storage.local.get(['yourName', 'messageTemplates', 'hideInfo', 'enableOn
             if (enableOnOrigins.includes(EVERYACTION_ORIGIN)) {
                 document.getElementById('enable-on-everyaction').checked = true
             }
+            if (enableOnOrigins.includes(VOTEBUILDER_ORIGIN)) {
+                document.getElementById('enable-on-votebuilder').checked = true
+            }
             if (enableOnOrigins.includes(BLUEVOTE_ORIGIN)) {
                 document.getElementById('enable-on-bluevote').checked = true
             }
@@ -125,6 +132,9 @@ function saveSettings() {
     const enableOnOrigins = []
     if (document.getElementById('enable-on-everyaction').checked) {
         enableOnOrigins.push(EVERYACTION_ORIGIN)
+    }
+    if (document.getElementById('enable-on-votebuilder').checked) {
+        enableOnOrigins.push(VOTEBUILDER_ORIGIN)
     }
     if (document.getElementById('enable-on-bluevote').checked) {
         enableOnOrigins.push(BLUEVOTE_ORIGIN)
