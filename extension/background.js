@@ -72,7 +72,17 @@ function createPeer(peerId, tabId) {
         host: 'peerjs.turbovpb.com',
         path: '/',
         secure: true,
-        // debug: 3
+        debug: 1,
+        config: {
+            iceServers: [{
+                "url": "stun:stun.l.google.com:19302",
+                "urls": "stun:stun.l.google.com:19302"
+            }, {
+                "url": "stun:global.stun.twilio.com:3478?transport=udp",
+                "urls": "stun:global.stun.twilio.com:3478?transport=udp"
+            }],
+            sdpSemantics: 'unified-plain'
+        }
     })
 
     peers[peerId] = {

@@ -127,7 +127,17 @@ function connectPeer() {
     peer = new Peer({
         host: 'peerjs.turbovpb.com',
         secure: true,
-        debug: debugMode ? 3 : 1
+        debug: debugMode ? 3 : 1,
+        config: {
+            iceServers: [{
+                "url": "stun:stun.l.google.com:19302",
+                "urls": "stun:stun.l.google.com:19302"
+            }, {
+                "url": "stun:global.stun.twilio.com:3478?transport=udp",
+                "urls": "stun:global.stun.twilio.com:3478?transport=udp"
+            }],
+            sdpSemantics: 'unified-plain'
+        }
     })
     peer.on('disconnect', () => {
         log('peer disconnected')
