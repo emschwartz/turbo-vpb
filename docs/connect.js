@@ -5,6 +5,7 @@ let peer
 let conn
 
 let startTime = Date.now()
+let lastErrorTime
 
 // Analytics
 try {
@@ -139,7 +140,7 @@ function connectPeer() {
         document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
         document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
         document.getElementById('warningText2').innerText =
-            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code.`
+            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send an email to help@turbovpb.com.`
         document.getElementById('warningText2').hidden = false
         document.getElementById('warningContainer').hidden = false
 
@@ -152,6 +153,7 @@ function connectPeer() {
 
         // Capture event unless it was just caused by the page being put to sleep
         if (!document.hidden) {
+            lastErrorTime = Date.now()
             Sentry.captureException(err)
         }
     })
@@ -184,6 +186,10 @@ function establishConnection() {
     conn.once('open', () => {
         log('connection open')
         setStatus('Connected', 'success')
+
+        if (lastErrorTime) {
+            Sentry.captureMessage('connected')
+        }
     })
     conn.once('error', (err) => {
         log(err)
@@ -193,6 +199,7 @@ function establishConnection() {
 
         // Capture event unless it was just caused by the page being put to sleep
         if (!document.hidden) {
+            lastErrorTime = Date.now()
             Sentry.captureException(err)
         }
     })
