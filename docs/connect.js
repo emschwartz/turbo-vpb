@@ -127,6 +127,7 @@ function connectPeer() {
     peer = new Peer({
         host: 'peerjs.turbovpb.com',
         secure: true,
+        debug: debugMode ? 3 : 1
     })
     peer.on('disconnect', () => {
         log('peer disconnected')
