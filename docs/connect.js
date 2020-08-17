@@ -133,10 +133,21 @@ function connectPeer() {
         log('peer disconnected')
         connectPeer()
     })
-    peer.on('error', (err) => {
-        log(err)
-        setStatus('Error. Reload Tab.', 'danger')
+    peer.on('error', displayError)
+    // Capture event unless it was just caused by the page being put to sleep
+    peer.once('open', () => {
+        log('peer opened')
+        opened = true
+        establishConnection()
+    })
+}
 
+function displayError(err) {
+    log(err)
+    setStatus('Error. Reload Tab.', 'danger')
+
+    // Display error details if the error was not caused by the page being put to sleep
+    if (!document.hidden) {
         // Display full error message
         document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
         document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
@@ -152,17 +163,10 @@ function connectPeer() {
         document.getElementById('phoneNumber').href = ''
         document.getElementById('phoneNumber').innerText = ''
 
-        // Capture event unless it was just caused by the page being put to sleep
-        if (!document.hidden) {
-            lastErrorTime = Date.now()
-            Sentry.captureException(err)
-        }
-    })
-    peer.once('open', () => {
-        log('peer opened')
-        opened = true
-        establishConnection()
-    })
+        // Report error to Sentry
+        lastErrorTime = Date.now()
+        Sentry.captureException(err)
+    }
 }
 
 function establishConnection() {
@@ -193,16 +197,8 @@ function establishConnection() {
         }
     })
     conn.once('error', (err) => {
-        log(err)
         conn = null
-
-        setStatus('Error. Reload Tab.', 'danger')
-
-        // Capture event unless it was just caused by the page being put to sleep
-        if (!document.hidden) {
-            lastErrorTime = Date.now()
-            Sentry.captureException(err)
-        }
+        displayError(err)
     })
     conn.once('close', () => {
         setStatus('Not Connected', 'danger')
