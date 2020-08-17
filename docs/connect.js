@@ -149,6 +149,8 @@ function connectPeer() {
         document.getElementById('name').innerText = ''
         document.getElementById('phoneNumber').href = ''
         document.getElementById('phoneNumber').innerText = ''
+
+        Sentry.captureException(err)
     })
     peer.once('open', () => {
         log('peer opened')
@@ -185,6 +187,7 @@ function establishConnection() {
         conn = null
 
         setStatus('Error. Reload Tab.', 'danger')
+        Sentry.captureException(err)
     })
     conn.once('close', () => {
         setStatus('Not Connected', 'danger')
