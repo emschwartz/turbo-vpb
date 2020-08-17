@@ -150,7 +150,10 @@ function connectPeer() {
         document.getElementById('phoneNumber').href = ''
         document.getElementById('phoneNumber').innerText = ''
 
-        Sentry.captureException(err)
+        // Capture event unless it was just caused by the page being put to sleep
+        if (!document.hidden) {
+            Sentry.captureException(err)
+        }
     })
     peer.once('open', () => {
         log('peer opened')
@@ -187,7 +190,11 @@ function establishConnection() {
         conn = null
 
         setStatus('Error. Reload Tab.', 'danger')
-        Sentry.captureException(err)
+
+        // Capture event unless it was just caused by the page being put to sleep
+        if (!document.hidden) {
+            Sentry.captureException(err)
+        }
     })
     conn.once('close', () => {
         setStatus('Not Connected', 'danger')
