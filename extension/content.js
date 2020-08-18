@@ -1,15 +1,17 @@
 console.log("Content script loaded")
 
-window.turboVpb = {
-    peerId: null,
-    contact: null,
-    stats: {
-        // Start at -1 because it will count contacts loaded (rather than calls completed)
-        calls: -1,
-        successfulCalls: 0,
-        startTime: Date.now(),
-        lastContactLoadTime: Date.now()
-    }
+// Initialize Stats
+if (!window.sessionStorage.getItem('turboVpbCalls')) {
+    window.sessionStorage.setItem('turboVpbCalls', '-1')
+}
+if (!window.sessionStorage.getItem('turboVpbSuccessfulCalls')) {
+    window.sessionStorage.setItem('turboVpbSuccessfulCalls', '0')
+}
+if (!window.sessionStorage.getItem('turboVpbStartTime')) {
+    window.sessionStorage.setItem('turboVpbStartTime', Date.now())
+}
+if (!window.sessionStorage.getItem('turboVpbLastContactLoadTime')) {
+    window.sessionStorage.setItem('turboVpbLastContactLoadTime', Date.now())
 }
 
 createPeer()
@@ -24,6 +26,7 @@ browser.runtime.onMessage.addListener((message) => {
 })
 
 window.addEventListener('focus', () => {
+    const lastContactLoadTime = parseInt(window.sessionStorage.getItem('turboVpbLastContactLoadTime'))
     if (Date.now() - lastContactLoadTime > 600000) {
         console.log('sending connect message to background to ensure peer is still connected')
         sendConnect()
@@ -31,7 +34,7 @@ window.addEventListener('focus', () => {
 })
 
 function createQrCode(backgroundColor) {
-    const url = window.sessionStorage.getItem('url')
+    const url = window.sessionStorage.getItem('turboVpbUrl')
     if (url) {
         const container = document.createElement('div')
         const label = document.createElement('p')
@@ -60,22 +63,22 @@ function createQrCode(backgroundColor) {
 }
 
 async function createPeer() {
-    window.turboVpb.peerId = window.sessionStorage.getItem('peerId')
+    let peerId = window.sessionStorage.getItem('turboVpbPeerId')
 
-    if (!window.turboVpb.peerId) {
+    if (!peerId) {
         const array = new Uint8Array(16)
         crypto.getRandomValues(array)
-        window.turboVpb.peerId = [...array].map(byte => byte.toString(16).padStart(2, '0')).join('')
-        window.sessionStorage.setItem('peerId', window.turboVpb.peerId)
+        peerId = [...array].map(byte => byte.toString(16).padStart(2, '0')).join('')
+        window.sessionStorage.setItem('turboVpbPeerId', peerId)
     }
 
-    console.log('using peerId:', window.turboVpb.peerId)
+    console.log('using peerId:', peerId)
 
     // This uses half of a SHA-256 hash of the peerId as a session ID
     // The session ID is currently used only to ensure that the mobile browser
     // reloads the tab if you open a different link (the tab will not be reloaded
     // if only the hash changes)
-    const peerIdArray = [...window.turboVpb.peerId].reduce((result, char, index, array) => {
+    const peerIdArray = [...peerId].reduce((result, char, index, array) => {
         if (index % 2 === 0) {
             result.push(parseInt(array.slice(index, index + 2).join(''), 16))
         }
@@ -85,26 +88,24 @@ async function createPeer() {
     const peerIdHash = [...peerIdHashArray].map(byte => byte.toString(16).padStart(2, '0')).join('')
     const sessionId = peerIdHash.slice(0, 16)
 
-    const url = `https://turbovpb.com/connect?session=${sessionId}#${window.turboVpb.peerId}`
-    window.sessionStorage.setItem('url', url)
+    const url = `https://turbovpb.com/connect?session=${sessionId}#${peerId}`
+    window.sessionStorage.setItem('turboVpbUrl', url)
 
     sendConnect()
 }
 
 function isNewContact(phone) {
-    return !window.turboVpb.contact || window.turboVpb.contact.phoneNumber !== phone
+    return !window.sessionStorage.getItem('turboVpbPhoneNumber') || window.sessionStorage.getItem('turboVpbPhoneNumber') !== phone
 }
 
 function handleContact(fullName, phone) {
     console.log('got new contact', fullName, phone)
 
-    window.turboVpb.contact = {
-        phoneNumber: phone,
-        firstName: fullName.split(' ')[0],
-        lastName: fullName.split(' ').slice(1).join(' ')
-    }
-    window.turboVpb.stats.calls += 1
-    window.turboVpb.stats.lastContactLoadTime = Date.now()
+    window.sessionStorage.setItem('turboVpbPhoneNumber', phone)
+    window.sessionStorage.setItem('turboVpbFirstName', fullName.split(' ')[0])
+    window.sessionStorage.setItem('turboVpbLastName', fullName.split(' ').slice(1).join(' '))
+    window.sessionStorage.setItem('turboVpbCalls', parseInt(window.sessionStorage.getItem('turboVpbCalls') || '0') + 1)
+    window.sessionStorage.setItem('turboVpbLastContactLoadTime', Date.now())
 
     sendDetails()
 }
@@ -113,7 +114,7 @@ async function sendConnect() {
     try {
         await browser.runtime.sendMessage({
             type: 'connect',
-            peerId: window.turboVpb.peerId
+            peerId: window.sessionStorage.getItem('turboVpbPeerId')
         })
     } catch (err) {
         console.err(err)
@@ -129,12 +130,21 @@ async function sendDetails() {
     try {
         await browser.runtime.sendMessage({
             type: 'contact',
-            peerId: window.turboVpb.peerId,
+            peerId: window.sessionStorage.getItem('turboVpbPeerId'),
             data: {
                 messageTemplates,
                 yourName,
-                contact: window.turboVpb.contact,
-                stats: window.turboVpb.stats
+                contact: {
+                    phoneNumber: window.sessionStorage.getItem('turboVpbPhoneNumber'),
+                    firstName: window.sessionStorage.getItem('turboVpbFirstName'),
+                    lastName: window.sessionStorage.getItem('turboVpbLastName'),
+                },
+                stats: {
+                    calls: parseInt(window.sessionStorage.getItem('turboVpbCalls')),
+                    successfulCalls: parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls')),
+                    lastContactLoadTime: parseInt(window.sessionStorage.getItem('turboVpbLastContactLoadTime')),
+                    startTime: parseInt(window.sessionStorage.getItem('turboVpbStartTime'))
+                }
             }
         })
     } catch (err) {

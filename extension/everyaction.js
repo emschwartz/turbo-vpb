@@ -78,7 +78,7 @@ function getContactDetails() {
             saveNextButton().addEventListener('click', () => {
                 if (!couldntReachContact) {
                     console.log('logged successful call')
-                    window.turboVpbStats.successfulCalls += 1
+                    window.sessionStorage.setItem('turboVpbSuccessfulCalls', parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls') || 0) + 1)
                 }
             })
         } else {

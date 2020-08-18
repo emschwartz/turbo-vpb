@@ -7,7 +7,7 @@ setInterval(getContactDetails, 50)
 window.addEventListener('beforeunload', async () => {
     await browser.runtime.sendMessage({
         type: 'disconnect',
-        peerId: window.turboVpb.peerId
+        peerId: window.sessionStorage.getItem('turboVpbPeerId')
     })
 })
 
@@ -84,7 +84,7 @@ function getContactDetails() {
                 saveNextButton().addEventListener('click', () => {
                     if (!couldntReachContact) {
                         console.log('logged successful call')
-                        window.turboVpb.stats.successfulCalls += 1
+                        window.sessionStorage.setItem('turboVpbSuccessfulCalls', parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls') || 0) + 1)
                     }
                 })
             }
