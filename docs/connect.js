@@ -5,7 +5,7 @@ let peer
 let conn
 
 let startTime = Date.now()
-let lastErrorTime
+let hasConnected = false
 
 // Analytics
 try {
@@ -26,6 +26,9 @@ try {
 }
 
 if (Sentry) {
+    Sentry.init({
+        dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315'
+    });
     const searchParams = (new URL(window.location.href)).searchParams
     const session = searchParams.get('session')
     if (session) {
@@ -154,7 +157,6 @@ function connectPeer() {
         connectPeer()
     })
     peer.on('error', displayError)
-    // Capture event unless it was just caused by the page being put to sleep
     peer.once('open', () => {
         log('peer opened')
         opened = true
@@ -167,30 +169,34 @@ function displayError(err) {
     setStatus('Error. Reload Tab.', 'danger')
 
     // Display error details if the error was not caused by the page being put to sleep
-    if (!document.hidden) {
-        // Display full error message
-        document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
-        document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
+    if (document.hidden) {
+        return
+    }
+    // Display full error message
+    document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
+    document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
 
-        if (err.type !== 'browser-incompatible') {
-            document.getElementById('warningText2').innerText =
-                `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send an email to help@turbovpb.com.`
-        } else {
-            document.getElementById('warningText2').innerText =
-                'Unfortunately, this means that TurboVPB will not work on your phone. Sorry :('
-        }
-        document.getElementById('warningText2').hidden = false
-        document.getElementById('warningContainer').hidden = false
+    if (err.type !== 'browser-incompatible') {
+        document.getElementById('warningText2').innerText =
+            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send us a message using the Support button in the bottom right.`
+    } else {
+        document.getElementById('warningText2').innerText =
+            'Unfortunately, this means that TurboVPB will not work on your phone. Sorry :('
+    }
+    document.getElementById('warningText2').hidden = false
+    document.getElementById('warningContainer').hidden = false
 
-        // Clear the contact details
-        document.getElementById('contactDetails').hidden = true
-        document.getElementById('statistics').hidden = true
-        document.getElementById('name').innerText = ''
-        document.getElementById('phoneNumber').href = ''
-        document.getElementById('phoneNumber').innerText = ''
+    // Clear the contact details
+    document.getElementById('contactDetails').hidden = true
+    document.getElementById('statistics').hidden = true
+    document.getElementById('name').innerText = ''
+    document.getElementById('phoneNumber').href = ''
+    document.getElementById('phoneNumber').innerText = ''
 
-        // Report error to Sentry
-        lastErrorTime = Date.now()
+    // Report error to Sentry
+    // Ignore connection errors that happen after the initial connect
+    // because they are likely caused by the browser putting the tab to sleep
+    if (!hasConnected || (err.type !== 'disconnected' && err.type !== 'network')) {
         Sentry.captureException(err)
     }
 }
@@ -217,10 +223,7 @@ function establishConnection() {
     conn.once('open', () => {
         log('connection open')
         setStatus('Connected', 'success')
-
-        if (lastErrorTime) {
-            Sentry.captureMessage('connected')
-        }
+        hasConnected = true
     })
     conn.once('error', (err) => {
         conn = null
