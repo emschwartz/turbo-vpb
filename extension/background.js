@@ -21,6 +21,10 @@ browser.runtime.onMessage.addListener((message, sender) => {
         const connections = Object.values(peers[peerId].connections)
         for (let conn of connections) {
             console.log('sending contact to peer', peerId)
+
+            const data = message.data
+            // Send extension version
+            data.extensionVersion = browser.runtime.getManifest().version
             if (conn && conn.open) {
                 conn.send(message.data)
             } else {
