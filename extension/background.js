@@ -25,6 +25,8 @@ browser.runtime.onMessage.addListener((message, sender) => {
             const data = message.data
             // Send extension version
             data.extensionVersion = browser.runtime.getManifest().version
+            data.extensionUserAgent = navigator.userAgent
+            data.extensionPlatform = navigator.platform
             if (conn && conn.open) {
                 conn.send(message.data)
             } else {

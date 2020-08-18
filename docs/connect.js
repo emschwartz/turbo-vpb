@@ -249,6 +249,8 @@ function establishConnection() {
         if (Sentry) {
             Sentry.configureScope(function (scope) {
                 scope.setTag('extension_version', data.extensionVersion || '<0.6.3')
+                scope.setTag('extension_useragent', data.extensionUserAgent || '')
+                scope.setTag('extension_platform', data.extensionPlatform || '')
             })
         }
         if (data.yourName) {
