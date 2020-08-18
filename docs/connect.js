@@ -25,12 +25,15 @@ try {
     log('error setting up tracking', err)
 }
 
+const searchParams = (new URL(window.location.href)).searchParams
+const session = searchParams.get('session')
+const remotePeerId = window.location.hash.slice(1)
+    .replace(/&.*/, '')
+
 if (Sentry) {
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315'
     });
-    const searchParams = (new URL(window.location.href)).searchParams
-    const session = searchParams.get('session')
     if (session) {
         Sentry.configureScope(function (scope) {
             scope.setUser({
@@ -39,9 +42,12 @@ if (Sentry) {
         })
     }
 }
+if (typeof Chatra === 'function') {
+    Chatra('updateIntegrationData', {
+        sessionId: session
+    })
+}
 
-const remotePeerId = window.location.hash.slice(1)
-    .replace(/&.*/, '')
 const debugMode = window.location.href.includes('debug')
 const log = debugMode ? debugLog : console.log
 function debugLog() {
