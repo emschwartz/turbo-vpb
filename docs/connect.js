@@ -25,6 +25,17 @@ try {
     log('error setting up tracking', err)
 }
 
+if (Sentry) {
+    const searchParams = (new URL(window.location.href)).searchParams
+    const sessionId = searchParams.get('sessionId')
+    if (sessionId) {
+        Sentry.configureScope(function (scope) {
+            scope.setUser({
+                id: sessionId
+            })
+        })
+    }
+}
 
 const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
@@ -226,6 +237,11 @@ function establishConnection() {
     })
     conn.on('data', (data) => {
         log('got data', data)
+        if (Sentry) {
+            Sentry.configureScope(function (scope) {
+                scope.setTag('extension_version', data.extensionVersion || '<0.6.3')
+            })
+        }
         if (data.yourName) {
             yourName = data.yourName
         }
