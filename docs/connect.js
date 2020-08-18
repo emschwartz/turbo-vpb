@@ -27,11 +27,11 @@ try {
 
 if (Sentry) {
     const searchParams = (new URL(window.location.href)).searchParams
-    const sessionId = searchParams.get('sessionId')
+    const session = searchParams.get('session')
     if (sessionId) {
         Sentry.configureScope(function (scope) {
             scope.setUser({
-                id: sessionId
+                id: session
             })
         })
     }
