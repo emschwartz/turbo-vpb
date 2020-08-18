@@ -44,7 +44,7 @@ if (Sentry) {
 }
 if (typeof Chatra === 'function') {
     Chatra('updateIntegrationData', {
-        sessionId: session
+        'Session ID': session
     })
 }
 
@@ -251,6 +251,13 @@ function establishConnection() {
                 scope.setTag('extension_version', data.extensionVersion || '<0.6.3')
                 scope.setTag('extension_useragent', data.extensionUserAgent || '')
                 scope.setTag('extension_platform', data.extensionPlatform || '')
+            })
+        }
+        if (typeof Chatra === 'function') {
+            Chatra('updateIntegrationData', {
+                'Extension Version': data.extensionVersion || '<0.6.3',
+                'Extension UserAgent': data.extensionUserAgent,
+                'Extension Platform': data.extensionPlatform
             })
         }
         if (data.yourName) {
