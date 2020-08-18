@@ -80,8 +80,7 @@ function createPeer(peerId, tabId) {
             }, {
                 "url": "stun:global.stun.twilio.com:3478?transport=udp",
                 "urls": "stun:global.stun.twilio.com:3478?transport=udp"
-            }],
-            sdpSemantics: 'unified-plain'
+            }]
         }
     })
 

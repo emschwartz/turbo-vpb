@@ -135,8 +135,7 @@ function connectPeer() {
             }, {
                 "url": "stun:global.stun.twilio.com:3478?transport=udp",
                 "urls": "stun:global.stun.twilio.com:3478?transport=udp"
-            }],
-            sdpSemantics: 'unified-plain'
+            }]
         }
     })
     peer.on('disconnect', () => {
@@ -211,6 +210,7 @@ function establishConnection() {
         displayError(err)
     })
     conn.once('close', () => {
+        log('connection closed')
         setStatus('Not Connected', 'danger')
 
         conn = null
