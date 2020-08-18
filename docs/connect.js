@@ -42,11 +42,6 @@ if (Sentry) {
         })
     }
 }
-if (typeof Chatra === 'function') {
-    Chatra('updateIntegrationData', {
-        'Session ID': session
-    })
-}
 
 const debugMode = window.location.href.includes('debug')
 const log = debugMode ? debugLog : console.log
@@ -184,7 +179,7 @@ function displayError(err) {
 
     if (err.type !== 'browser-incompatible') {
         document.getElementById('warningText2').innerText =
-            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send us a message using the Support button in the bottom right.`
+            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send us a message using the chat button in the bottom right.`
     } else {
         document.getElementById('warningText2').innerText =
             'Unfortunately, this means that TurboVPB will not work on your phone. Sorry :('
@@ -257,7 +252,8 @@ function establishConnection() {
             Chatra('updateIntegrationData', {
                 'Extension Version': data.extensionVersion || '<0.6.3',
                 'Extension UserAgent': data.extensionUserAgent,
-                'Extension Platform': data.extensionPlatform
+                'Extension Platform': data.extensionPlatform,
+                'Session ID': session
             })
         }
         if (data.yourName) {
@@ -267,15 +263,20 @@ function establishConnection() {
             messageTemplates = data.messageTemplates
         }
         if (data.contact) {
+
+            const matches = data.contact.phoneNumber.match(/\d+/g)
+            if (!matches) {
+                return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
+            }
+            let phoneNumber = matches.join('')
+            if (phoneNumber.length === 10) {
+                phoneNumber = '1' + phoneNumber
+            }
+
             document.getElementById('contactDetails').hidden = false
             document.getElementById('statistics').hidden = false
 
             document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
-
-            let phoneNumber = data.contact.phoneNumber.match(/\d+/g).join('')
-            if (phoneNumber.length === 10) {
-                phoneNumber = '1' + phoneNumber
-            }
 
             document.getElementById('phoneNumber').href = "tel:" + phoneNumber
             document.getElementById('phoneNumber').innerText = `Call ${data.contact.phoneNumber}`
