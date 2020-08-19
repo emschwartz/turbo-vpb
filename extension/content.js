@@ -132,6 +132,7 @@ async function sendDetails() {
             type: 'contact',
             peerId: window.sessionStorage.getItem('turboVpbPeerId'),
             data: {
+                domain: window.location.href,
                 messageTemplates,
                 yourName,
                 contact: {

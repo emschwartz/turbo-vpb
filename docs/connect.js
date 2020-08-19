@@ -257,6 +257,7 @@ function establishConnection() {
                 scope.setTag('extension_version', data.extensionVersion || '<0.6.3')
                 scope.setTag('extension_useragent', data.extensionUserAgent || '')
                 scope.setTag('extension_platform', data.extensionPlatform || '')
+                scope.setTag('extension_domain', data.domain || '')
             })
         }
         if (typeof Chatra === 'function') {
