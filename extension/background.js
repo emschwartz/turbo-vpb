@@ -68,7 +68,18 @@ async function createPeer(peerId, tabId) {
         return
     }
 
+    if (peers[peerId] && peers[peerId].peer === null) {
+        // Duplicate request
+        return
+    }
+
     console.log(`creating peer ${peerId} for tab ${tabId}`)
+
+    peers[peerId] = {
+        peer: null,
+        tabId,
+        connections: []
+    }
 
     let iceServers = [{
         "url": "stun:stun.l.google.com:19302",
@@ -99,12 +110,7 @@ async function createPeer(peerId, tabId) {
             iceServers
         }
     })
-
-    peers[peerId] = {
-        peer,
-        tabId,
-        connections: []
-    }
+    peers[peerId].peer = peer
 
     peer.on('open', () => console.log(`peer ${peerId} listening for connections`))
     peer.on('error', (err) => {
