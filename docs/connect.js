@@ -35,6 +35,9 @@ try {
 
 const debugMode = window.location.href.includes('debug')
 const searchParams = (new URL(window.location.href)).searchParams
+const sessionId = searchParams.get('session') || ''
+const extensionVersion = searchParams.get('version') || '<0.6.3'
+const extensionUserAgent = searchParams.get('userAgent') || ''
 const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
 
@@ -44,10 +47,10 @@ if (Sentry) {
     });
     Sentry.configureScope(function (scope) {
         scope.setUser({
-            id: searchParams.get('session')
+            id: sessionId
         })
-        scope.setTag('extension_version', searchParams.get('version') || '<0.6.3')
-        scope.setTag('extension_useragent', searchParams.get('userAgent') || '')
+        scope.setTag('extension_version', extensionVersion)
+        scope.setTag('extension_useragent', extensionUserAgent)
         if (debugMode) {
             scope.setTag('debug_mode', true)
         }
@@ -200,8 +203,25 @@ function displayError(err) {
     document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
 
     if (err.type !== 'browser-incompatible') {
-        document.getElementById('warningText2').innerText =
-            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send us a message using the chat button in the bottom right.`
+        const warningText2 = document.getElementById('warningText2')
+        warningText2.innerHTML = ''
+        warningText2.innerText =
+            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send this pre-filled email to:`
+        const a = document.createElement('a')
+        a.innerText = 'evan@turbovpb.com'
+        const emailBody = encodeURIComponent(`Hi Evan,
+        I like the idea for TurboVPB but I ran into a problem trying to use it. Please fix this issue.
+
+        Thank you!
+
+
+        Error: ${JSON.stringify(err)}
+        Session: ${sessionId}
+        Extension Version: ${extensionVersion}
+        Desktop Browser: ${extensionUserAgent}
+        Mobile Browser: ${navigator.userAgent}`)
+        a.href = `mailto:evan@turbovpb.com?subject=${encodeURIComponent('Problem with TurboVPB')}&body=${emailBody}`
+        warningText2.appendChild(a)
     } else {
         document.getElementById('warningText2').innerText =
             'Unfortunately, this means that TurboVPB will not work on your phone. Sorry :('
@@ -263,14 +283,6 @@ function establishConnection() {
     })
     conn.on('data', (data) => {
         log('got data', data)
-        if (typeof Chatra === 'function') {
-            Chatra('updateIntegrationData', {
-                'Extension Version': data.extensionVersion || '<0.6.3',
-                'Extension UserAgent': data.extensionUserAgent,
-                'Extension Platform': data.extensionPlatform,
-                'Session ID': session
-            })
-        }
         if (data.yourName) {
             yourName = data.yourName
         }
