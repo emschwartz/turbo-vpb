@@ -147,7 +147,6 @@ async function connectPeer() {
         "urls": "stun:global.stun.twilio.com:3478?transport=udp"
     }]
     try {
-        console.log('fetching ice server credentials')
         // The response will be cached so we'll only request it once every 12 hours
         const res = await fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
         iceServers = await res.json()
