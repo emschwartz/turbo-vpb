@@ -7,6 +7,14 @@ let conn
 let startTime = Date.now()
 let hasConnected = false
 
+let iceServers = [{
+    "url": "stun:stun.l.google.com:19302",
+    "urls": "stun:stun.l.google.com:19302"
+}, {
+    "url": "stun:global.stun.twilio.com:3478?transport=udp",
+    "urls": "stun:global.stun.twilio.com:3478?transport=udp"
+}]
+
 // Analytics
 try {
     const tracker = ackeeTracker.create({
@@ -44,6 +52,23 @@ if (Sentry) {
         }
     })
 }
+
+// Try getting ICE Servers
+fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
+    .then(function (response) {
+        return response.json()
+    })
+    .then(function (json) {
+        iceServers = json
+            .map(server => {
+                server.url = server.urls
+                return server
+            })
+        log('using ice servers', iceServers)
+    })
+    .catch(function (err) {
+        log('error getting ice servers', err)
+    })
 
 const debugMode = window.location.href.includes('debug')
 const log = debugMode ? debugLog : console.log
@@ -132,7 +157,7 @@ function unfocusButtons() {
     }
 }
 
-async function connectPeer() {
+function connectPeer() {
     if (peer && !peer.destroyed && !peer.disconnected) {
         establishConnection()
         return
@@ -140,26 +165,6 @@ async function connectPeer() {
 
     setStatus('Connecting to Server', 'warning')
     document.getElementById('warningContainer').hidden = true
-
-    let iceServers = [{
-        "url": "stun:stun.l.google.com:19302",
-        "urls": "stun:stun.l.google.com:19302"
-    }, {
-        "url": "stun:global.stun.twilio.com:3478?transport=udp",
-        "urls": "stun:global.stun.twilio.com:3478?transport=udp"
-    }]
-    try {
-        // The response will be cached so we'll only request it once every 12 hours
-        const res = await fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
-        iceServers = await res.json()
-        iceServers = iceServers.map(server => {
-            server.url = server.urls
-            return server
-        })
-        log('using ice servers', iceServers)
-    } catch (err) {
-        console.warn('unable to fetch ice servers from cloud function', err)
-    }
 
     log('creating new peer')
     peer = new Peer({
