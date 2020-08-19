@@ -150,6 +150,11 @@ async function connectPeer() {
         // The response will be cached so we'll only request it once every 12 hours
         const res = await fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
         iceServers = await res.json()
+        iceServers = iceServers.map(server => {
+            server.url = server.urls
+            return server
+        })
+        log('using ice servers', iceServers)
     } catch (err) {
         console.warn('unable to fetch ice servers from cloud function', err)
     }
@@ -257,6 +262,9 @@ function establishConnection() {
                 scope.setTag('extension_useragent', data.extensionUserAgent || '')
                 scope.setTag('extension_platform', data.extensionPlatform || '')
                 scope.setTag('extension_domain', data.domain || '')
+                if (debugMode) {
+                    scope.setTag('debug', true)
+                }
             })
         }
         if (typeof Chatra === 'function') {
