@@ -206,22 +206,24 @@ function displayError(err) {
         const warningText2 = document.getElementById('warningText2')
         warningText2.innerHTML = ''
         warningText2.innerText =
-            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send this pre-filled email to:`
+            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send this pre-filled email to: `
         const a = document.createElement('a')
         a.innerText = 'evan@turbovpb.com'
         const emailBody = encodeURIComponent(`Hi Evan,
+
         I like the idea for TurboVPB but I ran into a problem trying to use it. Please fix this issue.
 
         Thank you!
 
 
-        Error: ${JSON.stringify(err)}
+        Error: ${err.type} ${err.message}
         Session: ${sessionId}
         Extension Version: ${extensionVersion}
         Desktop Browser: ${extensionUserAgent}
         Mobile Browser: ${navigator.userAgent}`)
         a.href = `mailto:evan@turbovpb.com?subject=${encodeURIComponent('Problem with TurboVPB')}&body=${emailBody}`
         warningText2.appendChild(a)
+        warningText2.appendChild(document.createTextNode('.'))
     } else {
         document.getElementById('warningText2').innerText =
             'Unfortunately, this means that TurboVPB will not work on your phone. Sorry :('
