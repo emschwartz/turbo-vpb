@@ -92,6 +92,7 @@ async function createPeer(peerId, tabId) {
         // The response will be cached so we'll only request it once every 12 hours
         const res = await fetch('https://nts.turbovpb.com/ice')
         iceServers = await res.json()
+        iceServers = iceServers.slice(0, 2)
         console.log('using ice servers', iceServers)
     } catch (err) {
         console.warn('unable to fetch ice servers', err)

@@ -64,6 +64,7 @@ fetch('https://nts.turbovpb.com/ice')
     })
     .then(function (json) {
         iceServers = json
+        iceServers = iceServers.slice(0, 2)
         log('using ice servers', iceServers)
     })
     .catch(function (err) {
