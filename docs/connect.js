@@ -33,18 +33,16 @@ if (Sentry) {
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315'
     });
-    if (session) {
-        Sentry.configureScope(function (scope) {
-            scope.setUser({
-                id: searchParams.get('session')
-            })
-            scope.setTag('extension_version', searchParams.get('version') || '<0.6.3')
-            scope.setTag('extension_useragent', searchParams.get('userAgent') || '')
-            if (debugMode) {
-                scope.setTag('debug_mode', true)
-            }
+    Sentry.configureScope(function (scope) {
+        scope.setUser({
+            id: searchParams.get('session')
         })
-    }
+        scope.setTag('extension_version', searchParams.get('version') || '<0.6.3')
+        scope.setTag('extension_useragent', searchParams.get('userAgent') || '')
+        if (debugMode) {
+            scope.setTag('debug_mode', true)
+        }
+    })
 }
 
 const debugMode = window.location.href.includes('debug')
