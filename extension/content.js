@@ -88,7 +88,9 @@ async function createPeer() {
     const peerIdHash = [...peerIdHashArray].map(byte => byte.toString(16).padStart(2, '0')).join('')
     const sessionId = peerIdHash.slice(0, 16)
 
-    const url = `https://turbovpb.com/connect?session=${sessionId}#${peerId}`
+    const version = browser.runtime.getManifest().version
+    const userAgent = encodeURIComponent(navigator.userAgent)
+    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}&userAgent=${userAgent}#${peerId}`
     window.sessionStorage.setItem('turboVpbUrl', url)
 
     sendConnect()

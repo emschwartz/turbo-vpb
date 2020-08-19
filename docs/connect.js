@@ -26,7 +26,6 @@ try {
 }
 
 const searchParams = (new URL(window.location.href)).searchParams
-const session = searchParams.get('session')
 const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
 
@@ -37,8 +36,13 @@ if (Sentry) {
     if (session) {
         Sentry.configureScope(function (scope) {
             scope.setUser({
-                id: session
+                id: searchParams.get('session')
             })
+            scope.setTag('extension_version', searchParams.get('version') || '<0.6.3')
+            scope.setTag('extension_useragent', searchParams.get('userAgent') || '')
+            if (debugMode) {
+                scope.setTag('debug_mode', true)
+            }
         })
     }
 }
@@ -256,17 +260,6 @@ function establishConnection() {
     })
     conn.on('data', (data) => {
         log('got data', data)
-        if (Sentry) {
-            Sentry.configureScope(function (scope) {
-                scope.setTag('extension_version', data.extensionVersion || '<0.6.3')
-                scope.setTag('extension_useragent', data.extensionUserAgent || '')
-                scope.setTag('extension_platform', data.extensionPlatform || '')
-                scope.setTag('extension_domain', data.domain || '')
-                if (debugMode) {
-                    scope.setTag('debug', true)
-                }
-            })
-        }
         if (typeof Chatra === 'function') {
             Chatra('updateIntegrationData', {
                 'Extension Version': data.extensionVersion || '<0.6.3',
