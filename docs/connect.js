@@ -130,7 +130,7 @@ function unfocusButtons() {
     }
 }
 
-function connectPeer() {
+async function connectPeer() {
     if (peer && !peer.destroyed && !peer.disconnected) {
         establishConnection()
         return
@@ -138,19 +138,30 @@ function connectPeer() {
 
     setStatus('Connecting to Server', 'warning')
     document.getElementById('warningContainer').hidden = true
+
+    let iceServers = [{
+        "url": "stun:stun.l.google.com:19302",
+        "urls": "stun:stun.l.google.com:19302"
+    }, {
+        "url": "stun:global.stun.twilio.com:3478?transport=udp",
+        "urls": "stun:global.stun.twilio.com:3478?transport=udp"
+    }]
+    try {
+        console.log('fetching ice server credentials')
+        // The response will be cached so we'll only request it once every 12 hours
+        const res = await fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
+        iceServers = await res.json()
+    } catch (err) {
+        console.warn('unable to fetch ice servers from cloud function', err)
+    }
+
     log('creating new peer')
     peer = new Peer({
         host: 'peerjs.turbovpb.com',
         secure: true,
         debug: debugMode ? 3 : 1,
         config: {
-            iceServers: [{
-                "url": "stun:stun.l.google.com:19302",
-                "urls": "stun:stun.l.google.com:19302"
-            }, {
-                "url": "stun:global.stun.twilio.com:3478?transport=udp",
-                "urls": "stun:global.stun.twilio.com:3478?transport=udp"
-            }]
+            iceServers
         }
     })
     peer.on('disconnect', () => {

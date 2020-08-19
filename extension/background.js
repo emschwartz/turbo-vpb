@@ -5,7 +5,7 @@ const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
 const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 
-browser.runtime.onMessage.addListener((message, sender) => {
+browser.runtime.onMessage.addListener(async (message, sender) => {
     if (typeof message !== 'object') {
         console.log('got message that was not an object', message)
         return
@@ -13,10 +13,10 @@ browser.runtime.onMessage.addListener((message, sender) => {
 
     if (message.type === 'connect') {
         const peerId = message.peerId
-        createPeer(peerId, sender.tab.id)
+        await createPeer(peerId, sender.tab.id)
     } else if (message.type === 'contact') {
         const peerId = message.peerId
-        createPeer(peerId, sender.tab.id)
+        await createPeer(peerId, sender.tab.id)
 
         const connections = Object.values(peers[peerId].connections)
         for (let conn of connections) {
@@ -57,7 +57,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
     }
 })
 
-function createPeer(peerId, tabId) {
+async function createPeer(peerId, tabId) {
     if (peers[peerId] && !peers[peerId].destroyed && !peers[peerId].disconnected) {
         if (peers[peerId].tabId !== tabId) {
             console.log(`peer ${peerId} is now in tab ${tabId}`)
@@ -70,6 +70,22 @@ function createPeer(peerId, tabId) {
 
     console.log(`creating peer ${peerId} for tab ${tabId}`)
 
+    let iceServers = [{
+        "url": "stun:stun.l.google.com:19302",
+        "urls": "stun:stun.l.google.com:19302"
+    }, {
+        "url": "stun:global.stun.twilio.com:3478?transport=udp",
+        "urls": "stun:global.stun.twilio.com:3478?transport=udp"
+    }]
+    try {
+        console.log('fetching ice server credentials')
+        // The response will be cached so we'll only request it once every 12 hours
+        const res = await fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
+        iceServers = await res.json()
+    } catch (err) {
+        console.warn('unable to fetch ice servers from cloud function', err)
+    }
+
     // Note that PeerJS peers are created in the background script instead
     // of in the content_script because loading the peerjs.js script as
     // part of the content_script caused an error. It complained about the
@@ -80,13 +96,7 @@ function createPeer(peerId, tabId) {
         secure: true,
         debug: 1,
         config: {
-            iceServers: [{
-                "url": "stun:stun.l.google.com:19302",
-                "urls": "stun:stun.l.google.com:19302"
-            }, {
-                "url": "stun:global.stun.twilio.com:3478?transport=udp",
-                "urls": "stun:global.stun.twilio.com:3478?transport=udp"
-            }]
+            iceServers
         }
     })
 
