@@ -58,16 +58,12 @@ if (Sentry) {
 }
 
 // Try getting ICE Servers
-fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
+fetch('https://nts.turbovpb.com/ice')
     .then(function (response) {
         return response.json()
     })
     .then(function (json) {
         iceServers = json
-            .map(server => {
-                server.url = server.urls
-                return server
-            })
         log('using ice servers', iceServers)
     })
     .catch(function (err) {

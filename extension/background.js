@@ -79,10 +79,11 @@ async function createPeer(peerId, tabId) {
     }]
     try {
         // The response will be cached so we'll only request it once every 12 hours
-        const res = await fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
+        const res = await fetch('https://nts.turbovpb.com/ice')
         iceServers = await res.json()
+        console.log('using ice servers', iceServers)
     } catch (err) {
-        console.warn('unable to fetch ice servers from cloud function', err)
+        console.warn('unable to fetch ice servers', err)
     }
 
     // Note that PeerJS peers are created in the background script instead
