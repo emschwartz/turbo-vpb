@@ -33,6 +33,7 @@ try {
     log('error setting up tracking', err)
 }
 
+const debugMode = window.location.href.includes('debug')
 const searchParams = (new URL(window.location.href)).searchParams
 const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
@@ -70,7 +71,6 @@ fetch('https://us-central1-turbovpb.cloudfunctions.net/get-turn-credentials')
         log('error getting ice servers', err)
     })
 
-const debugMode = window.location.href.includes('debug')
 const log = debugMode ? debugLog : console.log
 function debugLog() {
     console.log.apply(null, arguments)
