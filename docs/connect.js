@@ -188,7 +188,11 @@ function connectPeer() {
 }
 
 function displayError(err) {
-    log(err)
+    if (err.type) {
+        log(`Error: ${err.type}`, err)
+    } else {
+        log(err)
+    }
     setStatus('Error. Reload Tab.', 'danger')
 
     // Display error details if the error was not caused by the page being put to sleep
