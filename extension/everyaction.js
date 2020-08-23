@@ -56,7 +56,7 @@ function getContactDetails() {
         && document.querySelector('.person-phone-panel').firstElementChild.innerText.replace(/ [–-] \d+(?:\s+\w)?/, '')
 
     // Figure out if this is a new contact
-    if (contactName && isNewContact(currentPhoneNumber)) {
+    if (contactName && currentPhoneNumber && isNewContact(currentPhoneNumber)) {
         couldntReachContact = false
 
         // Determine if they couldn't reach the contact

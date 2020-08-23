@@ -61,7 +61,7 @@ function getContactDetails() {
     const contactName = document.getElementById('contactName').innerText
 
     // Figure out if this is a new contact
-    if (contactName && isNewContact(currentPhoneNumber)) {
+    if (contactName && currentPhoneNumber && isNewContact(currentPhoneNumber)) {
         couldntReachContact = false
 
         // Determine if they couldn't reach the contact

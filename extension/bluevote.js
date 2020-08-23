@@ -64,7 +64,7 @@ function getContactDetails() {
     const contactName = document.getElementById('voter-name').innerText.replace(/\s\*/, '')
 
     // Figure out if this is a new contact
-    if (contactName && isNewContact(currentPhoneNumber)) {
+    if (contactName && currentPhoneNumber && isNewContact(currentPhoneNumber)) {
         couldntReachContact = false
 
         try {
