@@ -217,15 +217,20 @@ function destroyPeer(peerId) {
 }
 
 function sendMessage(peerId, message) {
-    if (peers[peerId].connections.length === 0) {
+    if (!peers[peerId] || peers[peerId].connections.length === 0) {
         console.log('not sending message because there is no open connection for peer', peerId)
         return
     }
+
+    message.extensionVersion = browser.runtime.getManifest().version
+    message.extensionUserAgent = navigator.userAgent
+    message.extensionPlatform = navigator.platform
+    console.log(`sending message to ${peers[peerId].connections.length} peer(s)`)
     for (let conn of peers[peerId].connections) {
-        message.extensionVersion = browser.runtime.getManifest().version
-        message.extensionUserAgent = navigator.userAgent
-        message.extensionPlatform = navigator.platform
-        if (conn && conn.open) {
+        if (!conn) {
+            continue
+        }
+        if (conn.open) {
             conn.send(message)
         } else {
             conn.once('open', () => {
