@@ -58,7 +58,7 @@ function getContactDetails() {
         || Array.from(document.getElementsByTagName('a')).find((a) => a.href.startsWith('tel:'))
         || {}).innerText
 
-    const contactName = document.getElementById('contactName').innerText
+    const contactName = (document.getElementById('contactName') || {}).innerText
 
     // Figure out if this is a new contact
     if (contactName && currentPhoneNumber && isNewContact(currentPhoneNumber)) {

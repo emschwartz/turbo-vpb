@@ -52,8 +52,9 @@ function getContactDetails() {
         || Array.from(document.getElementsByTagName('a')).find((a) => a.href.startsWith('tel:'))
         || {}).innerText
 
-    const contactName = document.querySelector('.person-phone-panel')
-        && document.querySelector('.person-phone-panel').firstElementChild.innerText.replace(/ [–-] \d+(?:\s+\w)?/, '')
+    const contactName = (document.querySelector('.person-phone-panel')
+        && document.querySelector('.person-phone-panel').firstElementChild.innerText.replace(/ [–-] \d+(?:\s+\w)?/, ''))
+        || null
 
     // Figure out if this is a new contact
     if (contactName && currentPhoneNumber && isNewContact(currentPhoneNumber)) {
