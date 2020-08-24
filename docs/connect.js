@@ -7,7 +7,6 @@ let conn
 let startTime = Date.now()
 let sessionTimeInterval
 let hasConnected = false
-let shouldReconnect = true
 
 let iceServers = [{
     "url": "stun:stun.l.google.com:19302",
@@ -140,7 +139,7 @@ function unfocusButtons() {
 }
 
 function connectPeer() {
-    if (!shouldReconnect) {
+    if (window.sessionStorage.getItem('sessionComplete') === 'true') {
         return
     }
 
@@ -234,7 +233,7 @@ function displayError(err) {
 }
 
 function establishConnection() {
-    if (!shouldReconnect) {
+    if (window.sessionStorage.getItem('sessionComplete') === 'true') {
         return
     }
 
@@ -269,7 +268,7 @@ function establishConnection() {
         log('connection closed')
         conn = null
 
-        if (shouldReconnect) {
+        if (window.sessionStorage.getItem('sessionComplete') === 'true') {
             setStatus('Not Connected', 'danger')
             setTimeout(() => {
                 connectPeer()
@@ -351,7 +350,7 @@ function establishConnection() {
         }
         if (data.type === 'disconnect') {
             log('got disconnect message from extension')
-            shouldReconnect = false
+            window.sessionStorage.setItem('sessionComplete', 'true')
             document.getElementById('contactDetails').remove()
             document.getElementById('sessionEnded').removeAttribute('hidden')
             document.removeEventListener('visibilitychange', onVisibilityChange)
