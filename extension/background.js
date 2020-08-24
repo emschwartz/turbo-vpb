@@ -17,43 +17,28 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     } else if (message.type === 'contact') {
         const peerId = message.peerId
         await createPeer(peerId, sender.tab.id)
-
-        const connections = Object.values(peers[peerId].connections)
-        for (let conn of connections) {
-            console.log('sending contact to peer', peerId)
-
-            const data = message.data
-            // Send extension version
-            data.extensionVersion = browser.runtime.getManifest().version
-            data.extensionUserAgent = navigator.userAgent
-            data.extensionPlatform = navigator.platform
-            if (conn && conn.open) {
-                conn.send(message.data)
-            } else {
-                conn.once('open', () => {
-                    conn.send(message.data)
-                })
-            }
-        }
-        if (connections.length === 0) {
-            console.log('not sending contact because there is no open connection for peer', peerId)
-        }
-    } else if (message.type === 'disconnect') {
-        const peerId = message.peerId
-        if (!peers[peerId]) {
-            return
-        }
-        if (peers[peerId].tabId !== sender.tab.id) {
-            console.warn(`got disconnect message for peer ${peerId} from unexpected tab. expected: ${peers[peerId].tabId}, actual: ${sender.tab.id}`)
-            return
-        }
-        console.log(`destroying peer ${peerId} because tab ${sender.tab.id} was closed`)
-        if (peers[peerId]) {
-            peers[peerId].peer.destroy()
-        }
-        delete peers[peerId]
+        console.log('sending contact to peer', peerId)
+        const data = message.data
+        data.type = 'contact'
+        sendMessage(peerId, data)
     } else {
         console.log('got unexpected message', message)
+    }
+})
+
+browser.tabs.onRemoved.addListener(async (tabId) => {
+    for (let peerId in peers) {
+        if (peers[peerId].tabId === tabId) {
+            console.log(`sending disconnect message to peer: ${peerId}`)
+            sendMessage(peerId, {
+                type: 'disconnect'
+            })
+            // TODO only destroy peer after message has been flushed
+            setTimeout(() => {
+                console.log(`destroying peer ${peerId} because the tab was closed`)
+                destroyPeer(peerId)
+            }, 300)
+        }
     }
 })
 
@@ -116,13 +101,11 @@ async function createPeer(peerId, tabId) {
     peer.on('open', () => console.log(`peer ${peerId} listening for connections`))
     peer.on('error', (err) => {
         console.error(err)
-        peers[peerId].peer.destroy()
-        delete peers[peerId]
+        destroyPeer(peerId)
     })
     peer.on('close', () => {
         console.log(`peer ${peerId} closed`)
-        peers[peerId].peer.destroy()
-        delete peers[peerId]
+        destroyPeer(peerId)
     })
 
     peer.on('connection', async (conn) => {
@@ -163,8 +146,7 @@ async function createPeer(peerId, tabId) {
             console.error('Error sending contact request to content_script', err)
             if (err.message === 'tab is null') {
                 console.warn('destroying peer because tab was closed')
-                peers[peerId].peer.destroy()
-                delete peers[peerId]
+                destroyPeer(peerId)
             }
         }
     })
@@ -222,5 +204,33 @@ async function disableOrigin(origin) {
         return true
     } else {
         return false
+    }
+}
+
+function destroyPeer(peerId) {
+    if (peers[peerId]) {
+        peers[peerId].peer.destroy()
+        delete peers[peerId]
+    } else {
+        console.warn(`not destroying peer: ${peerId} because it was already destroyed or does not exist`)
+    }
+}
+
+function sendMessage(peerId, message) {
+    if (peers[peerId].connections.length === 0) {
+        console.log('not sending message because there is no open connection for peer', peerId)
+        return
+    }
+    for (let conn of peers[peerId].connections) {
+        message.extensionVersion = browser.runtime.getManifest().version
+        message.extensionUserAgent = navigator.userAgent
+        message.extensionPlatform = navigator.platform
+        if (conn && conn.open) {
+            conn.send(message)
+        } else {
+            conn.once('open', () => {
+                conn.send(message)
+            })
+        }
     }
 }

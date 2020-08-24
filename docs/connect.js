@@ -5,7 +5,9 @@ let peer
 let conn
 
 let startTime = Date.now()
+let sessionTimeInterval
 let hasConnected = false
+let shouldReconnect = true
 
 let iceServers = [{
     "url": "stun:stun.l.google.com:19302",
@@ -101,36 +103,16 @@ if (remotePeerId) {
 
 function connectToExtension() {
     connectPeer()
-    let visibilityChange
-    let hidden
-    if (typeof document.hidden !== "undefined") {
-        hidden = "hidden";
-        visibilityChange = "visibilitychange";
-    } else if (typeof document.msHidden !== "undefined") {
-        hidden = "msHidden";
-        visibilityChange = "msvisibilitychange";
-    } else if (typeof document.webkitHidden !== "undefined") {
-        hidden = "webkitHidden";
-        visibilityChange = "webkitvisibilitychange";
-    }
 
-    document.addEventListener(visibilityChange, () => {
-        log(visibilityChange, 'hidden:', document[hidden])
-        if (!document[hidden]) {
-            unfocusButtons()
-            connectPeer()
-        }
-    })
-    window.addEventListener('focus', () => {
-        log('focus')
+    document.addEventListener('visibilitychange', onVisibilityChange)
+}
+
+function onVisibilityChange() {
+    log('visibilitychange', 'hidden:', document.hidden)
+    if (!document.hidden) {
         unfocusButtons()
         connectPeer()
-    })
-    window.addEventListener('pageshow', () => {
-        log('pageshow')
-        unfocusButtons()
-        connectPeer()
-    })
+    }
 }
 
 function setStatus(status, alertType) {
@@ -158,6 +140,10 @@ function unfocusButtons() {
 }
 
 function connectPeer() {
+    if (!shouldReconnect) {
+        return
+    }
+
     if (peer && !peer.destroyed && !peer.disconnected) {
         establishConnection()
         return
@@ -248,6 +234,10 @@ function displayError(err) {
 }
 
 function establishConnection() {
+    if (!shouldReconnect) {
+        return
+    }
+
     log('establish connection')
     if (conn && conn.open) {
         log('connection already good')
@@ -256,7 +246,7 @@ function establishConnection() {
         return
     }
     // Update session time
-    setInterval(() => {
+    sessionTimeInterval = setInterval(() => {
         document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
     }, 1000)
 
@@ -277,12 +267,14 @@ function establishConnection() {
     })
     conn.once('close', () => {
         log('connection closed')
-        setStatus('Not Connected', 'danger')
-
         conn = null
-        setTimeout(() => {
-            connectPeer()
-        }, 1000)
+
+        if (shouldReconnect) {
+            setStatus('Not Connected', 'danger')
+            setTimeout(() => {
+                connectPeer()
+            }, 300)
+        }
     })
     conn.on('data', (data) => {
         log('got data', data)
@@ -293,7 +285,6 @@ function establishConnection() {
             messageTemplates = data.messageTemplates
         }
         if (data.contact) {
-
             const matches = data.contact.phoneNumber.match(/\d+/g)
             if (!matches) {
                 return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
@@ -357,6 +348,16 @@ function establishConnection() {
             if (data.stats.successfulCalls) {
                 document.getElementById('successfulCalls').innerText = data.stats.successfulCalls
             }
+        }
+        if (data.type === 'disconnect') {
+            log('got disconnect message from extension')
+            shouldReconnect = false
+            document.getElementById('contactDetails').remove()
+            document.getElementById('sessionEnded').removeAttribute('hidden')
+            document.removeEventListener('visibilitychange', onVisibilityChange)
+            clearInterval(sessionTimeInterval)
+            peer.destroy()
+            setStatus('Session Complete', 'primary')
         }
     })
 }

@@ -4,13 +4,6 @@ let couldntReachContact = false
 
 setInterval(getContactDetails, 50)
 
-window.addEventListener('beforeunload', async () => {
-    await browser.runtime.sendMessage({
-        type: 'disconnect',
-        peerId: window.sessionStorage.getItem('turboVpbPeerId')
-    })
-})
-
 function nonContactRadioButtons() {
     const nonContactResultContainer = document.querySelector('.non-contact-top') || document.querySelector('.question.disposition')
     if (nonContactResultContainer) {

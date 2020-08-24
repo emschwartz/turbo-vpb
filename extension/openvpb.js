@@ -4,13 +4,6 @@ let couldntReachContact = false
 
 setInterval(getContactDetails, 50)
 
-window.addEventListener('beforeunload', async () => {
-    await browser.runtime.sendMessage({
-        type: 'disconnect',
-        peerId: window.sessionStorage.getItem('turboVpbPeerId')
-    })
-})
-
 function couldntReachButton() {
     return document.getElementById('displaycontactresultsbutton')
         || document.getElementById('displayContactResultsButton')
