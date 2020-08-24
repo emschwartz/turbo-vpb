@@ -101,6 +101,11 @@ if (remotePeerId) {
 
 
 function connectToExtension() {
+    if (window.sessionStorage.getItem('sessionComplete') === 'true') {
+        sessionComplete()
+        return
+    }
+
     connectPeer()
 
     document.addEventListener('visibilitychange', onVisibilityChange)
@@ -341,6 +346,7 @@ function establishConnection() {
                 startTime = data.stats.startTime
             }
             if (data.stats.calls && data.stats.calls > 0) {
+                // TODO maybe update this as the duration is being updated (every second)
                 document.getElementById('numCalls').innerText = `${data.stats.calls} Call${data.stats.calls > 1 ? 's' : ''}`
                 document.getElementById('avgCallTime').innerText = msToTimeString((Date.now() - startTime) / data.stats.calls)
             }
@@ -350,15 +356,23 @@ function establishConnection() {
         }
         if (data.type === 'disconnect') {
             log('got disconnect message from extension')
-            window.sessionStorage.setItem('sessionComplete', 'true')
-            document.getElementById('contactDetails').remove()
-            document.getElementById('sessionEnded').removeAttribute('hidden')
-            document.removeEventListener('visibilitychange', onVisibilityChange)
-            clearInterval(sessionTimeInterval)
-            peer.destroy()
-            setStatus('Session Complete', 'primary')
+            sessionComplete()
         }
     })
+}
+
+function sessionComplete() {
+    window.sessionStorage.setItem('sessionComplete', 'true')
+    document.getElementById('contactDetails').remove()
+    document.getElementById('sessionEnded').removeAttribute('hidden')
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+    if (sessionTimeInterval !== null) {
+        clearInterval(sessionTimeInterval)
+    }
+    if (peer) {
+        peer.destroy()
+    }
+    setStatus('Session Complete', 'primary')
 }
 
 function msToTimeString(ms) {
