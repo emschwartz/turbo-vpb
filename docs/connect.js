@@ -48,7 +48,8 @@ if (Sentry) {
     });
     Sentry.configureScope(function (scope) {
         scope.setUser({
-            id: sessionId
+            id: sessionId,
+            release: extensionVersion
         })
         scope.setTag('extension_version', extensionVersion)
         scope.setTag('extension_useragent', extensionUserAgent)
