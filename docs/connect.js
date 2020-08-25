@@ -44,12 +44,12 @@ const remotePeerId = window.location.hash.slice(1)
 
 if (Sentry) {
     Sentry.init({
-        dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315'
+        dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
+        release: extensionVersion
     });
     Sentry.configureScope(function (scope) {
         scope.setUser({
             id: sessionId,
-            release: extensionVersion
         })
         scope.setTag('extension_version', extensionVersion)
         scope.setTag('extension_useragent', extensionUserAgent)
