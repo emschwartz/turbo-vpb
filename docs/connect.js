@@ -234,7 +234,11 @@ function displayError(err) {
     // Ignore connection errors that happen after the initial connect
     // because they are likely caused by the browser putting the tab to sleep
     if (!hasConnected || (err.type !== 'disconnected' && err.type !== 'network')) {
-        Sentry.captureException(err)
+        Sentry.captureException(err, {
+            tags: {
+                error_type: err.type
+            }
+        })
     }
 }
 
