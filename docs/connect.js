@@ -6,7 +6,13 @@ let conn
 
 let startTime = Date.now()
 let sessionTimeInterval
+
+// Details used for tracking errors with Sentry
 let hasConnected = false
+let reportedErrorSinceLastConnect = false
+let numErrors = 0
+let numPeersOpened = 0
+let numConnectionsOpened = 0
 
 let iceServers = [{
     "url": "stun:stun.l.google.com:19302",
@@ -45,7 +51,16 @@ const remotePeerId = window.location.hash.slice(1)
 if (Sentry) {
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
-        release: extensionVersion
+        release: extensionVersion,
+        beforeSend: (event) => {
+            if (!event.extra) {
+                event.extra = {}
+            }
+            event.extra.num_errors = numErrors
+            event.extra.num_connections_opened = numConnectionsOpened
+            event.extra.num_peers_opened = numPeersOpened
+            return event
+        }
     });
     Sentry.configureScope(function (scope) {
         scope.setUser({
@@ -174,6 +189,7 @@ function connectPeer() {
     peer.once('open', () => {
         log('peer opened')
         opened = true
+        numPeersOpened += 1
         establishConnection()
     })
 }
@@ -233,7 +249,9 @@ function displayError(err) {
     // Report error to Sentry
     // Ignore connection errors that happen after the initial connect
     // because they are likely caused by the browser putting the tab to sleep
+    numErrors += 1
     if (!hasConnected || (err.type !== 'disconnected' && err.type !== 'network')) {
+        reportedErrorSinceLastConnect = true
         Sentry.captureException(err, {
             tags: {
                 error_type: err.type
@@ -269,6 +287,14 @@ function establishConnection() {
         log('connection open')
         setStatus('Connected', 'success')
         hasConnected = true
+        numConnectionsOpened += 1
+
+        // Report if the user saw an error but then it reconnected
+        // TODO maybe save this to sessionStorage in case they reload
+        if (reportedErrorSinceLastConnect) {
+            Sentry.captureMessage('connection opened')
+            reportedErrorSinceLastConnect = false
+        }
     })
     conn.once('error', (err) => {
         conn = null
