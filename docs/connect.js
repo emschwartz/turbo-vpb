@@ -199,7 +199,7 @@ function connectPeer() {
 
 function displayError(err) {
     if (err.type) {
-        log(`Error (type: ${err.type}):`), err)
+        log(`Error (type: ${err.type}):`, err)
     } else {
         log(err)
     }
