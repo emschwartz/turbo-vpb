@@ -68,9 +68,7 @@ if (Sentry) {
         })
         scope.setTag('extension_version', extensionVersion)
         scope.setTag('extension_useragent', extensionUserAgent)
-        if (debugMode) {
-            scope.setTag('debug_mode', true)
-        }
+        scope.setTag('debug_mode', debugMode)
     })
 }
 
