@@ -185,7 +185,10 @@ function connectPeer() {
         log('peer disconnected')
         connectPeer()
     })
-    peer.on('error', displayError)
+    peer.on('error', (err) => {
+        console.error('peer error', err)
+        displayError(err)
+    })
     peer.once('open', () => {
         log('peer opened')
         opened = true
@@ -196,7 +199,7 @@ function connectPeer() {
 
 function displayError(err) {
     if (err.type) {
-        log(`Error: ${err.type}`, err)
+        log(`Error (type: ${err.type}):`), err)
     } else {
         log(err)
     }
@@ -298,6 +301,7 @@ function establishConnection() {
     })
     conn.once('error', (err) => {
         conn = null
+        console.error('connection error', err)
         displayError(err)
     })
     conn.once('close', () => {
