@@ -14,6 +14,23 @@ let numErrors = 0
 let numPeersOpened = 0
 let numConnectionsOpened = 0
 
+// Page visibility API
+let hidden
+let visibilityChange
+if (typeof document.hidden !== "undefined") {
+    hidden = "hidden";
+    visibilityChange = "visibilitychange";
+} else if (typeof document.msHidden !== "undefined") {
+    hidden = "msHidden";
+    visibilityChange = "msvisibilitychange";
+} else if (typeof document.webkitHidden !== "undefined") {
+    hidden = "webkitHidden";
+    visibilityChange = "webkitvisibilitychange";
+} else {
+    displayError(new Error('This site requires a browser, such as Google Chrome, Firefox, or Safari, that supports the Page Visibility API.'))
+    return
+}
+
 let iceServers = [{
     "url": "stun:stun.l.google.com:19302",
     "urls": "stun:stun.l.google.com:19302"
@@ -122,12 +139,12 @@ function connectToExtension() {
 
     connectPeer()
 
-    document.addEventListener('visibilitychange', onVisibilityChange)
+    document.addEventListener(visibilityChange, onVisibilityChange)
 }
 
 function onVisibilityChange() {
-    log('visibilitychange', 'hidden:', document.hidden)
-    if (!document.hidden) {
+    log(visibilityChange, 'hidden:', document[hidden])
+    if (!document[hidden]) {
         unfocusButtons()
         connectPeer()
     }
@@ -204,7 +221,7 @@ function displayError(err) {
     setStatus('Error. Reload Tab.', 'danger')
 
     // Display error details if the error was not caused by the page being put to sleep
-    if (document.hidden) {
+    if (document[hidden]) {
         return
     }
     // Display full error message
