@@ -293,7 +293,7 @@ function establishConnection() {
         // Report if the user saw an error but then it reconnected
         // TODO maybe save this to sessionStorage in case they reload
         if (reportedErrorSinceLastConnect) {
-            Sentry.captureMessage('connection opened')
+            Sentry.captureMessage('connection opened', 'debug')
             reportedErrorSinceLastConnect = false
         }
     })
