@@ -3,6 +3,7 @@ let yourName = ''
 
 let peer
 let conn
+let lastConnectPeerTime
 
 let startTime = Date.now()
 let sessionTimeInterval
@@ -14,23 +15,6 @@ let numErrors = 0
 let numPeersOpened = 0
 let numConnectionsOpened = 0
 
-// Page visibility API
-let hidden
-let visibilityChange
-if (typeof document.hidden !== "undefined") {
-    hidden = "hidden";
-    visibilityChange = "visibilitychange";
-} else if (typeof document.msHidden !== "undefined") {
-    hidden = "msHidden";
-    visibilityChange = "msvisibilitychange";
-} else if (typeof document.webkitHidden !== "undefined") {
-    hidden = "webkitHidden";
-    visibilityChange = "webkitvisibilitychange";
-} else {
-    displayError(new Error('This site requires a browser, such as Google Chrome, Firefox, or Safari, that supports the Page Visibility API.'))
-    return
-}
-
 let iceServers = [{
     "url": "stun:stun.l.google.com:19302",
     "urls": "stun:stun.l.google.com:19302"
@@ -38,6 +22,17 @@ let iceServers = [{
     "url": "stun:global.stun.twilio.com:3478?transport=udp",
     "urls": "stun:global.stun.twilio.com:3478?transport=udp"
 }]
+
+const debugMode = window.location.href.includes('debug')
+const log = debugMode ? debugLog : console.log
+const searchParams = (new URL(window.location.href)).searchParams
+const sessionId = searchParams.get('session') || ''
+const extensionVersion = searchParams.get('version') || '<0.6.3'
+const extensionUserAgent = searchParams.get('userAgent') || ''
+const remotePeerId = window.location.hash.slice(1)
+    .replace(/&.*/, '')
+
+// Initialization
 
 // Analytics
 try {
@@ -57,14 +52,7 @@ try {
     log('error setting up tracking', err)
 }
 
-const debugMode = window.location.href.includes('debug')
-const searchParams = (new URL(window.location.href)).searchParams
-const sessionId = searchParams.get('session') || ''
-const extensionVersion = searchParams.get('version') || '<0.6.3'
-const extensionUserAgent = searchParams.get('userAgent') || ''
-const remotePeerId = window.location.hash.slice(1)
-    .replace(/&.*/, '')
-
+// Error tracking
 if (Sentry) {
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
@@ -89,6 +77,24 @@ if (Sentry) {
     })
 }
 
+// Page visibility API
+let hidden
+let visibilityChange
+if (typeof document.hidden !== "undefined") {
+    hidden = "hidden";
+    visibilityChange = "visibilitychange";
+} else if (typeof document.msHidden !== "undefined") {
+    hidden = "msHidden";
+    visibilityChange = "msvisibilitychange";
+} else if (typeof document.webkitHidden !== "undefined") {
+    hidden = "webkitHidden";
+    visibilityChange = "webkitvisibilitychange";
+} else {
+    const err = new Error('This site requires a browser, such as Google Chrome, Firefox, or Safari, that supports the Page Visibility API.')
+    displayError(err)
+    throw err
+}
+
 // Try getting ICE Servers
 fetch('https://nts.turbovpb.com/ice')
     .then(function (response) {
@@ -103,21 +109,6 @@ fetch('https://nts.turbovpb.com/ice')
         log('error getting ice servers', err)
     })
 
-const log = debugMode ? debugLog : console.log
-function debugLog() {
-    console.log.apply(null, arguments)
-    if (debugMode) {
-        const p = document.createElement('p')
-        p.innerText = Array.prototype.map.call(arguments, s => {
-            if (typeof s === 'string') {
-                return s
-            } else {
-                return JSON.stringify(s)
-            }
-        }).join(' ')
-        document.getElementById('debug').appendChild(p)
-    }
-}
 if (debugMode) {
     log('debug mode enabled')
     document.getElementById('contactDetails').classList.remove('fixed-bottom')
@@ -130,7 +121,6 @@ if (remotePeerId) {
     document.getElementById('warningContainer').removeAttribute('hidden')
 }
 
-
 function connectToExtension() {
     if (window.sessionStorage.getItem('sessionComplete') === 'true') {
         sessionComplete()
@@ -140,6 +130,8 @@ function connectToExtension() {
     connectPeer()
 
     document.addEventListener(visibilityChange, onVisibilityChange)
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('pageshow', onPageShow)
 }
 
 function onVisibilityChange() {
@@ -149,35 +141,27 @@ function onVisibilityChange() {
         connectPeer()
     }
 }
-
-function setStatus(status, alertType) {
-    if (document.readyState === 'complete') {
-        const statusElement = document.getElementById('status')
-        statusElement.innerText = status
-        statusElement.className = statusElement.className.replace(/badge-\w+/, `badge-${alertType}`)
-    } else {
-        function listener() {
-            if (document.readyState === 'complete') {
-                document.removeEventListener('readystatechange', listener)
-                setStatus(status, alertType)
-            }
-        }
-        document.addEventListener('readystatechange', listener)
-    }
+function onFocus() {
+    log('focus')
+    unfocusButtons()
+    connectPeer()
 }
-
-function unfocusButtons() {
-    const buttons = document.getElementsByClassName('btn')
-    for (let i = 0; i < buttons.length; i++) {
-        buttons[i].blur()
-        buttons[i].classList.remove('active')
-    }
+function onPageShow() {
+    log('pageshow')
+    unfocusButtons()
+    connectPeer()
 }
 
 function connectPeer() {
     if (window.sessionStorage.getItem('sessionComplete') === 'true') {
         return
     }
+
+    // This should be called at most once every 100ms
+    if (lastConnectPeerTime && Date.now() - lastConnectPeerTime < 100) {
+        return
+    }
+    lastConnectPeerTime = Date.now()
 
     if (peer && !peer.destroyed && !peer.disconnected) {
         establishConnection()
@@ -210,72 +194,6 @@ function connectPeer() {
         numPeersOpened += 1
         establishConnection()
     })
-}
-
-function displayError(err) {
-    if (err.type) {
-        log(`Error (type: ${err.type}):`, err)
-    } else {
-        log(err)
-    }
-    setStatus('Error. Reload Tab.', 'danger')
-
-    // Display error details if the error was not caused by the page being put to sleep
-    if (document[hidden]) {
-        return
-    }
-    // Display full error message
-    document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
-    document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
-
-    if (err.type !== 'browser-incompatible') {
-        const warningText2 = document.getElementById('warningText2')
-        warningText2.innerHTML = ''
-        warningText2.innerText =
-            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send this pre-filled email to: `
-        const a = document.createElement('a')
-        a.innerText = 'evan@turbovpb.com'
-        const emailBody = encodeURIComponent(`Hi Evan,
-
-        I like the idea for TurboVPB but I ran into a problem trying to use it. Please fix this issue.
-
-        Thank you!
-
-
-        Error: ${err.type} ${err.message}
-        Session: ${sessionId}
-        Extension Version: ${extensionVersion}
-        Desktop Browser: ${extensionUserAgent}
-        Mobile Browser: ${navigator.userAgent}`)
-        a.href = `mailto:evan@turbovpb.com?subject=${encodeURIComponent('Problem with TurboVPB')}&body=${emailBody}`
-        warningText2.appendChild(a)
-        warningText2.appendChild(document.createTextNode('.'))
-    } else {
-        document.getElementById('warningText2').innerText =
-            'Unfortunately, this means that TurboVPB will not work on your phone. Sorry :('
-    }
-    document.getElementById('warningText2').hidden = false
-    document.getElementById('warningContainer').hidden = false
-
-    // Clear the contact details
-    document.getElementById('contactDetails').hidden = true
-    document.getElementById('statistics').hidden = true
-    document.getElementById('name').innerText = ''
-    document.getElementById('phoneNumber').href = ''
-    document.getElementById('phoneNumber').innerText = ''
-
-    // Report error to Sentry
-    // Ignore connection errors that happen after the initial connect
-    // because they are likely caused by the browser putting the tab to sleep
-    numErrors += 1
-    if (!hasConnected || (err.type !== 'disconnected' && err.type !== 'network')) {
-        reportedErrorSinceLastConnect = true
-        Sentry.captureException(err, {
-            tags: {
-                error_type: err.type
-            }
-        })
-    }
 }
 
 function establishConnection() {
@@ -411,11 +329,98 @@ function establishConnection() {
     })
 }
 
+function setStatus(status, alertType) {
+    if (document.readyState === 'complete') {
+        const statusElement = document.getElementById('status')
+        statusElement.innerText = status
+        statusElement.className = statusElement.className.replace(/badge-\w+/, `badge-${alertType}`)
+    } else {
+        function listener() {
+            if (document.readyState === 'complete') {
+                document.removeEventListener('readystatechange', listener)
+                setStatus(status, alertType)
+            }
+        }
+        document.addEventListener('readystatechange', listener)
+    }
+}
+
+function displayError(err) {
+    if (err.type) {
+        log(`Error (type: ${err.type}):`, err)
+    } else {
+        log(err)
+    }
+    setStatus('Error. Reload Tab.', 'danger')
+
+    // Display error details if the error was not caused by the page being put to sleep
+    if (document[hidden]) {
+        return
+    }
+    // Display full error message
+    document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
+    document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
+
+    if (err.type !== 'browser-incompatible') {
+        const warningText2 = document.getElementById('warningText2')
+        warningText2.innerHTML = ''
+        warningText2.innerText =
+            `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send this pre-filled email to: `
+        const a = document.createElement('a')
+        a.innerText = 'evan@turbovpb.com'
+        const emailBody = encodeURIComponent(`Hi Evan,
+
+        I like the idea for TurboVPB but I ran into a problem trying to use it. Please fix this issue.
+
+        Thank you!
+
+
+        Error: ${err.type} ${err.message}
+        Session: ${sessionId}
+        Extension Version: ${extensionVersion}
+        Desktop Browser: ${extensionUserAgent}
+        Mobile Browser: ${navigator.userAgent}`)
+        a.href = `mailto:evan@turbovpb.com?subject=${encodeURIComponent('Problem with TurboVPB')}&body=${emailBody}`
+        warningText2.appendChild(a)
+        warningText2.appendChild(document.createTextNode('.'))
+    } else {
+        document.getElementById('warningText2').innerText =
+            'Unfortunately, this means that TurboVPB will not work on your phone. Sorry :('
+    }
+    document.getElementById('warningText2').hidden = false
+    document.getElementById('warningContainer').hidden = false
+
+    // Clear the contact details
+    document.getElementById('contactDetails').hidden = true
+    document.getElementById('statistics').hidden = true
+    document.getElementById('name').innerText = ''
+    document.getElementById('phoneNumber').href = ''
+    document.getElementById('phoneNumber').innerText = ''
+
+    // Report error to Sentry
+    // Ignore connection errors that happen after the initial connect
+    // because they are likely caused by the browser putting the tab to sleep
+    numErrors += 1
+    if (!hasConnected || (err.type !== 'disconnected' && err.type !== 'network')) {
+        reportedErrorSinceLastConnect = true
+        Sentry.captureException(err, {
+            tags: {
+                error_type: err.type
+            }
+        })
+    }
+}
+
+
 function sessionComplete() {
     window.sessionStorage.setItem('sessionComplete', 'true')
     document.getElementById('contactDetails').remove()
     document.getElementById('sessionEnded').removeAttribute('hidden')
+
     document.removeEventListener('visibilitychange', onVisibilityChange)
+    window.removeEventListener('focus', onFocus)
+    window.removeEventListener('pageshow', onPageShow)
+
     if (sessionTimeInterval !== null) {
         clearInterval(sessionTimeInterval)
     }
@@ -423,6 +428,29 @@ function sessionComplete() {
         peer.destroy()
     }
     setStatus('Session Complete', 'primary')
+}
+
+function unfocusButtons() {
+    const buttons = document.getElementsByClassName('btn')
+    for (let i = 0; i < buttons.length; i++) {
+        buttons[i].blur()
+        buttons[i].classList.remove('active')
+    }
+}
+
+function debugLog() {
+    console.log.apply(null, arguments)
+    if (debugMode) {
+        const p = document.createElement('p')
+        p.innerText = Array.prototype.map.call(arguments, s => {
+            if (typeof s === 'string') {
+                return s
+            } else {
+                return JSON.stringify(s)
+            }
+        }).join(' ')
+        document.getElementById('debug').appendChild(p)
+    }
 }
 
 function msToTimeString(ms) {
