@@ -442,7 +442,7 @@ function debugLog() {
     console.log.apply(null, arguments)
     if (debugMode) {
         const p = document.createElement('p')
-        p.innerText = Array.prototype.map.call(arguments, s => {
+        p.innerText = (new Date().toString()) + ' ' + Array.prototype.map.call(arguments, s => {
             if (typeof s === 'string') {
                 return s
             } else {
