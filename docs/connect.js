@@ -241,7 +241,7 @@ function establishConnection() {
         log('connection closed')
         conn = null
 
-        if (window.sessionStorage.getItem('sessionComplete') === 'true') {
+        if (window.sessionStorage.getItem('sessionComplete') !== 'true') {
             setStatus('Not Connected', 'danger')
             setTimeout(() => {
                 connectPeer()
