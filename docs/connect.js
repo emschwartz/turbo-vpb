@@ -135,8 +135,8 @@ function connectToExtension() {
 }
 
 function onVisibilityChange() {
-    log(visibilityChange, 'hidden:', document[hidden])
-    if (!document[hidden]) {
+    log(visibilityChange, 'hidden:', isHidden())
+    if (!isHidden()) {
         unfocusButtons()
         connectPeer()
     }
@@ -163,9 +163,14 @@ function connectPeer() {
     }
     lastConnectPeerTime = Date.now()
 
-    if (peer && !peer.destroyed && !peer.disconnected) {
-        establishConnection()
-        return
+    if (peer && !peer.destroyed) {
+        if (peer.disconnected) {
+            // TODO try reconnecting
+            peer.destroy()
+        } else {
+            establishConnection()
+            return
+        }
     }
 
     setStatus('Connecting to Server', 'warning')
@@ -185,8 +190,11 @@ function connectPeer() {
         connectPeer()
     })
     peer.on('error', (err) => {
-        console.error('peer error', err)
-        displayError(err)
+        log('peer error')
+        // Display the error on the next tick to handle
+        // if it came from the page being unloaded but the
+        // error happens before the page visibility is set to hidden
+        setTimeout(() => displayError(err), 10)
     })
     peer.once('open', () => {
         log('peer opened')
@@ -234,19 +242,21 @@ function establishConnection() {
     })
     conn.once('error', (err) => {
         conn = null
-        console.error('connection error', err)
-        displayError(err)
+        log('connection error')
+
+        // Display the error on the next tick to handle
+        // if it came from the page being unloaded but the
+        // error happens before the page visibility is set to hidden
+        setTimeout(() => displayError(err), 10)
     })
     conn.once('close', () => {
         log('connection closed')
         conn = null
 
-        if (window.sessionStorage.getItem('sessionComplete') !== 'true') {
-            setStatus('Not Connected', 'danger')
-            setTimeout(() => {
-                connectPeer()
-            }, 300)
-        }
+        setStatus('Not Connected', 'danger')
+        setTimeout(() => {
+            connectPeer()
+        }, 300)
     })
     conn.on('data', (data) => {
         log('got data', data)
@@ -349,12 +359,13 @@ function displayError(err) {
     if (err.type) {
         log(`Error (type: ${err.type}):`, err)
     } else {
-        log(err)
+        log('Error:', err)
     }
     setStatus('Error. Reload Tab.', 'danger')
 
     // Display error details if the error was not caused by the page being put to sleep
-    if (document[hidden]) {
+    if (isHidden()) {
+        log('not showing error because page is not visible')
         return
     }
     // Display full error message
@@ -402,6 +413,7 @@ function displayError(err) {
     // because they are likely caused by the browser putting the tab to sleep
     numErrors += 1
     if (!hasConnected || (err.type !== 'disconnected' && err.type !== 'network')) {
+        log('sending error to Sentry')
         reportedErrorSinceLastConnect = true
         Sentry.captureException(err, {
             tags: {
@@ -473,4 +485,8 @@ function msToTimeString(ms) {
         time += sec
     }
     return time
+}
+
+function isHidden() {
+    return document.visibilityState === 'hidden' || document[hidden]
 }
