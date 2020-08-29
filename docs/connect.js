@@ -65,6 +65,14 @@ if (Sentry) {
             event.extra.num_connections_opened = numConnectionsOpened
             event.extra.num_peers_opened = numPeersOpened
             return event
+        },
+        beforeBreadcrumb: (breadcrumb) => {
+            if (breadcrumb.category === 'xhr' &&
+                breadcrumb.data && breadcrumb.data.url === 'https://analytics.turbovpb.com/api') {
+                return null
+            } else {
+                return breadcrumb
+            }
         }
     });
     Sentry.configureScope(function (scope) {
