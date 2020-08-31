@@ -7,6 +7,7 @@ let lastConnectPeerTime
 
 let startTime = Date.now()
 let sessionTimeInterval
+let sessionComplete = false
 
 // Details used for tracking errors with Sentry
 let hasConnected = false
@@ -14,6 +15,7 @@ let reportedErrorSinceLastConnect = false
 let numErrors = 0
 let numPeersOpened = 0
 let numConnectionsOpened = 0
+let windowIsHidden = false
 
 let iceServers = [{
     "url": "stun:stun.l.google.com:19302",
@@ -130,13 +132,15 @@ if (remotePeerId) {
 }
 
 function connectToExtension() {
-    if (window.sessionStorage.getItem('sessionComplete') === 'true') {
-        sessionComplete()
+    log('starting initial connection')
+    if (sessionIsComplete()) {
+        markSessionComplete()
         return
     }
 
     connectPeer()
 
+    log('setting up event listeners for page visibility changes')
     document.addEventListener(visibilityChange, onVisibilityChange)
     window.addEventListener('focus', onFocus)
     window.addEventListener('pageshow', onPageShow)
@@ -144,9 +148,23 @@ function connectToExtension() {
 
 function onVisibilityChange() {
     log(visibilityChange, 'hidden:', isHidden())
-    if (!isHidden()) {
-        unfocusButtons()
-        connectPeer()
+    if (isHidden()) {
+        windowIsHidden = true
+        log('windowIsHidden: true')
+    } else {
+        // These should trigger after the error event handler.
+        // Even though the error happens while the page is hidden,
+        // the event handler will only be triggered once it is visible
+        // again. By only unsetting the windowIsHidden variable after
+        // a 1ms timeout, we make sure to avoid showing and reporting
+        // to Sentry errors that are simply caused by the mobile browser
+        // putting the page to sleep.
+        setTimeout(() => {
+            windowIsHidden = false
+            log('windowIsHidden: false')
+            unfocusButtons()
+            connectPeer()
+        }, 1)
     }
 }
 function onFocus() {
@@ -161,25 +179,28 @@ function onPageShow() {
 }
 
 function connectPeer() {
-    if (window.sessionStorage.getItem('sessionComplete') === 'true') {
+    if (sessionIsComplete()) {
+        log('not connecting because session is complete')
         return
     }
-
-    // This should be called at most once every 100ms
-    if (lastConnectPeerTime && Date.now() - lastConnectPeerTime < 100) {
-        return
-    }
-    lastConnectPeerTime = Date.now()
 
     if (peer && !peer.destroyed) {
         if (peer.disconnected) {
             // TODO try reconnecting
             peer.destroy()
         } else {
+            log('peer already exists, checking connection')
             establishConnection()
             return
         }
     }
+
+    // This should be called at most once every 100ms
+    if (lastConnectPeerTime && Date.now() - lastConnectPeerTime < 100) {
+        log('not connecting again, connectPeer called within the last 100ms')
+        return
+    }
+    lastConnectPeerTime = Date.now()
 
     setStatus('Connecting to Server', 'warning')
     document.getElementById('warningContainer').hidden = true
@@ -199,10 +220,12 @@ function connectPeer() {
     })
     peer.on('error', (err) => {
         log('peer error')
-        // Display the error on the next tick to handle
-        // if it came from the page being unloaded but the
-        // error happens before the page visibility is set to hidden
-        setTimeout(() => displayError(err), 10)
+        // Reconnect if the error was caused by the window being hidden
+        if (windowIsHidden) {
+            setTimeout(connectPeer, 1)
+        } else {
+            displayError(err)
+        }
     })
     peer.once('open', () => {
         log('peer opened')
@@ -213,7 +236,7 @@ function connectPeer() {
 }
 
 function establishConnection() {
-    if (window.sessionStorage.getItem('sessionComplete') === 'true') {
+    if (sessionIsComplete()) {
         return
     }
 
@@ -225,9 +248,11 @@ function establishConnection() {
         return
     }
     // Update session time
-    sessionTimeInterval = setInterval(() => {
-        document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
-    }, 1000)
+    if (!sessionTimeInterval) {
+        sessionTimeInterval = setInterval(() => {
+            document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
+        }, 1000)
+    }
 
     setStatus('Connecting to Extension', 'warning')
     document.getElementById('warningContainer').hidden = true
@@ -250,12 +275,8 @@ function establishConnection() {
     })
     conn.once('error', (err) => {
         conn = null
-        log('connection error')
-
-        // Display the error on the next tick to handle
-        // if it came from the page being unloaded but the
-        // error happens before the page visibility is set to hidden
-        setTimeout(() => displayError(err), 10)
+        log('connection error', err)
+        // Don't display error because it will be handled by peer.on('error')
     })
     conn.once('close', () => {
         log('connection closed')
@@ -264,7 +285,7 @@ function establishConnection() {
         setStatus('Not Connected', 'danger')
         setTimeout(() => {
             connectPeer()
-        }, 300)
+        }, 100)
     })
     conn.on('data', (data) => {
         log('got data', data)
@@ -342,7 +363,7 @@ function establishConnection() {
         }
         if (data.type === 'disconnect') {
             log('got disconnect message from extension')
-            sessionComplete()
+            markSessionComplete()
         }
     })
 }
@@ -372,7 +393,7 @@ function displayError(err) {
     setStatus('Error. Reload Tab.', 'danger')
 
     // Display error details if the error was not caused by the page being put to sleep
-    if (isHidden()) {
+    if (windowIsHidden || isHidden()) {
         log('not showing error because page is not visible')
         return
     }
@@ -432,7 +453,8 @@ function displayError(err) {
 }
 
 
-function sessionComplete() {
+function markSessionComplete() {
+    sessionComplete = true
     window.sessionStorage.setItem('sessionComplete', 'true')
     document.getElementById('contactDetails').remove()
     document.getElementById('sessionEnded').removeAttribute('hidden')
@@ -441,13 +463,26 @@ function sessionComplete() {
     window.removeEventListener('focus', onFocus)
     window.removeEventListener('pageshow', onPageShow)
 
-    if (sessionTimeInterval !== null) {
+    if (sessionTimeInterval) {
         clearInterval(sessionTimeInterval)
     }
     if (peer) {
         peer.destroy()
     }
     setStatus('Session Complete', 'primary')
+}
+
+function sessionIsComplete() {
+    if (sessionComplete) {
+        return true
+    }
+    try {
+        // This may result in "SecurityError: The operation is insecure."
+        if (window.sessionStorage.getItem('sessionComplete') === 'true') {
+            return true
+        }
+    } catch (err) { }
+    return false
 }
 
 function unfocusButtons() {
