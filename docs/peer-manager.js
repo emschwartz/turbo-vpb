@@ -15,7 +15,6 @@ class PeerManager {
         this.active = false
         this.peer = null
         this.connection = null
-        this.isConnecting = false
 
         this.onData = () => { }
         this.onConnect = () => { }
@@ -34,12 +33,6 @@ class PeerManager {
     async connect() {
         this.active = true
 
-        // Don't connect again while we're in the middle of connecting
-        if (this.isConnecting) {
-            return
-        }
-        this.isConnecting = true
-
         if (!this.iceServers) {
             this.iceServers = await getIceServers()
         }
@@ -48,7 +41,6 @@ class PeerManager {
         await this.checkConnectionOpen()
 
         this.onConnect()
-        this.isConnecting = false
     }
 
     async checkPeerConnected() {
