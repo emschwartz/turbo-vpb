@@ -1,32 +1,4 @@
-let messageTemplates = []
-let yourName = ''
-
-let peer
-let conn
-let lastConnectPeerTime
-
-let startTime = Date.now()
-let sessionTimeInterval
-let sessionComplete = false
-
-// Details used for tracking errors with Sentry
-let hasConnected = false
-let reportedErrorSinceLastConnect = false
-let numErrors = 0
-let numPeersOpened = 0
-let numConnectionsOpened = 0
-let windowIsHidden = false
-
-let iceServers = [{
-    "url": "stun:stun.l.google.com:19302",
-    "urls": "stun:stun.l.google.com:19302"
-}, {
-    "url": "stun:global.stun.twilio.com:3478?transport=udp",
-    "urls": "stun:global.stun.twilio.com:3478?transport=udp"
-}]
-
 const debugMode = window.location.href.includes('debug')
-const log = debugMode ? debugLog : console.log
 const searchParams = (new URL(window.location.href)).searchParams
 const sessionId = searchParams.get('session') || ''
 const extensionVersion = searchParams.get('version') || '<0.6.3'
@@ -34,7 +6,15 @@ const extensionUserAgent = searchParams.get('userAgent') || ''
 const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
 
-// Initialization
+let messageTemplates = []
+let yourName = ''
+
+let startTime = Date.now()
+let sessionTimeInterval
+let sessionComplete = false
+
+let windowIsHidden = false
+let peerManager
 
 // Analytics
 try {
@@ -51,7 +31,7 @@ try {
     const { stop: stopTracking } = tracker.record(attributes)
     window.addEventListener('beforeunload', () => stopTracking())
 } catch (err) {
-    log('error setting up tracking', err)
+    console.error('error setting up tracking', err)
 }
 
 // Error tracking
@@ -59,15 +39,6 @@ if (Sentry) {
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
         release: extensionVersion,
-        beforeSend: (event) => {
-            if (!event.extra) {
-                event.extra = {}
-            }
-            event.extra.num_errors = numErrors
-            event.extra.num_connections_opened = numConnectionsOpened
-            event.extra.num_peers_opened = numPeersOpened
-            return event
-        },
         beforeBreadcrumb: (breadcrumb) => {
             if (breadcrumb.category === 'xhr' &&
                 breadcrumb.data && breadcrumb.data.url === 'https://analytics.turbovpb.com/api') {
@@ -104,268 +75,177 @@ if (typeof document.hidden !== "undefined") {
     displayError(err)
     throw err
 }
-
-// Try getting ICE Servers
-fetch('https://nts.turbovpb.com/ice')
-    .then(function (response) {
-        return response.json()
-    })
-    .then(function (json) {
-        iceServers = json
-        iceServers = iceServers.slice(0, 2)
-        log('using ice servers', iceServers)
-    })
-    .catch(function (err) {
-        log('error getting ice servers', err)
-    })
-
-if (debugMode) {
-    log('debug mode enabled')
-    document.getElementById('contactDetails').classList.remove('fixed-bottom')
+function isHidden() {
+    return document.visibilityState === 'hidden' || document[hidden]
 }
 
+// Connect to the extension if a remotePeerId is specified and the session isn't complete
 if (remotePeerId) {
-    connectToExtension()
+    if (sessionIsComplete()) {
+        markSessionComplete()
+    } else {
+        // Create PeerManager and set up event handlers
+        peerManager = new PeerManager({
+            debugMode,
+            remotePeerId
+        })
+        peerManager.onConnect = () => {
+            setStatus('Connected', 'success')
+
+            // Update session time
+            if (!sessionTimeInterval) {
+                sessionTimeInterval = setInterval(() => {
+                    document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
+                }, 1000)
+            }
+        }
+        peerManager.onData = handleData
+        peerManager.onReconnecting = () => {
+            if (sessionIsComplete()) {
+                peerManager.stop()
+                return
+            }
+
+            setStatus('Connecting to Extension', 'warning')
+            document.getElementById('warningContainer').hidden = true
+        }
+        peerManager.onError = (err) => {
+            // Most errors will be caused by the page being put to sleep.
+            // For any other errors, we want to stop trying to reconnect,
+            // display the error details to the user, and report the error to Sentry.
+            if (windowIsHidden) {
+                console.log('not showing error because page is not visible')
+            } else {
+                peerManager.stop()
+                displayError(err)
+
+                Sentry.captureException(err, {
+                    tags: {
+                        error_type: err.type
+                    }
+                })
+            }
+        }
+
+        peerManager.connect()
+
+        document.addEventListener(visibilityChange, () => {
+            console.log(visibilityChange, 'hidden:', isHidden())
+            if (isHidden()) {
+                windowIsHidden = true
+            } else {
+                pageBecameVisible()
+            }
+        })
+        window.addEventListener('focus', pageBecameVisible)
+    }
 } else {
+    // Show error
     document.getElementById('mainContainer').setAttribute('hidden', true)
     document.getElementById('warningContainer').removeAttribute('hidden')
 }
 
-function connectToExtension() {
-    log('starting initial connection')
+function pageBecameVisible() {
     if (sessionIsComplete()) {
-        markSessionComplete()
         return
     }
 
-    connectPeer()
-
-    log('setting up event listeners for page visibility changes')
-    document.addEventListener(visibilityChange, onVisibilityChange)
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('pageshow', onPageShow)
-}
-
-function onVisibilityChange() {
-    log(visibilityChange, 'hidden:', isHidden())
-    if (isHidden()) {
-        windowIsHidden = true
-        log('windowIsHidden: true')
-    } else {
-        // These should trigger after the error event handler.
-        // Even though the error happens while the page is hidden,
-        // the event handler will only be triggered once it is visible
-        // again. By only unsetting the windowIsHidden variable after
-        // a 1ms timeout, we make sure to avoid showing and reporting
-        // to Sentry errors that are simply caused by the mobile browser
-        // putting the page to sleep.
-        setTimeout(() => {
-            windowIsHidden = false
-            log('windowIsHidden: false')
-            unfocusButtons()
-            connectPeer()
-        }, 1)
-    }
-}
-function onFocus() {
-    log('focus')
     unfocusButtons()
-    connectPeer()
-}
-function onPageShow() {
-    log('pageshow')
-    unfocusButtons()
-    connectPeer()
+
+    // These should trigger after the error event handler.
+    // Even though the error happens while the page is hidden,
+    // the event handler may only be triggered once it is visible
+    // again. By only unsetting the windowIsHidden variable after
+    // a timeout, we make sure to avoid showing and reporting to
+    // Sentry errors that are simply caused by the mobile browser
+    // putting the page to sleep.
+    setTimeout(() => {
+        console.log('window became visible, triggering reconnect')
+        windowIsHidden = false
+        peerManager.reconnect()
+    }, 50)
 }
 
-function connectPeer() {
-    if (sessionIsComplete()) {
-        log('not connecting because session is complete')
-        return
+function handleData(data) {
+    if (data.yourName) {
+        yourName = data.yourName
     }
 
-    if (peer && !peer.destroyed) {
-        if (peer.disconnected) {
-            // TODO try reconnecting
-            peer.destroy()
+    if (data.messageTemplates) {
+        messageTemplates = data.messageTemplates
+    }
+
+    if (data.contact) {
+        const matches = data.contact.phoneNumber.match(/\d+/g)
+        if (!matches) {
+            return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
+        }
+        let phoneNumber = matches.join('')
+        if (phoneNumber.length === 10) {
+            phoneNumber = '1' + phoneNumber
+        }
+
+        document.getElementById('contactDetails').hidden = false
+        document.getElementById('statistics').hidden = false
+
+        document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
+
+        document.getElementById('phoneNumber').href = "tel:" + phoneNumber
+        document.getElementById('phoneNumber').innerText = `Call ${data.contact.phoneNumber}`
+
+        // TODO: reuse elements?
+        const textMessageLinks = document.getElementById('textMessageLinks')
+        while (textMessageLinks.firstChild) {
+            textMessageLinks.removeChild(textMessageLinks.firstChild)
+        }
+        if (messageTemplates.length === 0) {
+            document.getElementById('textMessageInstructions')
+                .removeAttribute('hidden')
         } else {
-            log('peer already exists, checking connection')
-            establishConnection()
-            return
+            document.getElementById('textMessageInstructions')
+                .setAttribute('hidden', 'true')
         }
-    }
-
-    // This should be called at most once every 100ms
-    if (lastConnectPeerTime && Date.now() - lastConnectPeerTime < 100) {
-        log('not connecting again, connectPeer called within the last 100ms')
-        return
-    }
-    lastConnectPeerTime = Date.now()
-
-    setStatus('Connecting to Server', 'warning')
-    document.getElementById('warningContainer').hidden = true
-
-    log('creating new peer')
-    peer = new Peer({
-        host: 'peerjs.turbovpb.com',
-        secure: true,
-        debug: debugMode ? 3 : 1,
-        config: {
-            iceServers
-        }
-    })
-    peer.on('disconnect', () => {
-        log('peer disconnected')
-        connectPeer()
-    })
-    peer.on('error', (err) => {
-        log('peer error')
-        // Reconnect if the error was caused by the window being hidden
-        if (windowIsHidden) {
-            setTimeout(connectPeer, 1)
-        } else {
-            displayError(err)
-        }
-    })
-    peer.once('open', () => {
-        log('peer opened')
-        opened = true
-        numPeersOpened += 1
-        establishConnection()
-    })
-}
-
-function establishConnection() {
-    if (sessionIsComplete()) {
-        return
-    }
-
-    log('establish connection')
-    if (conn && conn.open) {
-        log('connection already good')
-        setStatus('Connected', 'success')
-        document.getElementById('warningContainer').hidden = true
-        return
-    }
-    // Update session time
-    if (!sessionTimeInterval) {
-        sessionTimeInterval = setInterval(() => {
-            document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
-        }, 1000)
-    }
-
-    setStatus('Connecting to Extension', 'warning')
-    document.getElementById('warningContainer').hidden = true
-    log('connecting to ', remotePeerId)
-    conn = peer.connect(remotePeerId, {
-        serialization: 'json'
-    })
-    conn.once('open', () => {
-        log('connection open')
-        setStatus('Connected', 'success')
-        hasConnected = true
-        numConnectionsOpened += 1
-
-        // Report if the user saw an error but then it reconnected
-        // TODO maybe save this to sessionStorage in case they reload
-        if (reportedErrorSinceLastConnect) {
-            Sentry.captureMessage('connection opened', 'debug')
-            reportedErrorSinceLastConnect = false
-        }
-    })
-    conn.once('error', (err) => {
-        conn = null
-        log('connection error', err)
-        // Don't display error because it will be handled by peer.on('error')
-    })
-    conn.once('close', () => {
-        log('connection closed')
-        conn = null
-
-        setStatus('Not Connected', 'danger')
-        setTimeout(() => {
-            connectPeer()
-        }, 100)
-    })
-    conn.on('data', (data) => {
-        log('got data', data)
-        if (data.yourName) {
-            yourName = data.yourName
-        }
-        if (data.messageTemplates) {
-            messageTemplates = data.messageTemplates
-        }
-        if (data.contact) {
-            const matches = data.contact.phoneNumber.match(/\d+/g)
-            if (!matches) {
-                return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
-            }
-            let phoneNumber = matches.join('')
-            if (phoneNumber.length === 10) {
-                phoneNumber = '1' + phoneNumber
-            }
-
-            document.getElementById('contactDetails').hidden = false
-            document.getElementById('statistics').hidden = false
-
-            document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
-
-            document.getElementById('phoneNumber').href = "tel:" + phoneNumber
-            document.getElementById('phoneNumber').innerText = `Call ${data.contact.phoneNumber}`
-
-            // TODO: reuse elements?
-            const textMessageLinks = document.getElementById('textMessageLinks')
-            while (textMessageLinks.firstChild) {
-                textMessageLinks.removeChild(textMessageLinks.firstChild)
-            }
-            if (messageTemplates.length === 0) {
-                document.getElementById('textMessageInstructions')
-                    .removeAttribute('hidden')
-            } else {
-                document.getElementById('textMessageInstructions')
-                    .setAttribute('hidden', 'true')
-            }
-            for (let { label, message, result } of messageTemplates) {
-                const a = document.createElement('a')
-                a.className = "btn btn-outline-secondary btn-block p-3 my-3"
-                a.role = 'button'
-                a.target = "_blank"
-                const messageBody = message
-                    .replace(/\[their name\]/i, data.contact.firstName)
-                    .replace(/\[your name\]/i, yourName)
-                a.href = `sms://${phoneNumber}?&body=${messageBody}`
-                a.innerText = `Send ${label}`
-                if (result) {
-                    a.addEventListener('click', () => {
-                        log(`sending call result: ${result}`)
-                        conn.send({
-                            type: 'callResult',
-                            result
-                        })
+        for (let { label, message, result } of messageTemplates) {
+            const a = document.createElement('a')
+            a.className = "btn btn-outline-secondary btn-block p-3 my-3"
+            a.role = 'button'
+            a.target = "_blank"
+            const messageBody = message
+                .replace(/\[their name\]/i, data.contact.firstName)
+                .replace(/\[your name\]/i, yourName)
+            a.href = `sms://${phoneNumber}?&body=${messageBody}`
+            a.innerText = `Send ${label}`
+            if (result) {
+                a.addEventListener('click', () => {
+                    console.log(`sending call result: ${result}`)
+                    conn.send({
+                        type: 'callResult',
+                        result
                     })
-                }
-                textMessageLinks.appendChild(a)
+                })
             }
+            textMessageLinks.appendChild(a)
         }
+    }
 
-        if (data.stats) {
-            if (data.stats.startTime) {
-                startTime = data.stats.startTime
-            }
-            if (data.stats.calls && data.stats.calls > 0) {
-                // TODO maybe update this as the duration is being updated (every second)
-                document.getElementById('numCalls').innerText = `${data.stats.calls} Call${data.stats.calls > 1 ? 's' : ''}`
-                document.getElementById('avgCallTime').innerText = msToTimeString((Date.now() - startTime) / data.stats.calls)
-            }
-            if (data.stats.successfulCalls) {
-                document.getElementById('successfulCalls').innerText = data.stats.successfulCalls
-            }
+    if (data.stats) {
+        if (data.stats.startTime) {
+            startTime = data.stats.startTime
         }
-        if (data.type === 'disconnect') {
-            log('got disconnect message from extension')
-            markSessionComplete()
+        if (data.stats.calls && data.stats.calls > 0) {
+            // TODO maybe update this as the duration is being updated (every second)
+            document.getElementById('numCalls').innerText = `${data.stats.calls} Call${data.stats.calls > 1 ? 's' : ''}`
+            document.getElementById('avgCallTime').innerText = msToTimeString((Date.now() - startTime) / data.stats.calls)
         }
-    })
+        if (data.stats.successfulCalls) {
+            document.getElementById('successfulCalls').innerText = data.stats.successfulCalls
+        }
+    }
+
+    if (data.type === 'disconnect') {
+        console.log('got disconnect message from extension')
+        markSessionComplete()
+    }
 }
 
 function setStatus(status, alertType) {
@@ -385,18 +265,8 @@ function setStatus(status, alertType) {
 }
 
 function displayError(err) {
-    if (err.type) {
-        log(`Error (type: ${err.type}):`, err)
-    } else {
-        log('Error:', err)
-    }
     setStatus('Error. Reload Tab.', 'danger')
 
-    // Display error details if the error was not caused by the page being put to sleep
-    if (windowIsHidden || isHidden()) {
-        log('not showing error because page is not visible')
-        return
-    }
     // Display full error message
     document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
     document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
@@ -436,22 +306,7 @@ function displayError(err) {
     document.getElementById('name').innerText = ''
     document.getElementById('phoneNumber').href = ''
     document.getElementById('phoneNumber').innerText = ''
-
-    // Report error to Sentry
-    // Ignore connection errors that happen after the initial connect
-    // because they are likely caused by the browser putting the tab to sleep
-    numErrors += 1
-    if (!hasConnected || (err.type !== 'disconnected' && err.type !== 'network')) {
-        log('sending error to Sentry')
-        reportedErrorSinceLastConnect = true
-        Sentry.captureException(err, {
-            tags: {
-                error_type: err.type
-            }
-        })
-    }
 }
-
 
 function markSessionComplete() {
     sessionComplete = true
@@ -459,16 +314,12 @@ function markSessionComplete() {
     document.getElementById('contactDetails').remove()
     document.getElementById('sessionEnded').removeAttribute('hidden')
 
-    document.removeEventListener('visibilitychange', onVisibilityChange)
-    window.removeEventListener('focus', onFocus)
-    window.removeEventListener('pageshow', onPageShow)
-
     if (sessionTimeInterval) {
         clearInterval(sessionTimeInterval)
     }
-    if (peer) {
-        peer.destroy()
-    }
+
+    peerManager.stop()
+
     setStatus('Session Complete', 'primary')
 }
 
@@ -493,21 +344,6 @@ function unfocusButtons() {
     }
 }
 
-function debugLog() {
-    console.log.apply(null, arguments)
-    if (debugMode) {
-        const p = document.createElement('p')
-        p.innerText = (new Date().toString()) + ' ' + Array.prototype.map.call(arguments, s => {
-            if (typeof s === 'string') {
-                return s
-            } else {
-                return JSON.stringify(s)
-            }
-        }).join(' ')
-        document.getElementById('debug').appendChild(p)
-    }
-}
-
 function msToTimeString(ms) {
     let time = ''
     const hours = Math.floor(ms / 3600000)
@@ -528,8 +364,4 @@ function msToTimeString(ms) {
         time += sec
     }
     return time
-}
-
-function isHidden() {
-    return document.visibilityState === 'hidden' || document[hidden]
 }
