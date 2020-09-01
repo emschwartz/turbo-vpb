@@ -5,10 +5,9 @@ const DEFAULT_ICE_SERVERS = [{
     "url": "stun:global.stun.twilio.com:3478?transport=udp",
     "urls": "stun:global.stun.twilio.com:3478?transport=udp"
 }]
-const FATAL_ERRORS = ['invalid-id', 'invalid-key', 'network', 'ssl-unavailable', 'server-error', 'socket-error', 'socket-closed', 'unavailable-id', 'webrtc']
-const RECONNECT_BACKOFF = 2
+const RECONNECT_BACKOFF = 5
 const RECONNECT_DELAY_START = 50
-const MAX_RECONNECT_TIMEOUT = 10000
+const MAX_RECONNECT_ATTEMPTS = 3
 
 class PeerManager {
     constructor({ debugMode, remotePeerId }) {
@@ -26,39 +25,40 @@ class PeerManager {
         this.onReconnecting = () => { }
 
         this.reconnectDelay = RECONNECT_DELAY_START
+        this.reconnectAttempts = 0
         this.reconnectTimeout = null
     }
 
     async reconnect(err) {
-        console.log('reconnect')
         if (this.active === false) {
             console.log('not reconnecting because the peer manager is off')
             return
         }
-        // Retry non-fatal errors
-        if (err.type && FATAL_ERRORS.contains(err.type)) {
-            return this.onError(err)
-        } else if (this.reconnectTimeout) {
+
+        if (this.reconnectTimeout) {
             console.log('already reconnecting')
             return
-        } else {
-            this.reconnectDelay = this.reconnectDelay * RECONNECT_BACKOFF
-            if (this.reconnectDelay > MAX_RECONNECT_TIMEOUT) {
-                return this.onError(err)
-            } else {
-                await new Promise((resolve) => {
-                    this.reconnectTimeout = setTimeout(() => {
-                        this.reconnectTimeout = null
-                        resolve()
-                    }, this.reconnectDelay)
-                })
-                try {
-                    await this.connect()
-                    this.reconnectDelay = RECONNECT_DELAY_START
-                } catch (err) {
-                    return this.onError(err)
-                }
-            }
+        }
+
+        if (++this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+            console.error('exceeded max number of reconnect attempts')
+            return this.onError(err || new Error('Exceeded maximum number of reconnect attempts'))
+        }
+
+        console.log(`waiting ${this.reconnectDelay}ms before reconnecting`)
+        await new Promise((resolve) => {
+            this.reconnectTimeout = setTimeout(() => {
+                this.reconnectTimeout = null
+                this.reconnectDelay = this.reconnectDelay * RECONNECT_BACKOFF
+                resolve()
+            }, this.reconnectDelay)
+        })
+        try {
+            await this.connect()
+            this.reconnectDelay = RECONNECT_DELAY_START
+            this.reconnectAttempts = 0
+        } catch (err) {
+            return this.onError(err)
         }
     }
 
@@ -96,27 +96,20 @@ class PeerManager {
             })
         } catch (err) {
             console.error('error creating peer')
-            return this.onError(err)
+            return this.reconnect(err)
         }
         console.log(`peer connected to server (took ${Date.now() - startTime}ms)`)
 
         this.peer.on('error', async (err) => {
             console.error(`peer error (type: ${err.type})`, err)
             this.closeConnection()
-
             return this.reconnect(err)
-            // Retry non-fatal errors
-            if (err.type && FATAL_ERRORS.contains(err.type)) {
-                return this.onError(err)
-            } else {
-                return this.reconnect(err)
-            }
         })
         this.peer.on('disconnect', async () => {
             console.warn('peer disconnected')
             this.closeConnection()
             await this.onReconnecting()
-            await this.reconnect()
+            return this.reconnect()
         })
     }
 
@@ -146,7 +139,7 @@ class PeerManager {
             })
         } catch (err) {
             console.error('error creating connection', err)
-            return this.onError(err)
+            return this.reconnect(err)
         }
         console.log(`connected to extension (took ${Date.now() - startTime}ms)`)
 
@@ -158,13 +151,12 @@ class PeerManager {
             console.warn('connection closed')
             this.connection = null
             await this.onReconnecting()
-            await this.reconnect()
+            return this.reconnect()
         })
         this.connection.on('error', async (err) => {
             console.error('connection error', err)
             this.connection = null
-            await this.onError(err)
-            await this.reconnect()
+            return this.reconnect()
         })
     }
 

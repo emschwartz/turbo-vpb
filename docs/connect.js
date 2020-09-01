@@ -13,8 +13,6 @@ let startTime = Date.now()
 let sessionTimeInterval
 let sessionComplete = false
 
-let windowIsHidden = false
-let pageIsVisibleTimeout
 let peerManager
 
 // Analytics
@@ -59,118 +57,50 @@ if (Sentry) {
     })
 }
 
-// Page visibility API
-let hidden
-let visibilityChange
-if (typeof document.hidden !== "undefined") {
-    hidden = "hidden";
-    visibilityChange = "visibilitychange";
-} else if (typeof document.msHidden !== "undefined") {
-    hidden = "msHidden";
-    visibilityChange = "msvisibilitychange";
-} else if (typeof document.webkitHidden !== "undefined") {
-    hidden = "webkitHidden";
-    visibilityChange = "webkitvisibilitychange";
-} else {
-    const err = new Error('This site requires a browser, such as Google Chrome, Firefox, or Safari, that supports the Page Visibility API.')
-    displayError(err)
-    throw err
-}
-function isHidden() {
-    return document.visibilityState === 'hidden' || document[hidden]
-}
-
 // Connect to the extension if a remotePeerId is specified and the session isn't complete
-if (remotePeerId) {
-    if (sessionIsComplete()) {
-        markSessionComplete()
-    } else {
-        // Create PeerManager and set up event handlers
-        peerManager = new PeerManager({
-            debugMode,
-            remotePeerId
-        })
-        peerManager.onConnect = () => {
-            setStatus('Connected', 'success')
-
-            // Update session time
-            if (!sessionTimeInterval) {
-                sessionTimeInterval = setInterval(() => {
-                    document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
-                }, 1000)
-            }
-        }
-        peerManager.onData = handleData
-        peerManager.onReconnecting = () => {
-            if (sessionIsComplete()) {
-                peerManager.stop()
-                return
-            }
-
-            setStatus('Connecting to Extension', 'warning')
-            document.getElementById('warningContainer').hidden = true
-        }
-        peerManager.onError = (err) => {
-            // Most errors will be caused by the page being put to sleep.
-            // For any other errors, we want to stop trying to reconnect,
-            // display the error details to the user, and report the error to Sentry.
-            if (windowIsHidden) {
-                console.log('not showing error because page is not visible')
-            } else {
-                peerManager.stop()
-                displayError(err)
-
-                Sentry.captureException(err, {
-                    tags: {
-                        error_type: err.type
-                    }
-                })
-            }
-        }
-
-        peerManager.connect()
-
-        document.addEventListener(visibilityChange, async () => {
-            console.log(visibilityChange, 'hidden:', isHidden())
-            if (isHidden()) {
-                windowIsHidden = true
-            } else {
-                await pageBecameVisible()
-            }
-        })
-        window.addEventListener('focus', pageBecameVisible)
-    }
-} else {
+if (sessionIsComplete()) {
+    markSessionComplete()
+} else if (!remotePeerId) {
     // Show error
     document.getElementById('mainContainer').setAttribute('hidden', true)
     document.getElementById('warningContainer').removeAttribute('hidden')
-}
+} else {
+    // Create PeerManager and set up event handlers
+    peerManager = new PeerManager({
+        debugMode,
+        remotePeerId
+    })
+    peerManager.onConnect = () => {
+        setStatus('Connected', 'success')
 
-async function pageBecameVisible() {
-    if (sessionIsComplete()) {
-        return
-    }
-
-    unfocusButtons()
-
-    // These should trigger after the error event handler.
-    // Even though the error happens while the page is hidden,
-    // the event handler may only be triggered once it is visible
-    // again. By only unsetting the windowIsHidden variable after
-    // a timeout, we make sure to avoid showing and reporting to
-    // Sentry errors that are simply caused by the mobile browser
-    // putting the page to sleep.
-    if (!pageIsVisibleTimeout) {
-        await new Promise((resolve) => pageIsVisibleTimeout = setTimeout(resolve, 50))
-        pageIsVisibleTimeout = null
-        windowIsHidden = false
-        console.log('window became visible, triggering reconnect')
-        try {
-            await peerManager.reconnect()
-        } catch (err) {
-            console.error('error calling reconnect', err)
+        // Update session time
+        if (!sessionTimeInterval) {
+            sessionTimeInterval = setInterval(() => {
+                document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
+            }, 1000)
         }
     }
+    peerManager.onData = handleData
+    peerManager.onReconnecting = () => {
+        if (sessionIsComplete()) {
+            peerManager.stop()
+            return
+        }
+
+        setStatus('Connecting to Extension', 'warning')
+        document.getElementById('warningContainer').hidden = true
+    }
+    peerManager.onError = (err) => {
+        displayError(err)
+
+        Sentry.captureException(err, {
+            tags: {
+                error_type: err.type
+            }
+        })
+    }
+
+    peerManager.connect()
 }
 
 function handleData(data) {
@@ -343,14 +273,6 @@ function sessionIsComplete() {
         }
     } catch (err) { }
     return false
-}
-
-function unfocusButtons() {
-    const buttons = document.getElementsByClassName('btn')
-    for (let i = 0; i < buttons.length; i++) {
-        buttons[i].blur()
-        buttons[i].classList.remove('active')
-    }
 }
 
 function msToTimeString(ms) {
