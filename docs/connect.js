@@ -153,9 +153,9 @@ function handleData(data) {
             a.href = `sms://${phoneNumber}?&body=${messageBody}`
             a.innerText = `Send ${label}`
             if (result) {
-                a.addEventListener('click', () => {
+                a.addEventListener('click', async () => {
                     console.log(`sending call result: ${result}`)
-                    conn.send({
+                    return peerManager.sendMessage({
                         type: 'callResult',
                         result
                     })
