@@ -14,6 +14,7 @@ let sessionTimeInterval
 let sessionComplete = false
 
 let windowIsHidden = false
+let pageIsVisibleTimeout
 let peerManager
 
 // Analytics
@@ -159,11 +160,13 @@ function pageBecameVisible() {
     // a timeout, we make sure to avoid showing and reporting to
     // Sentry errors that are simply caused by the mobile browser
     // putting the page to sleep.
-    setTimeout(() => {
-        console.log('window became visible, triggering reconnect')
-        windowIsHidden = false
-        peerManager.reconnect()
-    }, 50)
+    if (!pageIsVisibleTimeout) {
+        pageIsVisibleTimeout = setTimeout(() => {
+            console.log('window became visible, triggering reconnect')
+            windowIsHidden = false
+            peerManager.reconnect()
+        }, 50)
+    }
 }
 
 function handleData(data) {

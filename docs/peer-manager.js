@@ -24,7 +24,8 @@ class PeerManager {
     }
 
     async reconnect() {
-        if (!this.active) {
+        if (this.active === false) {
+            console.log('not reconnecting because the peer manager is off')
             return
         }
         return this.connect()
@@ -62,6 +63,7 @@ class PeerManager {
         await this.onReconnecting()
 
         console.log('creating new peer')
+        const startTime = Date.now()
         try {
             this.peer = await createPeer({
                 iceServers: this.iceServers,
@@ -71,7 +73,7 @@ class PeerManager {
             console.error('error creating peer')
             return this.onError(err)
         }
-        console.log('peer connected to server')
+        console.log(`peer connected to server (took ${Date.now() - startTime}ms)`)
 
         this.peer.on('error', async (err) => {
             console.error(`peer error (type: ${err.type})`, err)
@@ -102,6 +104,7 @@ class PeerManager {
             }
 
             console.log('connecting to ', remotePeerId)
+            const startTime = Date.now()
             try {
                 this.connection = await createConnection({
                     peer: this.peer,
@@ -111,7 +114,7 @@ class PeerManager {
                 console.error('error creating connection', err)
                 return this.onError(err)
             }
-            console.log('connected to extension')
+            console.log(`connected to extension (took ${Date.now() - startTime}ms)`)
 
             this.connection.on('data', (data) => {
                 console.log('got data', data)
@@ -149,7 +152,7 @@ async function getIceServers() {
         console.log('using ICE servers:', iceServers)
         return iceServers
     } catch (err) {
-        log('error getting ice servers', err)
+        console.error('error getting ice servers', err)
         return DEFAULT_ICE_SERVERS
     }
 }
