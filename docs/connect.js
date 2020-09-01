@@ -162,6 +162,7 @@ function pageBecameVisible() {
     // putting the page to sleep.
     if (!pageIsVisibleTimeout) {
         pageIsVisibleTimeout = setTimeout(() => {
+            clearTimeout(pageIsVisibleTimeout)
             console.log('window became visible, triggering reconnect')
             windowIsHidden = false
             peerManager.reconnect()

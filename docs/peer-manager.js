@@ -90,41 +90,44 @@ class PeerManager {
     }
 
     async checkConnectionOpen() {
-        if (!this.connection || !this.connection.open) {
-            if (this.connection) {
+        if (this.connection) {
+            if (this.connection.open) {
+                console.log('connection still open')
+                return
+            } else {
                 this.connection.close()
             }
-
-            console.log('connecting to ', remotePeerId)
-            const startTime = Date.now()
-            try {
-                this.connection = await createConnection({
-                    peer: this.peer,
-                    remotePeerId: this.remotePeerId
-                })
-            } catch (err) {
-                console.error('error creating connection', err)
-                return this.onError(err)
-            }
-            console.log(`connected to extension (took ${Date.now() - startTime}ms)`)
-
-            this.connection.on('data', (data) => {
-                console.log('got data', data)
-                this.onData(data)
-            })
-            this.connection.on('close', async () => {
-                console.warn('connection closed')
-                this.connection = null
-                await this.onReconnecting()
-                await this.reconnect()
-            })
-            this.connection.on('error', async (err) => {
-                console.error('connection error', err)
-                this.connection = null
-                await this.onError(err)
-                await this.reconnect()
-            })
         }
+
+        console.log('connecting to ', remotePeerId)
+        const startTime = Date.now()
+        try {
+            this.connection = await createConnection({
+                peer: this.peer,
+                remotePeerId: this.remotePeerId
+            })
+        } catch (err) {
+            console.error('error creating connection', err)
+            return this.onError(err)
+        }
+        console.log(`connected to extension (took ${Date.now() - startTime}ms)`)
+
+        this.connection.on('data', (data) => {
+            console.log('got data', data)
+            this.onData(data)
+        })
+        this.connection.on('close', async () => {
+            console.warn('connection closed')
+            this.connection = null
+            await this.onReconnecting()
+            await this.reconnect()
+        })
+        this.connection.on('error', async (err) => {
+            console.error('connection error', err)
+            this.connection = null
+            await this.onError(err)
+            await this.reconnect()
+        })
     }
 
     stop() {
