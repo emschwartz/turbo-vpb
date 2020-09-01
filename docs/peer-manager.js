@@ -20,9 +20,12 @@ class PeerManager {
         this.onConnect = () => { }
         this.onError = () => { }
         this.onReconnecting = () => { }
+
+        this.connectPromise = Promise.resolve()
     }
 
     async reconnect() {
+        console.log('reconnect')
         if (this.active === false) {
             console.log('not reconnecting because the peer manager is off')
             return
@@ -30,8 +33,26 @@ class PeerManager {
         return this.connect()
     }
 
+    // Multiple calls to connect will be executed sequentially
     async connect() {
+        try {
+            this.connectPromise = this.connectPromise.then(this._connect.bind(this))
+            const ourOriginalPromise = this.connectPromise
+            await this.connectPromise
+
+            // Clean up the queue if this was the last promise added
+            if (this.connectPromise === ourOriginalPromise) {
+                this.connectPromise = Promise.resolve()
+            }
+        } catch (err) {
+            console.error(err)
+            return this._connect()
+        }
+    }
+
+    async _connect() {
         this.active = true
+        console.log('connecting')
 
         if (!this.iceServers) {
             this.iceServers = await getIceServers()

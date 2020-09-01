@@ -130,12 +130,12 @@ if (remotePeerId) {
 
         peerManager.connect()
 
-        document.addEventListener(visibilityChange, () => {
+        document.addEventListener(visibilityChange, async () => {
             console.log(visibilityChange, 'hidden:', isHidden())
             if (isHidden()) {
                 windowIsHidden = true
             } else {
-                pageBecameVisible()
+                await pageBecameVisible()
             }
         })
         window.addEventListener('focus', pageBecameVisible)
@@ -146,7 +146,7 @@ if (remotePeerId) {
     document.getElementById('warningContainer').removeAttribute('hidden')
 }
 
-function pageBecameVisible() {
+async function pageBecameVisible() {
     if (sessionIsComplete()) {
         return
     }
@@ -161,12 +161,15 @@ function pageBecameVisible() {
     // Sentry errors that are simply caused by the mobile browser
     // putting the page to sleep.
     if (!pageIsVisibleTimeout) {
-        pageIsVisibleTimeout = setTimeout(() => {
-            clearTimeout(pageIsVisibleTimeout)
-            console.log('window became visible, triggering reconnect')
-            windowIsHidden = false
-            peerManager.reconnect()
-        }, 50)
+        await new Promise((resolve) => pageIsVisibleTimeout = setTimeout(resolve, 50))
+        pageIsVisibleTimeout = null
+        windowIsHidden = false
+        console.log('window became visible, triggering reconnect')
+        try {
+            await peerManager.reconnect()
+        } catch (err) {
+            console.error('error calling reconnect', err)
+        }
     }
 }
 
