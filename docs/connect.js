@@ -322,7 +322,9 @@ function markSessionComplete() {
         clearInterval(sessionTimeInterval)
     }
 
-    peerManager.stop()
+    if (peerManager) {
+        peerManager.stop()
+    }
 
     setStatus('Session Complete', 'primary')
 }
