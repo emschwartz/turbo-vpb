@@ -44,19 +44,34 @@
 
     <div class="jumbotron jumbotron-fluid">
         <div class="container text-center">
-            <h2 class="display-4">Turbocharge Your Phone Banking</h2>
-            <p class="lead">
-                TurboVPB is a free browser extension that speeds up
-                EveryAction's
-                <br>
-                <a href="https://www.openvpb.com">Open Virtual Phone Bank (OpenVPB)</a>, VAN, VoteBuilder, and BlueVote.
-            </p>
-            <p class="lead">
-                It sends contact details to your phone so you can
-                call or text with one click.<br>
-                Call more voters or volunteers instead of wasting time typing phone
-                numbers by hand!
-            </p>
+            <h2 class="display-4 mb-3">
+                <span class="d-lg-inline d-sm-block">Turbocharge Your</span>
+                <span class="d-lg-inline d-sm-block">Phone Banking</span>
+            </h2>
+            <div class="row my-3">
+                <div class="col"></div>
+                <div class="col-md-8 lead">
+                    <p>
+                        <span class="d-lg-inline-block">
+                            TurboVPB is a free browser extension that speeds up
+                            calling and texting with
+                        </span>
+                        <span class="d-lg-inline-block">
+                            EveryAction's Open Virtual Phone Bank (OpenVPB), VAN,
+                            and BlueVote.
+                        </span>
+                    </p>
+                    <p>
+                        <span class="d-lg-inline-block">
+                            Skip typing in phone numbers by hand. TurboVPB automatically sends
+                        </span>
+                        <span class="d-lg-inline-block">
+                            contacts' details to your phone so you can call and text with just 2 clicks.
+                        </span>
+                    </p>
+                </div>
+                <div class="col"></div>
+            </div>
             <a class="btn btn-primary btn-lg my-2 mr-2" id="install-firefox"
                 href="https://addons.mozilla.org/en-US/firefox/addon/turbovpb/">
                 <img src="images/firefox-logo.png" width="40px" class="mr-2">
@@ -64,28 +79,48 @@
             </a>
             <a class="btn btn-primary btn-lg my-2 mr-2" id="install-chrome"
                 href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh?hl=en-US">
-                <img src="images/chrome-logo.png" width="40px" class="mr-2"> Get TurboVPB for Chrome </a>
+                <img src="images/chrome-logo.png" width="40px" class="mr-2"> Get TurboVPB for Chrome
+            </a>
         </div>
     </div>
     <div class="container text-justify">
+        <div class="row mb-2">
+            <div class="col"></div>
+            <div class="col-md-6 text-center">
+                <h3>Speed Up Your Calls in &lt;2 Minutes</h3>
+            </div>
+            <div class="col"></div>
+        </div>
         <div class="row mb-4">
-            <div class="col-md"></div>
+            <div class="col-md"></div text-justify>
             <div class="col-md-8">
                 <div id="screenshots" class="carousel slide w-100" data-ride="carousel">
                     <div class="carousel-inner">
                         <div class="carousel-item active">
+                            <h5 class="font-weight-light text-center mb-3">
+                                Step 1: Get the free TurboVPB browser extension
+                            </h5>
+                            <img src="images/chrome-web-store.png" class="d-block w-100 h-100"
+                                alt="TurboVPB adds a QR code to OpenVPB">
+                        </div>
+                        <div class="carousel-item">
+                            <h5 class="font-weight-light text-center mb-3">
+                                Step 2: Scan the QR code that TurboVPB adds to the phone bank page
+                            </h5>
                             <img src="images/turbovpb-desktop-screenshot.png" class="d-block w-100 h-100"
                                 alt="TurboVPB adds a QR code to OpenVPB">
                         </div>
                         <div class="carousel-item">
+                            <h5 class="font-weight-light text-center mb-3">
+                                Step 3: Click to call from the TurboVPB page loaded on your phone
+                            </h5>
                             <img src="images/turbovpb-phone.png" class="d-block w-100 h-100"
                                 alt="TurboVPB loads contact details on the phone">
                         </div>
                         <div class="carousel-item" data-interval="7000">
-                            <img src="images/turbovpb-options-1.png" class="d-block w-100 h-100"
-                                alt="Configure text message settings">
-                        </div>
-                        <div class="carousel-item" data-interval="7000">
+                            <h5 class="font-weight-light text-center mb-3">
+                                Optional: Create message templates to enable 2-click texting
+                            </h5>
                             <img src="images/turbovpb-options-2.png" class="d-block w-100 h-100"
                                 alt="Text messages can be set up for when you don't get through or want to send more information after a call.">
                         </div>
@@ -100,39 +135,41 @@
                     </a>
                 </div>
             </div>
-
             <div class="col-md"></div>
         </div>
         <div class="row">
             <div class="col-md"></div>
             <div class="col-md-6">
-                <h3>Getting Started</h3>
-                <p>Once you have the extension installed:</p>
-                <ol>
-                    <li>Login to an OpenVPB phone bank</li>
-                    <li>Scan the QR code that appears on the OpenVPB page (note: on recent versions of iOS and Android,
-                        the default camera app includes a QR Code scanner)</li>
-                    <li>Now, the TurboVPB page on your phone will have a button to call the phone number when each
-                        contact loads on OpenVPB</li>
-                </ol>
-                <p>Note: Like with OpenVPB, calls made with TurboVPB will come from your phone number.</p>
+                <h3>Other Phone Banking Platforms</h3>
+                <p>By default, TurboVPB only works on OpenVPB.com phone banks.</p>
+                <p>You can enable TurboVPB for EveryAction / VAN, VoteBuilder, and BlueVote in the extension settings.
+                </p>
             </div>
             <div class="col-md"></div>
         </div>
         <div class="row">
             <div class="col-md"></div>
             <div class="col-md-6">
-                <h3>Sending Text Messages</h3>
-                <p>TurboVPB can also be used to easily send text messages, for example if you cannot reach a contact or
-                    to send more information after a call.</p>
+                <h3>Optional 2-Click Texting</h3>
+                <p>
+                    TurboVPB can also be used to send text messages, for example if you cannot reach a contact or
+                    to send more information after a call.
+                </p>
+                <p>
+                    Anecdotally, we have found that texting people who do not
+                    pick up for an unknown number calling them nearly doubles the response rate.
+                </p>
+                <p>To use TurboVPB's 2-click texting:</p>
                 <ol>
                     <li>Open the exension options</li>
-                    <li>Fill in the Text Message Template(s) with your message content</li>
-                    <li>Now, the TurboVPB page on your phone will also have buttons to send the configured text
-                        messages. Also, TurboVPB will replace <code>[Their Name]</code> in the message with each
-                        contact's first name.
+                    <li>Create one or more Text Message Templates on the options page</li>
+                    <li>The TurboVPB page on your phone will now have an additional button for each message
                     </li>
-                    <li>You can also configure TurboVPB to record the <code>Texted</code> result and automatically
+                    <li>Click one of the message buttons to open your messaging app with the contact's phone number and
+                        text message body already filled in. Note that TurboVPB replaces the text
+                        <code>[Their Name]</code> in the message template with the contact's first name.
+                    </li>
+                    <li>You can also configure TurboVPB to automatically save the <code>Texted</code> call result and
                         load the next contact when you send a message to a contact you couldn't reach.</li>
                 </ol>
             </div>
@@ -141,22 +178,14 @@
         <div class="row">
             <div class="col-md"></div>
             <div class="col-md-6">
-                <h3>Support for Other Phonebank Tools <span class="badge badge-secondary">Beta</span></h3>
-                <p>
-                    TurboVPB (as of version 0.6.0) has optional support for EveryAction / VAN Virtual Phone Banks and
-                    BlueVote.
-                    These can be enabled in the settings.
-                </p>
-            </div>
-            <div class="col-md"></div>
-        </div>
-        <div class="row">
-            <div class="col-md"></div>
-            <div class="col-md-6">
                 <h3>Calling from Google Voice</h3>
                 <p>
-                    You can use <a href="https://voice.google.com">Google Voice</a> (or another similar calling service)
-                    to have calls originate from a number other than your own. Once you
+                    Calls with TurboVPB will use your phone number unless you use <a
+                        href="https://voice.google.com">Google Voice</a>
+                    or another similar calling app.
+                </p>
+
+                <p>Once you
                     have the Google Voice app installed on your phone:
                 </p>
                 <ul>
@@ -172,43 +201,45 @@
         <div class="row">
             <div class="col-md"></div>
             <div class="col-md-6">
-                <h3>How it works</h3>
-                <p>TurboVPB uses
-                    <a href="https://peerjs.com">PeerJS</a>, based on <a href="https://webrtc.org">WebRTC</a>,
-                    to connect the browser extension and the
-                    website opened on your phone.
-                    Contact details are sent directly from your browser to your phone.
-                    They are never sent to TurboVPB.
-                </p>
-                <p>
-                    TurboVPB turns contact details into <code>tel:</code> and <code>sms:</code> links. When you
-                    click on the buttons on your phone, your phone will automatically open your phone or
-                    messaging app to call or send the text.
-                </p>
+                <h3 class="mb-3">Frequently Asked Questions</h3>
+                <div>
+                    <h6>Do you collect or store contact details?</h6>
+                    <p>
+                        No. Contact details are not collected or stored on
+                        any server.
+                        TurboVPB sends the details directly from your computer to your phone using a peer-to-peer
+                        communications technology called <a href="https://webrtc.org">WebRTC</a>.
+                    </p>
+                </div>
+                <div>
+                    <h6>Does EveryAction condone the use of TurboVPB?</h6>
+                    <p>Not officially, but they mention TurboVPB in the
+                        <a href="https://everyaction.readme.io/docs/other-solutions#turbovpb">"Officially
+                            Unsupported"</a>
+                        features section of their documentation.
+                    </p>
+                </div>
+                <div>
+                    <h6>Is there a catch?</h6>
+                    <p>Nope! I built this after getting tired of typing in phone numbers by hand while
+                        contacting volunteers for the Sunrise Movement and calling voters with SwingLeft.
+                        I hope it will help make phone banking a little more efficient for other organizations,
+                        campaigns, or individual volunteers.
+                    </p>
+                </div>
             </div>
             <div class="col-md"></div>
         </div>
         <div class="row">
             <div class="col-md"></div>
             <div class="col-md-6">
-                <h3>Troubleshooting</h3>
-                <p>If you run into any issues, try closing the OpenVPB tab, opening a new one, and re-scanning the QR
-                    code.
-                </p>
-                <p>If that doesn't work, please send an email to: evan [at] turbovpb [dot] com.</p>
-            </div>
-            <div class="col-md"></div>
-        </div>
-        <div class="row">
-            <div class="col-md"></div>
-            <div class="col-md-6">
-                <h3>Feedback or Questions</h3>
+                <h3>Get In Touch</h3>
                 <p>
                     Want to talk about how your campaign or organization can use TurboVPB? Have feedback on the
                     experience or ideas for how it could be improved?
                 </p>
                 <p>
-                    Get in touch! evan [at] turbovpb [dot] com
+                    Send me an email at: evan [at] turbovpb [dot] com
                 </p>
             </div>
             <div class="col-md"></div>
