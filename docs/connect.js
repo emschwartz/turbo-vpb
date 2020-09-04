@@ -12,6 +12,7 @@ let yourName = ''
 let startTime = Date.now()
 let sessionTimeInterval
 let sessionComplete = false
+let lastCallStartTime
 
 let peerManager
 
@@ -101,6 +102,29 @@ if (sessionIsComplete()) {
     }
 
     peerManager.connect()
+
+    // Estimate call duration
+    document.getElementById('phoneNumber')
+        .addEventListener('click', () => {
+            lastCallStartTime = Date.now()
+        })
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible' && lastCallStartTime) {
+            const callDuration = Date.now() - lastCallStartTime
+            lastCallStartTime = null
+            console.log(`last call duration was approximately ${callDuration}ms`)
+
+            // TODO we might miss the last call if they never return to the page
+            await fetch('https://stats.turbovpb.com/calls', {
+                method: 'POST',
+                body: {
+                    session_id: sessionId,
+                    duration: callDuration
+                    // TODO add call result
+                }
+            })
+        }
+    })
 }
 
 function handleData(data) {
@@ -155,9 +179,16 @@ function handleData(data) {
             if (result) {
                 a.addEventListener('click', async () => {
                     console.log(`sending call result: ${result}`)
-                    return peerManager.sendMessage({
+                    await peerManager.sendMessage({
                         type: 'callResult',
                         result
+                    })
+
+                    return fetch('https://stats.turbovpb.com/texts', {
+                        method: 'POST',
+                        body: {
+                            session_id: sessionId
+                        }
                     })
                 })
             }
