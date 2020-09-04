@@ -117,11 +117,14 @@ if (sessionIsComplete()) {
             // TODO we might miss the last call if they never return to the page
             await fetch('https://stats.turbovpb.com/calls', {
                 method: 'POST',
-                body: {
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8'
+                },
+                body: JSON.stringify({
                     session_id: sessionId,
                     duration: callDuration
                     // TODO add call result
-                }
+                })
             })
         }
     })
@@ -186,9 +189,12 @@ function handleData(data) {
 
                     return fetch('https://stats.turbovpb.com/texts', {
                         method: 'POST',
-                        body: {
+                        headers: {
+                            'Content-Type': 'application/json; charset=UTF-8'
+                        },
+                        body: JSON.stringify({
                             session_id: sessionId
-                        }
+                        })
                     })
                 })
             }
