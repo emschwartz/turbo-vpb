@@ -110,7 +110,17 @@ if (sessionIsComplete()) {
             lastCallStartTime = Date.now()
         })
     document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'visible' && lastCallStartTime) {
+        if (document.visibilityState !== 'visible') {
+            return
+        }
+
+        // Make sure we're still connected
+        if (peerManager) {
+            await peerManager.reconnect(null, true)
+        }
+
+        // Collect call statistics
+        if (lastCallStartTime) {
             const callDuration = Date.now() - lastCallStartTime
             lastCallStartTime = null
             console.log(`last call duration was approximately ${callDuration}ms`)

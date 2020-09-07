@@ -30,7 +30,7 @@ class PeerManager {
         this.reconnectResolves = []
     }
 
-    async reconnect(err) {
+    async reconnect(err, immediate) {
         if (this.active === false) {
             console.log('not reconnecting because the peer manager is off')
             return
@@ -49,13 +49,15 @@ class PeerManager {
             return this.onError(err || new Error('Exceeded maximum number of reconnect attempts'))
         }
 
-        console.log(`waiting ${this.reconnectDelay}ms before reconnecting`)
-        await new Promise((resolve) => {
-            setTimeout(() => {
-                this.reconnectDelay = this.reconnectDelay * RECONNECT_BACKOFF
-                resolve()
-            }, this.reconnectDelay)
-        })
+        if (!immediate) {
+            console.log(`waiting ${this.reconnectDelay}ms before reconnecting`)
+            await new Promise((resolve) => {
+                setTimeout(() => {
+                    this.reconnectDelay = this.reconnectDelay * RECONNECT_BACKOFF
+                    resolve()
+                }, this.reconnectDelay)
+            })
+        }
         await this.connect()
         this.reconnectDelay = RECONNECT_DELAY_START
         this.reconnectAttempts = 0
