@@ -211,6 +211,8 @@ async function createPeer({ iceServers, debugMode }) {
         peer.once('open', () => resolve(peer))
         peer.once('error', reject)
         peer.once('disconnect', () => reject(new Error('Peer disconnected')))
+
+        setTimeout(() => reject(new Error('Connection timed out while trying to reach peer server')), 10000)
     })
 }
 
@@ -226,5 +228,7 @@ async function createConnection({ peer, remotePeerId }) {
         conn.once('open', () => resolve(conn))
         conn.once('error', reject)
         conn.once('close', () => reject(new Error('Connection closed')))
+
+        setTimeout(() => reject(new Error('Connection timed out while trying to connect to extension')), 10000)
     })
 }
