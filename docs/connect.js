@@ -91,6 +91,7 @@ if (sessionIsComplete()) {
 
         setStatus('Connecting to Extension', 'warning')
         document.getElementById('warningContainer').hidden = true
+        document.getElementById('contactDetails').hidden = true
     }
     peerManager.onError = (err) => {
         displayError(err)
