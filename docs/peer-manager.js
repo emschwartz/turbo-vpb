@@ -27,6 +27,7 @@ class PeerManager {
         this.isConnecting = false
         this.reconnectDelay = RECONNECT_DELAY_START
         this.reconnectAttempts = 0
+        this.reconnectResolves = []
     }
 
     async reconnect(err) {
@@ -37,7 +38,9 @@ class PeerManager {
 
         if (this.isConnecting) {
             console.log('already reconnecting')
-            return
+            return new Promise((resolve) => {
+                this.reconnectResolves.push(resolve)
+            })
         }
         this.isConnecting = true
 
@@ -70,11 +73,19 @@ class PeerManager {
         try {
             await this.checkPeerConnected()
             await this.checkConnectionOpen()
-            this.isConnecting = false
-            return this.onConnect()
         } catch (err) {
             this.isConnecting = false
-            await this.reconnect(err)
+            return this.reconnect(err)
+        }
+
+        this.isConnecting = false
+        await this.onConnect()
+
+        // Resolve all of the reconnect calls that were
+        // called while we were already reconnecting
+        let resolve
+        while (resolve = this.reconnectResolves.pop()) {
+            resolve()
         }
     }
 
