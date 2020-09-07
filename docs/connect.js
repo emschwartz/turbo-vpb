@@ -41,7 +41,8 @@ if (Sentry) {
         release: extensionVersion,
         beforeBreadcrumb: (breadcrumb) => {
             if (breadcrumb.category === 'xhr' &&
-                breadcrumb.data && breadcrumb.data.url === 'https://analytics.turbovpb.com/api') {
+                breadcrumb.data &&
+                (breadcrumb.data.url.startsWith('https://analytics.turbovpb.com' || breadcrumb.data.url.startsWith('https://stats.turbovpb.com')))) {
                 return null
             } else {
                 return breadcrumb
@@ -115,7 +116,7 @@ if (sessionIsComplete()) {
             console.log(`last call duration was approximately ${callDuration}ms`)
 
             // TODO we might miss the last call if they never return to the page
-            await fetch('https://stats.turbovpb.com/calls', {
+            await fetchRetry('https://stats.turbovpb.com/calls', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json; charset=UTF-8'
@@ -125,7 +126,7 @@ if (sessionIsComplete()) {
                     duration: callDuration
                     // TODO add call result
                 })
-            })
+            }, 3)
         }
     })
 }
@@ -187,7 +188,7 @@ function handleData(data) {
                         result
                     })
 
-                    return fetch('https://stats.turbovpb.com/texts', {
+                    return fetchRetry('https://stats.turbovpb.com/texts', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json; charset=UTF-8'
@@ -195,7 +196,7 @@ function handleData(data) {
                         body: JSON.stringify({
                             session_id: sessionId
                         })
-                    })
+                    }, 3)
                 })
             }
             textMessageLinks.appendChild(a)
@@ -332,4 +333,34 @@ function msToTimeString(ms) {
         time += sec
     }
     return time
+}
+
+async function fetchRetry(url, params, times) {
+    if (!times) {
+        times = 3
+    }
+    let backoff = 50
+    let error
+    while (times > 0) {
+        try {
+            const response = await fetch(url, params)
+            if (response.ok) {
+                return response
+            } else {
+                console.error('fetch response was not ok')
+            }
+        } catch (err) {
+            error = err
+        }
+
+        // TODO don't retry fatal errors
+        times -= 1
+        if (times === 0) {
+            throw error
+        } else {
+            console.error('fetch error, retrying', error)
+            await new Promise((resolve) => setTimeout(resolve, backoff))
+            backoff = backoff * 2
+        }
+    }
 }
