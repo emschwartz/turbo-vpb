@@ -19,6 +19,7 @@
             </svg> TurboVPB</a>
         <span id="status" class="badge badge-warning ml-auto">Not Connected</span>
     </nav>
+
     <div class="container-sm p-3" id="warningContainer" hidden>
         <div class="alert alert-danger">
             <h4 class="alert-heading" id="warningHeading">
@@ -55,25 +56,35 @@
         </div>
     </div>
 
-    <div id="contactDetails" class="row mt-auto p-1" hidden>
-        <div class="col"></div>
-        <div class="col-md">
-            <div class="card">
-                <div class="card-body">
-                    <h2 id="name" class="card-title"></h2>
-                    <a href="" target="_blank" id="phoneNumber"
-                        class="btn btn-primary btn-lg btn-block p-3 my-3 h2"></a>
-                    <div id="textMessageLinks"></div>
-                    <div id="textMessageInstructions" class="alert alert-info text-justify" role="alert" hidden>
-                        <small>
-                            You can enable 1-click texting in the TurboVPB extension settings in your browser.
-                            Buttons to send each message will appear here.
-                        </small>
+    <div id="contactDetails" hidden>
+        <div class="row mt-auto p-1">
+            <div class="col"></div>
+            <div class="col-md">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 id="name" class="card-title"></h2>
+                        <a href="" target="_blank" id="phoneNumber"
+                            class="btn btn-primary btn-lg btn-block p-3 my-3 h2"></a>
+                        <div id="textMessageLinks"></div>
+                        <div id="textMessageInstructions" class="alert alert-info text-justify" role="alert" hidden>
+                            <small>
+                                You can enable 1-click texting in the TurboVPB extension settings in your browser.
+                                Buttons to send each message will appear here.
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
+            <div class="col"></div>
         </div>
-        <div class="col"></div>
+        <div class="mx-4 mt-4 mb-5">
+            <div class="custom-control custom-switch text-muted">
+                <input class="custom-control-input" type="checkbox" id="requireLongPressMode">
+                <label class="custom-control-label" for="requireLongPressMode">
+                    Long-press to call (for Google Voice)
+                </label>
+            </div>
+        </div>
     </div>
 
     <div id="sessionEnded" class="row p-1" hidden>

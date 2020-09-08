@@ -106,10 +106,42 @@ if (sessionIsComplete()) {
     peerManager.connect()
 
     // Estimate call duration
+    // Start the timer either on click or on the touchstart event
     document.getElementById('phoneNumber')
-        .addEventListener('click', () => {
-            lastCallStartTime = Date.now()
+        .addEventListener('click', (e) => {
+            if (window.localStorage.getItem('requireLongPressMode')) {
+                e.preventDefault()
+                const label = e.target.innerText
+                e.target.classList.replace('btn-primary', 'btn-warning')
+                e.target.innerText = 'Long-Press to Call'
+                setTimeout(() => {
+                    e.target.innerText = label
+                    e.target.classList.replace('btn-warning', 'btn-primary')
+                }, 800)
+            } else {
+                lastCallStartTime = Date.now()
+            }
         })
+    document.getElementById('phoneNumber')
+        .addEventListener('touchstart', () => {
+            if (window.localStorage.getItem('requireLongPressMode')) {
+                lastCallStartTime = Date.now()
+            }
+        })
+
+    // Require long-press mode setting
+    if (window.localStorage.getItem('requireLongPressMode')) {
+        document.getElementById('requireLongPressMode').checked = true
+    }
+    document.getElementById('requireLongPressMode')
+        .addEventListener('change', (e) => {
+            if (e.target.checked) {
+                window.localStorage.setItem('requireLongPressMode', 'true')
+            } else {
+                window.localStorage.removeItem('requireLongPressMode')
+            }
+        })
+
     document.addEventListener('visibilitychange', async () => {
         if (document.visibilityState !== 'visible') {
             return
@@ -189,27 +221,49 @@ function handleData(data) {
             const messageBody = message
                 .replace(/\[their name\]/i, data.contact.firstName)
                 .replace(/\[your name\]/i, yourName)
-            a.href = `sms://${phoneNumber}?&body=${messageBody}`
+            a.href = `sms://${phoneNumber};?&body=${messageBody}`
             a.innerText = `Send ${label}`
-            if (result) {
-                a.addEventListener('click', async () => {
-                    console.log(`sending call result: ${result}`)
-                    await peerManager.sendMessage({
-                        type: 'callResult',
-                        result
-                    })
+            a.addEventListener('click', async (e) => {
+                if (window.localStorage.getItem('requireLongPressMode')) {
+                    console.log('long press mode enabled, ignoring click')
+                    try {
+                        e.preventDefault()
+                    } catch (err) {
+                        console.error('error preventing click on text message button', err.message)
+                    }
 
-                    return fetchRetry('https://stats.turbovpb.com/texts', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json; charset=UTF-8'
-                        },
-                        body: JSON.stringify({
-                            session_id: sessionId
+                    // Copy the message body to the clipboard instead
+                    // TODO figure out if there's a better option than this
+                    if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(messageBody)
+
+                        a.innerText = 'Message Copied to Clipboard'
+                        a.classList.replace('btn-outline-secondary', 'btn-outline-success')
+                        setTimeout(() => {
+                            a.innerText = `Send ${label}`
+                            a.classList.replace('btn-outline-success', 'btn-outline-secondary')
+                        }, 800)
+                    }
+                } else {
+                    if (result) {
+                        console.log(`sending call result: ${result}`)
+                        await peerManager.sendMessage({
+                            type: 'callResult',
+                            result
                         })
-                    }, 3)
-                })
-            }
+
+                        return fetchRetry('https://stats.turbovpb.com/texts', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json; charset=UTF-8'
+                            },
+                            body: JSON.stringify({
+                                session_id: sessionId
+                            })
+                        }, 3)
+                    }
+                }
+            })
             textMessageLinks.appendChild(a)
         }
     }
