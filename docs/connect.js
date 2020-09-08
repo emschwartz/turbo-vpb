@@ -83,13 +83,13 @@ if (sessionIsComplete()) {
         }
     }
     peerManager.onData = handleData
-    peerManager.onReconnecting = () => {
+    peerManager.onReconnecting = (target) => {
         if (sessionIsComplete()) {
             peerManager.stop()
             return
         }
 
-        setStatus('Connecting to Extension', 'warning')
+        setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
         document.getElementById('warningContainer').hidden = true
         document.getElementById('contactDetails').hidden = true
     }

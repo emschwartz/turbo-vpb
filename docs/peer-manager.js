@@ -100,9 +100,10 @@ class PeerManager {
             console.log('peer was not connected, destroying the old one')
             this.peer.destroy()
         }
-        await this.onReconnecting()
 
         console.log('creating new peer')
+        await this.onReconnecting('Server')
+
         const startTime = Date.now()
         this.peer = await createPeer({
             iceServers: this.iceServers,
@@ -139,6 +140,8 @@ class PeerManager {
         }
 
         console.log('connecting to ', remotePeerId)
+        await this.onReconnecting('Extension')
+
         const startTime = Date.now()
         this.connection = await createConnection({
             peer: this.peer,
