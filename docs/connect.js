@@ -429,3 +429,6 @@ async function fetchRetry(url, params, times) {
         }
     }
 }
+
+// Catch uncaught exceptions
+window.addEventListener('error', displayError)
