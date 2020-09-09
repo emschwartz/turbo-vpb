@@ -22,6 +22,13 @@ browser.runtime.onMessage.addListener((message) => {
         sendDetails()
     } else if (message.type === 'callResult') {
         markResult(message.result)
+    } else if (message.type === 'peerConnected') {
+        console.log('peer connected')
+        window.sessionStorage.setItem('turboVpbPeersConnected', parseInt(window.sessionStorage.getItem('turboVpbPeersConnected') || 0) + 1)
+        $('#turbovpbModal').modal('hide')
+    } else if (message.type === 'peerDisconnected') {
+        console.log('peer disconnected')
+        window.sessionStorage.setItem('turboVpbPeersConnected', parseInt(window.sessionStorage.getItem('turboVpbPeersConnected') || 0) - 1)
     }
 })
 
@@ -32,6 +39,72 @@ window.addEventListener('focus', () => {
         sendConnect()
     }
 })
+
+if (!window.sessionStorage.getItem('turboVpbPeersConnected') || window.sessionStorage.getItem('turboVpbPeersConnected') === '0') {
+    $(window).on('load', () => {
+
+        console.log('creating modal')
+        const modal = createModal()
+        // Only create the modal after OpenVPB is fully loaded
+        // TODO make this non-OpenVPB specific
+        const checkForOpenVpb = setInterval(() => {
+            if (document.getElementById('contactName')) {
+                clearInterval(checkForOpenVpb)
+                document.body.appendChild(modal)
+                $('#turbovpbModal').modal()
+                // Without this, the background displays in front of the modal
+                // Based on answer from https://stackoverflow.com/questions/10636667/bootstrap-modal-appearing-under-background
+                $('#turbovpbModal').css('z-index', '999999')
+            }
+        }, 50)
+    })
+}
+
+function createModal() {
+    const container = document.createElement('div')
+
+    const modal = document.createElement('div')
+
+    modal.className = 'modal'
+    modal.setAttribute('tabindex', '-1')
+    modal.setAttribute('role', 'dialog')
+    modal.id = 'turbovpbModal'
+    container.appendChild(modal)
+
+    const modalDialog = document.createElement('div')
+    modalDialog.className = 'modal-dialog modal-dialog-centered'
+    modalDialog.setAttribute('role', 'document')
+    modal.appendChild(modalDialog)
+
+    const modalContent = document.createElement('div')
+    modalContent.className = 'modal-content'
+    modalDialog.appendChild(modalContent)
+
+    const modalHeader = document.createElement('div')
+    modalHeader.className = 'modal-header'
+    modalContent.appendChild(modalHeader)
+
+    const modalTitle = document.createElement('h5')
+    modalTitle.className = 'modal-title'
+    modalTitle.innerText = 'TurboVPB'
+    modalHeader.appendChild(modalTitle)
+
+    const closeButton = document.createElement('button')
+    closeButton.className = 'close'
+    closeButton.type = 'button'
+    closeButton.setAttribute('data-dismiss', 'modal')
+    closeButton.insertAdjacentHTML('afterbegin', '<span>&times;</span>')
+    modalHeader.appendChild(closeButton)
+
+    const modalBody = document.createElement('div')
+    modalBody.className = 'modal-body'
+    modalContent.appendChild(modalBody)
+
+    const qrCode = createQrCode()
+    modalBody.appendChild(qrCode)
+
+    return container
+}
 
 function createQrCode(backgroundColor) {
     const url = window.sessionStorage.getItem('turboVpbUrl')
@@ -119,7 +192,7 @@ async function sendConnect() {
             peerId: window.sessionStorage.getItem('turboVpbPeerId')
         })
     } catch (err) {
-        console.err(err)
+        console.error(err)
     }
 }
 
@@ -150,8 +223,8 @@ async function sendDetails() {
                 }
             }
         })
+        console.log('sent contact')
     } catch (err) {
-        console.error(err)
+        console.error('error sending contact details', err)
     }
-    console.log('sent contact')
 }

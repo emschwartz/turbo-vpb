@@ -112,13 +112,19 @@ async function createPeer(peerId, tabId) {
         console.log(`peer ${peerId} got connection`)
         peers[peerId].connections.push(conn)
         const connIndex = peers[peerId].connections.length - 1
-        conn.on('close', () => {
+        conn.on('close', async () => {
             console.log(`peer ${peerId} connection closed`)
             delete peers[peerId].connections[connIndex]
+            await browser.tabs.sendMessage(peers[peerId].tabId, {
+                type: 'peerDisconnected'
+            })
         })
         conn.on('error', (err) => {
             console.log(`peer ${peerId} connection error`, err)
             delete peers[peerId].connections[connIndex]
+            await browser.tabs.sendMessage(peers[peerId].tabId, {
+                type: 'peerDisconnected'
+            })
         })
         if (conn.serialization === 'json') {
             conn.on('data', async (message) => {
@@ -138,6 +144,10 @@ async function createPeer(peerId, tabId) {
             console.warn(`Peer connection for peerId ${peerId} serialization should be json but it is: ${conn.serialization}`)
         }
         try {
+            await browser.tabs.sendMessage(peers[peerId].tabId, {
+                type: 'peerConnected'
+            })
+
             console.log('requesting contact from content script')
             await browser.tabs.sendMessage(peers[peerId].tabId, {
                 type: 'contactRequest'
