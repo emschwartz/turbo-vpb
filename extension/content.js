@@ -63,42 +63,40 @@ window.addEventListener('focus', () => {
 })
 
 if (!window.sessionStorage.getItem('turboVpbHideModal')) {
-    window.addEventListener('load', () => {
-        // Only create the modal after the page is fully loaded
-        const watchForReady = setInterval(() => {
-            if (document.getElementById('turbovpbcontainer')) {
-                clearInterval(watchForReady)
+    // Only create the modal after the page is fully loaded
+    const watchForReady = setInterval(() => {
+        if (document.getElementById('turbovpbcontainer')) {
+            clearInterval(watchForReady)
 
-                console.log('creating modal')
-                modal = new tingle.modal({
-                    closeMethods: ['overlay', 'escape', 'button']
-                })
+            console.log('creating modal')
+            modal = new tingle.modal({
+                closeMethods: ['overlay', 'escape', 'button']
+            })
 
-                const modalContent = document.createElement('div')
+            const modalContent = document.createElement('div')
 
-                const modalTitle = createTitleElement()
-                modalContent.appendChild(modalTitle)
+            const modalTitle = createTitleElement()
+            modalContent.appendChild(modalTitle)
 
-                const modalBody = document.createElement('div')
-                modalBody.style = 'margin-top: 1rem;'
-                // modalTitle.className = 'modal-title'
-                // modalBody.className = 'modal-body text-center pb-0'
-                const label = document.createElement('p')
-                label.innerHTML = 'Scan the QR code with your phone\'s <br> default camera app to start TurboVPB:'
-                label.style = 'text-align: center;'
-                modalBody.appendChild(label)
+            const modalBody = document.createElement('div')
+            modalBody.style = 'margin-top: 1rem;'
+            // modalTitle.className = 'modal-title'
+            // modalBody.className = 'modal-body text-center pb-0'
+            const label = document.createElement('p')
+            label.innerHTML = 'Scan the QR code with your phone\'s <br> default camera app to start TurboVPB:'
+            label.style = 'text-align: center;'
+            modalBody.appendChild(label)
 
-                const qrCode = createQrCode({ height: '50vh', width: '50vh' })
-                qrCode.style = 'max-height: 500px; max-width: 500px'
-                modalBody.appendChild(qrCode)
+            const qrCode = createQrCode({ height: '50vh', width: '50vh' })
+            qrCode.style = 'max-height: 500px; max-width: 500px'
+            modalBody.appendChild(qrCode)
 
-                modalContent.appendChild(modalBody)
+            modalContent.appendChild(modalBody)
 
-                modal.setContent(modalContent)
-                modal.open()
-            }
-        }, 50)
-    })
+            modal.setContent(modalContent)
+            modal.open()
+        }
+    }, 50)
 }
 
 function createQrCode({ backgroundColor = '#fff', height = '30vh', width = '30vh' } = {}) {
