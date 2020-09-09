@@ -26,14 +26,13 @@
             ],
             "js": [
                 "dependencies/browser-polyfill.js",
-                "dependencies/jquery-3.5.1.js",
-                "dependencies/bootstrap.js",
                 "dependencies/kjua.js",
+                "dependencies/tingle.js",
                 "content.js",
                 "openvpb.js"
             ],
             "css": [
-                "dependencies/bootstrap.css"
+                "dependencies/tingle.css"
             ]
         }
     ],

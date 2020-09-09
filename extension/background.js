@@ -201,13 +201,12 @@ async function enableOrigin(origin) {
             matches: [origin],
             js: [
                 { file: 'dependencies/browser-polyfill.js' },
-                { file: 'dependencies/jquery-3.5.1.js' },
-                { file: 'dependencies/bootstrap.js' },
+                { file: 'dependencies/tingle.js' },
                 { file: 'dependencies/kjua.js' },
                 { file: 'content.js' },
                 originSpecificJs
             ],
-            css: [{ file: 'dependencies/bootstrap.css' }]
+            css: [{ file: 'dependencies/tingle.css' }]
         })
         unregisterContentScripts[origin] = unregister
     } catch (err) {

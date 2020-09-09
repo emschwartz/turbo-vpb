@@ -5,6 +5,8 @@ console.log("Content script loaded")
 const SUCCESS_COLOR = '#28a745'
 const WARNING_COLOR = '#ffc107'
 
+let modal
+
 // Initialize Stats
 if (!window.sessionStorage.getItem('turboVpbCalls')) {
     window.sessionStorage.setItem('turboVpbCalls', '-1')
@@ -30,7 +32,9 @@ browser.runtime.onMessage.addListener((message) => {
     } else if (message.type === 'peerConnected') {
         console.log('peer connected')
         window.sessionStorage.setItem('turboVpbHideModal', 'true')
-        $('#turboVpbModal').modal('hide')
+        if (modal) {
+            modal.close()
+        }
         const connectionStatus = document.getElementById('turboVpbConnectionStatus')
         if (connectionStatus) {
             connectionStatus.innerText = 'Connected'
@@ -57,77 +61,49 @@ window.addEventListener('focus', () => {
 })
 
 if (!window.sessionStorage.getItem('turboVpbHideModal')) {
-    $(window).one('load', () => {
-        const modal = createModal()
+    window.addEventListener('load', () => {
         // Only create the modal after the page is fully loaded
         const watchForReady = setInterval(() => {
             console.log(document.getElementById('turbovpbcontainer'))
             if (document.getElementById('turbovpbcontainer')) {
-                console.log('creating modal')
                 clearInterval(watchForReady)
-                document.body.appendChild(modal)
-                $('#turboVpbModal').modal()
-                // Without this, the background displays in front of the modal
-                // Based on answer from https://stackoverflow.com/questions/10636667/bootstrap-modal-appearing-under-background
-                $('#turboVpbModal').css('z-index', '999999')
-            }
-        }, 50)
-    })
-}
 
-function createModal() {
-    const container = document.createElement('div')
+                console.log('creating modal')
+                modal = new tingle.modal({
+                    closeMethods: ['overlay', 'escape', 'button']
+                })
 
-    const modal = document.createElement('div')
+                const modalContent = document.createElement('div')
 
-    modal.className = 'modal'
-    modal.setAttribute('tabindex', '-1')
-    modal.setAttribute('role', 'dialog')
-    modal.id = 'turboVpbModal'
-    container.appendChild(modal)
-
-    const modalDialog = document.createElement('div')
-    modalDialog.className = 'modal-dialog modal-dialog-centered'
-    modalDialog.setAttribute('role', 'document')
-    modal.appendChild(modalDialog)
-
-    const modalContent = document.createElement('div')
-    modalContent.className = 'modal-content'
-    modalDialog.appendChild(modalContent)
-
-    const modalHeader = document.createElement('div')
-    modalHeader.className = 'modal-header'
-    modalContent.appendChild(modalHeader)
-
-    const modalTitle = document.createElement('h3')
-    modalTitle.innerHTML = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill"
+                const modalTitle = document.createElement('h3')
+                modalTitle.innerHTML = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill"
                 fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd"
                     d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
             </svg> TurboVPB`
-    // modalTitle.className = 'modal-title'
-    modalHeader.appendChild(modalTitle)
-    modalTitle.appendChild(createConnectionStatusBadge())
+                modalTitle.appendChild(createConnectionStatusBadge())
+                modalContent.appendChild(modalTitle)
 
-    const closeButton = document.createElement('button')
-    closeButton.className = 'close'
-    closeButton.type = 'button'
-    closeButton.setAttribute('data-dismiss', 'modal')
-    closeButton.insertAdjacentHTML('afterbegin', '<span>&times;</span>')
-    modalHeader.appendChild(closeButton)
+                const modalBody = document.createElement('div')
+                modalBody.style = 'margin-top: 1rem;'
+                // modalTitle.className = 'modal-title'
+                // modalBody.className = 'modal-body text-center pb-0'
+                const label = document.createElement('p')
+                label.innerHTML = 'Scan the QR code with your phone\'s <br> default camera app to start TurboVPB:'
+                label.style = 'text-align: center;'
+                modalBody.appendChild(label)
 
-    const modalBody = document.createElement('div')
-    modalBody.className = 'modal-body text-center pb-0'
-    const label = document.createElement('h5')
-    label.innerText = 'Scan the QR code with your phone\'s default camera app to start TurboVPB:'
-    modalBody.appendChild(label)
-    modalContent.appendChild(modalBody)
+                const qrCode = createQrCode({ height: '50vh', width: '50vh' })
+                qrCode.style = 'max-height: 500px; max-width: 500px'
+                modalBody.appendChild(qrCode)
 
-    const qrCode = createQrCode({ height: '40vh', width: '40vh' })
-    qrCode.style = 'max-height: 500px; max-width: 500px'
-    modalBody.appendChild(qrCode)
+                modalContent.appendChild(modalBody)
 
-    return container
+                modal.setContent(modalContent)
+                modal.open()
+            }
+        }, 50)
+    })
 }
 
 function createQrCode({ backgroundColor = '#fff', height = '30vh', width = '30vh' } = {}) {
