@@ -92,6 +92,7 @@ async function createPeer(peerId, tabId) {
         path: '/',
         secure: true,
         debug: 1,
+        pingInterval: 1000,
         config: {
             iceServers
         }
@@ -109,27 +110,35 @@ async function createPeer(peerId, tabId) {
     })
 
     peer.on('connection', async (conn) => {
-        console.log(`peer ${peerId} got connection`)
         peers[peerId].connections.push(conn)
         const connIndex = peers[peerId].connections.length - 1
-        conn.on('close', async () => {
-            console.log(`peer ${peerId} connection closed`)
+        console.log(`peer ${peerId} got connection ${connIndex}`)
+        conn.on('close', () => {
+            console.log(`peer ${peerId} connection ${connIndex} closed`)
             delete peers[peerId].connections[connIndex]
-            await browser.tabs.sendMessage(peers[peerId].tabId, {
-                type: 'peerDisconnected'
-            })
+        })
+        conn.on('iceStateChanged', async (state) => {
+            console.log(`peer ${peerId} connection ${connIndex} state: ${state}`)
+            // TODO if the state is disconnected, should we let the content script know it's disconnected?
+            const openConnections = peers[peerId].connections.filter(conn => conn && conn.peerConnection && conn.peerConnection.iceConnectionState === 'connected')
+            if (openConnections.length === 0) {
+                await browser.tabs.sendMessage(peers[peerId].tabId, {
+                    type: 'peerDisconnected'
+                })
+            } else {
+                await browser.tabs.sendMessage(peers[peerId].tabId, {
+                    type: 'peerConnected'
+                })
+            }
         })
         conn.on('error', (err) => {
-            console.log(`peer ${peerId} connection error`, err)
+            console.log(`peer ${peerId} connection ${connIndex} error`, err)
             delete peers[peerId].connections[connIndex]
-            await browser.tabs.sendMessage(peers[peerId].tabId, {
-                type: 'peerDisconnected'
-            })
         })
         if (conn.serialization === 'json') {
             conn.on('data', async (message) => {
                 if (message.type === 'callResult') {
-                    console.log(`peer ${peerId} sent call result:`, message)
+                    console.log(`peer ${peerId} connection ${connIndex} sent call result:`, message)
                     try {
                         await browser.tabs.sendMessage(peers[peerId].tabId, {
                             type: 'callResult',
@@ -142,12 +151,9 @@ async function createPeer(peerId, tabId) {
             })
         } else {
             console.warn(`Peer connection for peerId ${peerId} serialization should be json but it is: ${conn.serialization}`)
+            return destroyPeer(peerId)
         }
         try {
-            await browser.tabs.sendMessage(peers[peerId].tabId, {
-                type: 'peerConnected'
-            })
-
             console.log('requesting contact from content script')
             await browser.tabs.sendMessage(peers[peerId].tabId, {
                 type: 'contactRequest'
@@ -235,11 +241,9 @@ function sendMessage(peerId, message) {
     message.extensionVersion = browser.runtime.getManifest().version
     message.extensionUserAgent = navigator.userAgent
     message.extensionPlatform = navigator.platform
-    console.log(`sending message to ${peers[peerId].connections.length} peer(s)`)
-    for (let conn of peers[peerId].connections) {
-        if (!conn) {
-            continue
-        }
+    const connectedPeers = peers[peerId].connections.filter((conn) => !!conn)
+    console.log(`sending message to ${connectedPeers.length} peer(s)`)
+    for (let conn of connectedPeers) {
         if (conn.open) {
             conn.send(message)
         } else {

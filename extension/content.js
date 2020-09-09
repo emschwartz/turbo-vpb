@@ -1,5 +1,10 @@
 console.log("Content script loaded")
 
+// We set these colors manually instead of using the Bootstrap classes
+// because OpenVPB overrides the default Bootstrap colors
+const SUCCESS_COLOR = '#28a745'
+const WARNING_COLOR = '#ffc107'
+
 // Initialize Stats
 if (!window.sessionStorage.getItem('turboVpbCalls')) {
     window.sessionStorage.setItem('turboVpbCalls', '-1')
@@ -24,11 +29,22 @@ browser.runtime.onMessage.addListener((message) => {
         markResult(message.result)
     } else if (message.type === 'peerConnected') {
         console.log('peer connected')
-        window.sessionStorage.setItem('turboVpbPeersConnected', parseInt(window.sessionStorage.getItem('turboVpbPeersConnected') || 0) + 1)
-        $('#turbovpbModal').modal('hide')
+        window.sessionStorage.setItem('turboVpbHideModal', 'true')
+        $('#turboVpbModal').modal('hide')
+        const connectionStatus = document.getElementById('turboVpbConnectionStatus')
+        if (connectionStatus) {
+            connectionStatus.innerText = 'Connected'
+            connectionStatus.style = `color: #fff; background-color: ${SUCCESS_COLOR}`
+        }
     } else if (message.type === 'peerDisconnected') {
         console.log('peer disconnected')
-        window.sessionStorage.setItem('turboVpbPeersConnected', parseInt(window.sessionStorage.getItem('turboVpbPeersConnected') || 0) - 1)
+        const connectionStatus = document.getElementById('turboVpbConnectionStatus')
+        if (connectionStatus) {
+            connectionStatus.innerText = 'Not Connected'
+            connectionStatus.style = `background-color: ${WARNING_COLOR}`
+        }
+    } else {
+        console.warn('got unexpected message from background:', message)
     }
 })
 
@@ -40,9 +56,8 @@ window.addEventListener('focus', () => {
     }
 })
 
-if (!window.sessionStorage.getItem('turboVpbPeersConnected') || window.sessionStorage.getItem('turboVpbPeersConnected') === '0') {
-    $(window).on('load', () => {
-
+if (!window.sessionStorage.getItem('turboVpbHideModal')) {
+    $(window).one('load', () => {
         console.log('creating modal')
         const modal = createModal()
         // Only create the modal after OpenVPB is fully loaded
@@ -51,10 +66,10 @@ if (!window.sessionStorage.getItem('turboVpbPeersConnected') || window.sessionSt
             if (document.getElementById('contactName')) {
                 clearInterval(checkForOpenVpb)
                 document.body.appendChild(modal)
-                $('#turbovpbModal').modal()
+                $('#turboVpbModal').modal()
                 // Without this, the background displays in front of the modal
                 // Based on answer from https://stackoverflow.com/questions/10636667/bootstrap-modal-appearing-under-background
-                $('#turbovpbModal').css('z-index', '999999')
+                $('#turboVpbModal').css('z-index', '999999')
             }
         }, 50)
     })
@@ -68,7 +83,7 @@ function createModal() {
     modal.className = 'modal'
     modal.setAttribute('tabindex', '-1')
     modal.setAttribute('role', 'dialog')
-    modal.id = 'turbovpbModal'
+    modal.id = 'turboVpbModal'
     container.appendChild(modal)
 
     const modalDialog = document.createElement('div')
@@ -84,10 +99,15 @@ function createModal() {
     modalHeader.className = 'modal-header'
     modalContent.appendChild(modalHeader)
 
-    const modalTitle = document.createElement('h5')
-    modalTitle.className = 'modal-title'
-    modalTitle.innerText = 'TurboVPB'
+    const modalTitle = document.createElement('h3')
+    modalTitle.innerHTML = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill"
+                fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd"
+                    d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
+            </svg> TurboVPB`
+    // modalTitle.className = 'modal-title'
     modalHeader.appendChild(modalTitle)
+    modalHeader.appendChild(createConnectionStatusBadge())
 
     const closeButton = document.createElement('button')
     closeButton.className = 'close'
@@ -97,23 +117,23 @@ function createModal() {
     modalHeader.appendChild(closeButton)
 
     const modalBody = document.createElement('div')
-    modalBody.className = 'modal-body'
+    modalBody.className = 'modal-body text-center pb-0'
+    const label = document.createElement('h5')
+    label.innerText = 'Scan the QR code with your phone\'s default camera app to start TurboVPB:'
+    modalBody.appendChild(label)
     modalContent.appendChild(modalBody)
 
-    const qrCode = createQrCode()
+    const qrCode = createQrCode({ height: '40vh', width: '40vh' })
+    qrCode.style = 'max-height: 500px; max-width: 500px'
     modalBody.appendChild(qrCode)
 
     return container
 }
 
-function createQrCode(backgroundColor) {
+function createQrCode({ backgroundColor = '#fff', height = '30vh', width = '30vh' } = {}) {
     const url = window.sessionStorage.getItem('turboVpbUrl')
     if (url) {
         const container = document.createElement('div')
-        const label = document.createElement('p')
-        label.innerText = 'Scan the QR code with your phone to start TurboVPB:'
-        container.appendChild(label)
-
         const qrLink = document.createElement('a')
         qrLink.href = url
         qrLink.target = '_blank'
@@ -121,11 +141,11 @@ function createQrCode(backgroundColor) {
             render: 'svg',
             text: url,
             crisp: true,
-            rounded: 50,
+            rounded: 80,
             quiet: 0,
-            back: backgroundColor || '#fff'
+            back: backgroundColor
         })
-        qrCode.style = 'width: 100%; height: 100%; max-width: 30vh; max-height: 30vh'
+        qrCode.style = `width: 100%; height: 100%; max-width: ${width}; max-height: ${height}`
         qrLink.appendChild(qrCode)
         container.appendChild(qrLink)
         return container
@@ -133,6 +153,18 @@ function createQrCode(backgroundColor) {
     } else {
         console.log('not creating TurboVPB QR Code, no URL yet')
     }
+}
+
+function createConnectionStatusBadge() {
+    const container = document.createElement('span')
+    container.className = 'align-middle mx-1'
+    const badge = document.createElement('span')
+    badge.id = 'turboVpbConnectionStatus'
+    badge.className = 'badge px-1'
+    badge.innerText = 'Waiting for Connection'
+    badge.style = `background-color: ${WARNING_COLOR}`
+    container.appendChild(badge)
+    return container
 }
 
 async function createPeer() {

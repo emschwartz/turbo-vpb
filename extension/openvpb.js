@@ -21,7 +21,7 @@ function getContactDetails() {
     if (!document.getElementById('turbovpbcontainer')) {
         const sidebarContainer = document.getElementById('openvpbsidebarcontainer') || document.getElementById('openVpbSideBarContainer')
         if (sidebarContainer) {
-            const qrCode = createQrCode('#f8f9fa')
+            const qrCode = createQrCode({ backgroundColor: '#f8f9fa' })
             if (qrCode) {
                 const container = document.createElement('div')
                 container.id = "turbovpbcontainer"
@@ -38,6 +38,8 @@ function getContactDetails() {
             </svg> TurboVPB`
                 title.style = "margin-top: 2rem"
                 container.appendChild(title)
+                const connectionStatus = createConnectionStatusBadge()
+                title.appendChild(connectionStatus)
 
                 container.appendChild(qrCode)
                 sidebarContainer.appendChild(container)
