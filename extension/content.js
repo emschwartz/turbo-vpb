@@ -58,13 +58,13 @@ window.addEventListener('focus', () => {
 
 if (!window.sessionStorage.getItem('turboVpbHideModal')) {
     $(window).one('load', () => {
-        console.log('creating modal')
         const modal = createModal()
-        // Only create the modal after OpenVPB is fully loaded
-        // TODO make this non-OpenVPB specific
-        const checkForOpenVpb = setInterval(() => {
-            if (document.getElementById('contactName')) {
-                clearInterval(checkForOpenVpb)
+        // Only create the modal after the page is fully loaded
+        const watchForReady = setInterval(() => {
+            console.log(document.getElementById('turbovpbcontainer'))
+            if (document.getElementById('turbovpbcontainer')) {
+                console.log('creating modal')
+                clearInterval(watchForReady)
                 document.body.appendChild(modal)
                 $('#turboVpbModal').modal()
                 // Without this, the background displays in front of the modal
@@ -107,7 +107,7 @@ function createModal() {
             </svg> TurboVPB`
     // modalTitle.className = 'modal-title'
     modalHeader.appendChild(modalTitle)
-    modalHeader.appendChild(createConnectionStatusBadge())
+    modalTitle.appendChild(createConnectionStatusBadge())
 
     const closeButton = document.createElement('button')
     closeButton.className = 'close'
