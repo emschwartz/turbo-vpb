@@ -1,6 +1,11 @@
 console.log('using openvpb-specific content script')
 
 let couldntReachContact = false
+// OpenVPB displays a pop-up after you make your first call
+// This is annoying for the TurboVPB experience because it looks like
+// it's not loading the next contact right away. So, we just click through
+// that popup
+let firstCall = true
 
 setInterval(getContactDetails, 50)
 
@@ -55,30 +60,50 @@ function getContactDetails() {
 
         // Determine if they couldn't reach the contact
         if (couldntReachButton()) {
-            couldntReachButton().addEventListener('click', () => {
+            couldntReachButton().addEventListener('click', async () => {
                 couldntReachContact = true
+                console.log(`couldn't reach contact: ${couldntReachContact}`)
 
-                const cancelButton = document.getElementById('contactresultscancelbutton') || document.getElementById('contactResultsCancelButton')
+                const [cancelButton, saveNextButton] = await Promise.all([
+                    waitForButton(['contactresultscancelbutton', 'contactResultsCancelButton']),
+                    waitForButton(['contactresultssavenextbutton', 'contactResultsSaveNextButton'])
+                ])
                 cancelButton.addEventListener('click', () => {
                     couldntReachContact = false
+                    console.log(`couldn't reach contact: ${couldntReachContact}`)
                 })
+                saveNextButton.addEventListener('click', onSaveNextClick)
             })
+        } else {
+            console.warn('could not find couldnt reach button')
         }
 
         // Log successful calls
         if (saveNextButton()) {
-            saveNextButton().addEventListener('click', () => {
-                if (!couldntReachContact) {
-                    console.log('logged successful call')
-                    window.sessionStorage.setItem('turboVpbSuccessfulCalls', parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls') || 0) + 1)
-                }
-            })
+            saveNextButton().addEventListener('click', onSaveNextClick)
+        } else {
+            console.warn('could not find save next button')
         }
 
         handleContact(
             contactName,
             currentPhoneNumber
         )
+    }
+}
+
+async function onSaveNextClick() {
+    console.log('saving contact result')
+    if (!couldntReachContact) {
+        console.log('logged successful call')
+        window.sessionStorage.setItem('turboVpbSuccessfulCalls', parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls') || 0) + 1)
+    }
+
+    if (firstCall) {
+        firstCall = false
+        const nextCallButton = await waitForButton(['firstcallmodalnextcallbutton', 'firstCallModalNextCallButton'])
+        nextCallButton.click()
+        console.log('clicking through first call pop up')
     }
 }
 
@@ -97,4 +122,22 @@ function markResult(result) {
     } catch (err) {
         console.error(err)
     }
+}
+
+async function waitForButton(ids, interval = 10, timeout = 10000) {
+    return new Promise((resolve, reject) => {
+        const untilTimeout = setTimeout(() => {
+            reject(new Error(`Could not find buttons: ${ids.join(', ')}`))
+        }, timeout)
+        const checkInterval = setInterval(() => {
+            let element
+            for (let id of ids) {
+                if (document.getElementById(id)) {
+                    clearInterval(checkInterval)
+                    clearTimeout(untilTimeout)
+                    resolve(document.getElementById(id))
+                }
+            }
+        }, interval)
+    })
 }
