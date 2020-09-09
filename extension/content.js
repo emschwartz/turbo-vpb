@@ -6,6 +6,7 @@ const SUCCESS_COLOR = '#28a745'
 const WARNING_COLOR = '#ffc107'
 
 let modal
+let alreadyConnected = false
 
 // Initialize Stats
 if (!window.sessionStorage.getItem('turboVpbCalls')) {
@@ -35,6 +36,7 @@ browser.runtime.onMessage.addListener((message) => {
         if (modal) {
             modal.close()
         }
+        alreadyConnected = true
         const connectionStatus = document.getElementById('turboVpbConnectionStatus')
         if (connectionStatus) {
             connectionStatus.innerText = 'Connected'
@@ -64,7 +66,6 @@ if (!window.sessionStorage.getItem('turboVpbHideModal')) {
     window.addEventListener('load', () => {
         // Only create the modal after the page is fully loaded
         const watchForReady = setInterval(() => {
-            console.log(document.getElementById('turbovpbcontainer'))
             if (document.getElementById('turbovpbcontainer')) {
                 clearInterval(watchForReady)
 
@@ -137,8 +138,15 @@ function createConnectionStatusBadge() {
     const badge = document.createElement('span')
     badge.id = 'turboVpbConnectionStatus'
     badge.className = 'badge px-1'
-    badge.innerText = 'Waiting for Connection'
-    badge.style = `background-color: ${WARNING_COLOR}`
+
+    if (alreadyConnected) {
+        badge.innerText = 'Connected'
+        badge.style = `color: #fff; background-color: ${SUCCESS_COLOR}`
+    } else {
+        badge.innerText = 'Waiting for Connection'
+        badge.style = `background-color: ${WARNING_COLOR}`
+    }
+
     container.appendChild(badge)
     return container
 }

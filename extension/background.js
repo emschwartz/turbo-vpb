@@ -14,6 +14,16 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     if (message.type === 'connect') {
         const peerId = message.peerId
         await createPeer(peerId, sender.tab.id)
+        const openConnections = peers[peerId].connections.filter(conn => conn && conn.peerConnection && conn.peerConnection.iceConnectionState === 'connected')
+
+        // If the page reloaded, it will send a connect request.
+        // Tell it if there were already connected peers so it can correctly display the status
+        if (openConnections.length > 0) {
+            console.log('letting tab know there is still open connection')
+            await browser.tabs.sendMessage(sender.tab.id, {
+                type: 'peerConnected'
+            })
+        }
     } else if (message.type === 'contact') {
         const peerId = message.peerId
         await createPeer(peerId, sender.tab.id)
