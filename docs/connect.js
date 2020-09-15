@@ -36,6 +36,7 @@ try {
 
 // Error tracking
 if (Sentry) {
+    console.log('Re-initializing Sentry')
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
         release: extensionVersion,
@@ -57,6 +58,8 @@ if (Sentry) {
         scope.setTag('extension_useragent', extensionUserAgent)
         scope.setTag('debug_mode', debugMode)
     })
+} else {
+    console.error('Could not load Sentry')
 }
 
 // Connect to the extension if a remotePeerId is specified and the session isn't complete

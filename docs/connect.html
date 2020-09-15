@@ -9,8 +9,6 @@
 </head>
 
 <body>
-    <script src="dependencies/peerjs.min.js"></script>
-
     <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
         <a class="navbar-brand" href="https://turbovpb.com"><svg width="1em" height="1em" viewBox="0 0 16 16"
                 class="bi bi-telephone-outbound-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -115,16 +113,20 @@
         })();
     </script>
 
-    <script src="https://browser.sentry-cdn.com/5.21.1/bundle.min.js"
-        integrity="sha384-uFON5MXfE3NkWO60hM8JaXAYAV0fqTCQbdy282z8YfelqBoXx+F7JFzX6+WfFIML"
-        crossorigin="anonymous"></script>
+    <script src="dependencies/sentry-5.22.3.min.js"></script>
     <script>
         // Call init before anything else in case there is an error loading the script
-        Sentry.init({
-            dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315'
-        });
+        if (Sentry) {
+            console.log('Initializing Sentry')
+            Sentry.init({
+                dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315'
+            });
+        } else {
+            console.error('Could not load Sentry')
+        }
     </script>
     <script src="dependencies/ackee-tracker.min.js"></script>
+    <script src="dependencies/peerjs.min.js"></script>
     <script src="peer-manager.js"></script>
     <script src="connect.js"></script>
 </body>
