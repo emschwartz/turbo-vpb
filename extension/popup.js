@@ -12,16 +12,20 @@ let isEnabled = false
 let canEnable = false
 let siteName
 let origin
-
-document.getElementById('toggleOnSite').addEventListener('click', toggleOnSite)
-document.getElementById('openOptions').addEventListener('click', () => browser.runtime.openOptionsPage())
-document.getElementById('toggleOnSite').addEventListener('mouseenter', hoverToggleSite)
-document.getElementById('toggleOnSite').addEventListener('mouseleave', resetStatusLook)
+let activeTabId
 
 onOpen().catch(console.error)
+document.getElementById('toggleOnSite').addEventListener('click', toggleOnSite)
+document.getElementById('openOptions').addEventListener('click', async () => {
+    await browser.runtime.openOptionsPage()
+    window.close()
+})
+document.getElementById('toggleOnSite').addEventListener('mouseenter', hoverToggleSite)
+document.getElementById('toggleOnSite').addEventListener('mouseleave', resetStatusLook)
+document.getElementById('showQrCode').addEventListener('click', showQrCode)
 
 async function onOpen() {
-    const [{ enableOnOrigins = [] }, tabs = []] = await Promise.all([
+    const [{ enableOnOrigins = [] }, [activeTab]] = await Promise.all([
         browser.storage.local.get(['enableOnOrigins']),
         browser.tabs.query({
             active: true,
@@ -29,32 +33,35 @@ async function onOpen() {
         })
     ])
 
-    if (tabs[0] && tabs[0].url) {
-        const url = tabs[0].url
-        console.log('Current tab URL:', url)
+    if (activeTab) {
+        activeTabId = activeTab.id
 
-        if (OPENVPB_REGEX.test(url)) {
-            canEnable = true
-            siteName = 'OpenVPB'
-            origin = OPENVPB_ORIGIN
-            // TODO make OpenVPB optional?
-            isEnabled = true
-        } else if (VOTEBUILDER_REGEX.test(url)) {
-            canEnable = true
-            siteName = 'VoteBuilder'
-            origin = VOTEBUILDER_ORIGIN
-            isEnabled = enableOnOrigins.contains(VOTEBUILDER_ORIGIN)
-        } else if (BLUEVOTE_REGEX.test(url)) {
-            canEnable = true
-            siteName = 'BlueVote'
-            origin = BLUEVOTE_ORIGIN
-            isEnabled = enableOnOrigins.contains(BLUEVOTE_ORIGIN)
-        } else if (EVERYACTION_REGEX.test(url)) {
-            // TODO request permission for specific subdomain
-            canEnable = true
-            siteName = 'VAN'
-            origin = EVERYACTION_ORIGIN
-            isEnabled = enableOnOrigins.contains(EVERYACTION_ORIGIN)
+        if (activeTab.url) {
+            console.log('Current tab URL:', activeTab.url)
+
+            if (OPENVPB_REGEX.test(activeTab.url)) {
+                canEnable = true
+                siteName = 'OpenVPB'
+                origin = OPENVPB_ORIGIN
+                // TODO make OpenVPB optional?
+                isEnabled = true
+            } else if (VOTEBUILDER_REGEX.test(activeTab.url)) {
+                canEnable = true
+                siteName = 'VoteBuilder'
+                origin = VOTEBUILDER_ORIGIN
+                isEnabled = enableOnOrigins.includes(VOTEBUILDER_ORIGIN)
+            } else if (BLUEVOTE_REGEX.test(activeTab.url)) {
+                canEnable = true
+                siteName = 'BlueVote'
+                origin = BLUEVOTE_ORIGIN
+                isEnabled = enableOnOrigins.includes(BLUEVOTE_ORIGIN)
+            } else if (EVERYACTION_REGEX.test(activeTab.url)) {
+                // TODO request permission for specific subdomain
+                canEnable = true
+                siteName = 'VAN'
+                origin = EVERYACTION_ORIGIN
+                isEnabled = enableOnOrigins.includes(EVERYACTION_ORIGIN)
+            }
         }
     }
 
@@ -120,19 +127,29 @@ async function toggleOnSite() {
 
     try {
         if (!isEnabled) {
-            console.log('requesting permission for:', origin)
-            const permissionGranted = await browser.permissions.request({
-                origins: [origin],
-                permissions: []
-            })
-            if (permissionGranted) {
+            const alreadyEnabled = await browser.permissions.contains({ origins: [origin] })
+
+            // Request permissions
+            let permissionGranted = false
+            if (!alreadyEnabled) {
+                console.log('requesting permission for:', origin)
+                permissionGranted = await browser.permissions.request({
+                    origins: [origin],
+                    permissions: []
+                })
+            }
+
+            // Save origin as enabled
+            if (alreadyEnabled || permissionGranted) {
+                console.log('permission granted')
                 const backgroundPage = await browser.runtime.getBackgroundPage()
                 await backgroundPage.enableOrigin(origin)
 
+                console.log('saving origin as enabled')
                 const { enableOnOrigins = [] } = await browser.storage.local.get(['enableOnOrigins'])
-                if (!enableOnOrigins.contains(origin)) {
+                if (!enableOnOrigins.includes(origin)) {
                     await browser.storage.local.set({
-                        enableOnOrigins: enableOnOrigins.push(origin)
+                        enableOnOrigins: enableOnOrigins.concat([origin])
                     })
                 }
 
@@ -141,12 +158,15 @@ async function toggleOnSite() {
                 console.log('permission denied')
             }
         } else {
+            console.log('disabling origin:', origin)
             const backgroundPage = await browser.runtime.getBackgroundPage()
             await backgroundPage.disableOrigin(origin)
 
             const { enableOnOrigins = [] } = await browser.storage.local.get(['enableOnOrigins'])
+            console.log(enableOnOrigins)
             const originIndex = enableOnOrigins.indexOf(origin)
             if (originIndex !== -1) {
+                console.log('saving origin as disabled')
                 await browser.storage.local.set({
                     enableOnOrigins: enableOnOrigins.splice(originIndex, 1)
                 })
@@ -159,4 +179,18 @@ async function toggleOnSite() {
     }
 
     resetStatusLook()
+}
+
+async function showQrCode() {
+    if (!isEnabled) {
+        return
+    }
+    try {
+        await browser.tabs.sendMessage(activeTabId, {
+            type: 'showQrCode'
+        })
+        window.close()
+    } catch (err) {
+        console.error(err)
+    }
 }

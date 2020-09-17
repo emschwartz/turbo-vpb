@@ -49,6 +49,9 @@ browser.runtime.onMessage.addListener((message) => {
             connectionStatus.innerText = 'Not Connected'
             connectionStatus.style = `color: #000; background-color: ${WARNING_COLOR}`
         }
+    } else if (message.type === 'showQrCode') {
+        console.log('showing qr code')
+        modal.open()
     } else {
         console.warn('got unexpected message from background:', message)
     }
