@@ -44,6 +44,14 @@
             "background.js"
         ]
     },
+    "browser_action": {
+        "default_icon": {
+            "16": "icons/phone-outgoing-blue-16.png",
+            "32": "icons/phone-outgoing-blue-32.png"
+        },
+        "default_title": "TurboVPB",
+        "default_popup": "popup.html"
+    },
     "options_ui": {
         "page": "options.html",
         "browser_style": true

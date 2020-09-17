@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="dependencies/bootstrap.min.css">
+    </link>
+</head>
+
+<style>
+    body {
+        width: 300px;
+    }
+</style>
+
+<body>
+    <div class="container-md text-center p-4 rounded-lg">
+        <div class="row">
+            <div class="col">
+                <small class="text-muted">You have made</small>
+                <h4 class="pb-0 display-4" id="numCalls">20 Calls</h4>
+                <small class="text-muted">with TurboVPB since 9/16/20</small>
+                <p>
+                    <small class="text-muted">Keep up the great work!</small>
+                </p>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col">
+                <a id="disableOnSiteLink">
+                    <div id="enabledOnSite">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <small>
+                            Enabled on OpenVPB
+                        </small>
+                    </div>
+                </a>
+                <a id="enableOnSiteLink">
+                    <div id="disabledOnSite" hidden>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Click to Enable on OpenVPB
+                    </div>
+                </a>
+            </div>
+            <div class="col">
+                <a id="showQrCode">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+                        </path>
+                    </svg>
+                    <small>
+                        Show QR Code
+                    </small>
+                </a>
+            </div>
+            <div class="col">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z">
+                    </path>
+                </svg>
+                <small>
+                    SMS Settings
+                </small>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
