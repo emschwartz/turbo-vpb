@@ -4,6 +4,7 @@ const unregisterContentScripts = {}
 const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
 const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
+const OPENVPB_ORIGIN = 'https://www.openvpb.com/VirtualPhoneBank*'
 
 browser.runtime.onMessage.addListener(async (message, sender) => {
     if (typeof message !== 'object') {
@@ -178,14 +179,14 @@ async function createPeer(peerId, tabId) {
     })
 }
 
-browser.runtime.onInstalled.addListener(({ reason, temporary }) => {
-    if (temporary) {
-        return
+browser.runtime.onInstalled.addListener(async ({ reason, temporary }) => {
+    const { statsStartDate } = await browser.storage.local.get(['statsStartDate'])
+    if (!statsStartDate) {
+        console.log('setting stats start date')
+        await browser.storage.local.set({ statsStartDate: (new Date()).toISOString() })
     }
 
-    if (reason === 'install') {
-        browser.browserAction.openPopup()
-    }
+    browser.browserAction.openPopup()
 })
 
 browser.storage.local.get('enableOnOrigins')
@@ -196,6 +197,11 @@ browser.storage.local.get('enableOnOrigins')
     })
 
 async function enableOrigin(origin) {
+    // OpenVPB is enabled by default so we don't need to load the content scripts
+    if (origin === OPENVPB_ORIGIN) {
+        return
+    }
+
     console.log(`registering content scripts for ${origin}`)
     let originSpecificJs
     if (origin === EVERYACTION_ORIGIN || origin === VOTEBUILDER_ORIGIN) {

@@ -25,13 +25,18 @@ document.getElementById('toggleOnSite').addEventListener('mouseleave', resetStat
 document.getElementById('showQrCode').addEventListener('click', showQrCode)
 
 async function onOpen() {
-    const [{ enableOnOrigins = [] }, [activeTab]] = await Promise.all([
-        browser.storage.local.get(['enableOnOrigins']),
+    const [{ enableOnOrigins = [], statsStartDate }, [activeTab]] = await Promise.all([
+        browser.storage.local.get(['enableOnOrigins', 'statsStartDate']),
         browser.tabs.query({
             active: true,
             currentWindow: true
         })
     ])
+
+    if (statsStartDate) {
+        const date = new Date(statsStartDate)
+        document.getElementById('statsStartDate').innerText = `${date.getMonth() + 1}/${date.getDate()}`
+    }
 
     if (activeTab) {
         activeTabId = activeTab.id
