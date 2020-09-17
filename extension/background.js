@@ -184,7 +184,7 @@ browser.runtime.onInstalled.addListener(({ reason, temporary }) => {
     }
 
     if (reason === 'install') {
-        browser.runtime.openOptionsPage()
+        browser.browserAction.openPopup()
     }
 })
 

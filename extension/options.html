@@ -46,25 +46,10 @@
 </template>
 
 <body>
-    <div id="install-info" class=" alert alert-info alert-dismissible m-2" role="alert" hidden>
-        <button type="button" id="hide-info" class="close" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
-        <h3>Congrats on installing TurboVPB!</h3>
-        <p class="lead"> You'll soon be calling and texting faster than ever!</p>
-        <hr>
-        <p>When you load OpenVPB, there will be a QR Code to scan
-            with your phone. Once your phone is connected, you'll be able to call and (optionally) text
-            contacts with the push of a button.</p>
-        <p>Use the following settings to enable TurboVPB's easy texting functionality.
-            <br>
-            (You don't need to configure anything if you
-            only want to make calls.)</p>
-    </div>
     <div class="container container-md py-3">
         <form id="settings">
             <h4 class="pb-2">Text Message Settings</h4>
-            <p>Create one or more message templates to enable one-click texting.
+            <p>Create one or more message templates to enable 2-click texting.
                 <br>
                 A button to send each message will appear on TurboVPB
                 on your phone.</p>
@@ -113,31 +98,6 @@
                     </tr>
                 </tbody>
             </table>
-            <h4>
-                Enable TurboVPB on Other Sites
-                <span class="badge badge-secondary">Beta</span>
-            </h4>
-            <p>By default, TurboVPB will only work on OpenVPB. Use the following options to enable it on other sites
-                (the browser will prompt you to ask for additional permissions).
-            </p>
-            <div class="form-group form-check">
-                <input type="checkbox" id="enable-on-everyaction" class="form-check-input" />
-                <label class="form-check-label" for="enable-on-everyaction">
-                    Enable for EveryAction.com Virtual Phone Banks (&lt;your organization&gt;.everyaction.com)
-                </label>
-            </div>
-            <div class="form-group form-check">
-                <input type="checkbox" id="enable-on-votebuilder" class="form-check-input" />
-                <label class="form-check-label" for="enable-on-votebuilder">
-                    Enable for VoteBuilder.com
-                </label>
-            </div>
-            <div class="form-group form-check">
-                <input type="checkbox" id="enable-on-bluevote" class="form-check-input" />
-                <label class="form-check-label" for="enable-on-bluevote">
-                    Enable for BlueVote.com (Note: it will mark <code>Not Home</code> instead of <code>Texted</code>)
-                </label>
-            </div>
         </form>
         <p class="text-muted mt-5"><small>Settings are saved automatically.</small></p>
     </div>

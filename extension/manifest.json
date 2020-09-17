@@ -7,7 +7,8 @@
     "homepage_url": "https://turbovpb.com",
     "permissions": [
         "storage",
-        "*://*.turbovpb.com/*"
+        "*://*.turbovpb.com/*",
+        "activeTab"
     ],
     "optional_permissions": [
         "https://*.everyaction.com/ContactDetailScript*",
