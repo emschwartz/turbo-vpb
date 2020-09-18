@@ -4,7 +4,7 @@ const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 
 const OPENVPB_REGEX = /https\:\/\/(www\.)?openvpb\.com/i
-const EVERYACTION_REGEX = /https\:\/\/.*\.everyaction\.com/i
+const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
 const VOTEBUILDER_REGEX = /https\:(www\.)?votebuilder.com/i
 const BLUEVOTE_REGEX = /https\:.*\.bluevote.com/i
 
@@ -25,17 +25,26 @@ document.getElementById('toggleOnSite').addEventListener('mouseleave', resetStat
 document.getElementById('showQrCode').addEventListener('click', showQrCode)
 
 async function onOpen() {
-    const [{ enableOnOrigins = [], statsStartDate }, [activeTab]] = await Promise.all([
-        browser.storage.local.get(['enableOnOrigins', 'statsStartDate']),
+    const [{ enableOnOrigins = [], statsStartDate, totalCalls = '0' }, [activeTab]] = await Promise.all([
+        browser.storage.local.get([
+            'enableOnOrigins',
+            'statsStartDate',
+            'totalCalls'
+        ]),
         browser.tabs.query({
             active: true,
             currentWindow: true
         })
     ])
 
+    // Display stats
     if (statsStartDate) {
         const date = new Date(statsStartDate)
         document.getElementById('statsStartDate').innerText = `${date.getMonth() + 1}/${date.getDate()}`
+    }
+    document.getElementById('numCalls').innerText = `${totalCalls} Call${totalCalls !== '1' ? 's' : ''}`
+    if (totalCalls === '0') {
+        document.getElementById('encouragement').innerText = 'Login to a phone bank to get started'
     }
 
     if (activeTab) {

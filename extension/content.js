@@ -7,6 +7,7 @@ const WARNING_COLOR = '#ffc107'
 
 let modal
 let alreadyConnected = false
+let modalOpenedTime
 
 // Initialize Stats
 if (!window.sessionStorage.getItem('turboVpbCalls')) {
@@ -33,36 +34,36 @@ browser.runtime.onMessage.addListener((message) => {
     } else if (message.type === 'peerConnected') {
         console.log('peer connected')
         window.sessionStorage.setItem('turboVpbHideModal', 'true')
-        if (modal) {
+
+        // If the user manually opened the QR code, don't hide it right away
+        if (modal && modal.isOpen() && Date.now() - modalOpenedTime > 100) {
+            console.log('closing qr code modal')
             modal.close()
         }
         alreadyConnected = true
-        const connectionStatus = document.getElementById('turboVpbConnectionStatus')
-        if (connectionStatus) {
+        const badges = document.getElementsByClassName('turboVpbConnectionStatus')
+        for (let connectionStatus of badges) {
             connectionStatus.innerText = 'Connected'
             connectionStatus.style = `color: #fff; background-color: ${SUCCESS_COLOR}`
         }
     } else if (message.type === 'peerDisconnected') {
         console.log('peer disconnected')
-        const connectionStatus = document.getElementById('turboVpbConnectionStatus')
-        if (connectionStatus) {
+        const badges = document.getElementsByClassName('turboVpbConnectionStatus')
+        for (let connectionStatus of badges) {
             connectionStatus.innerText = 'Not Connected'
             connectionStatus.style = `color: #000; background-color: ${WARNING_COLOR}`
         }
     } else if (message.type === 'showQrCode') {
         console.log('showing qr code')
-        modal.open()
+        showModal()
     } else {
         console.warn('got unexpected message from background:', message)
     }
 })
 
 window.addEventListener('focus', () => {
-    const lastContactLoadTime = parseInt(window.sessionStorage.getItem('turboVpbLastContactLoadTime'))
-    if (Date.now() - lastContactLoadTime > 600000) {
-        console.log('sending connect message to background to ensure peer is still connected')
-        sendConnect()
-    }
+    console.log('sending connect message to background to ensure peer is still connected')
+    sendConnect()
 })
 
 if (!window.sessionStorage.getItem('turboVpbHideModal')) {
@@ -70,36 +71,41 @@ if (!window.sessionStorage.getItem('turboVpbHideModal')) {
     const watchForReady = setInterval(() => {
         if (document.getElementById('turbovpbcontainer')) {
             clearInterval(watchForReady)
-
-            console.log('creating modal')
-            modal = new tingle.modal({
-                closeMethods: ['overlay', 'escape', 'button']
-            })
-
-            const modalContent = document.createElement('div')
-
-            const modalTitle = createTitleElement()
-            modalContent.appendChild(modalTitle)
-
-            const modalBody = document.createElement('div')
-            modalBody.style = 'margin-top: 1rem;'
-            // modalTitle.className = 'modal-title'
-            // modalBody.className = 'modal-body text-center pb-0'
-            const label = document.createElement('p')
-            label.innerHTML = 'Scan the QR code with your phone\'s <br> default camera app to start TurboVPB:'
-            label.style = 'text-align: center;'
-            modalBody.appendChild(label)
-
-            const qrCode = createQrCode({ height: '50vh', width: '50vh' })
-            qrCode.style = 'max-height: 500px; max-width: 500px'
-            modalBody.appendChild(qrCode)
-
-            modalContent.appendChild(modalBody)
-
-            modal.setContent(modalContent)
-            modal.open()
+            showModal()
         }
     }, 50)
+}
+
+function showModal() {
+    console.log('creating modal')
+    modal = new tingle.modal({
+        closeMethods: ['overlay', 'escape', 'button']
+    })
+
+    const modalContent = document.createElement('div')
+
+    const modalTitle = createTitleElement()
+    modalContent.appendChild(modalTitle)
+
+    const modalBody = document.createElement('div')
+    modalBody.style = 'margin-top: 1rem;'
+    // modalTitle.className = 'modal-title'
+    // modalBody.className = 'modal-body text-center pb-0'
+    const label = document.createElement('p')
+    label.innerHTML = 'Scan the QR code with your phone\'s <br> default camera app to start TurboVPB:'
+    label.style = 'text-align: center;'
+    modalBody.appendChild(label)
+
+    const qrCode = createQrCode({ height: '50vh', width: '50vh' })
+    qrCode.style = 'max-height: 500px; max-width: 500px'
+    modalBody.appendChild(qrCode)
+
+    modalContent.appendChild(modalBody)
+
+    modal.setContent(modalContent)
+    modal.open()
+
+    modalOpenedTime = Date.now()
 }
 
 function createQrCode({ backgroundColor = '#fff', height = '30vh', width = '30vh' } = {}) {
@@ -148,8 +154,8 @@ function createConnectionStatusBadge() {
     // const container = document.createElement('span')
     // container.className = 'align-middle mx-1'
     const badge = document.createElement('span')
-    badge.id = 'turboVpbConnectionStatus'
-    badge.className = 'badge px-1'
+
+    badge.className = 'turboVpbConnectionStatus badge px-1'
 
     if (alreadyConnected) {
         badge.innerText = 'Connected'
@@ -201,16 +207,22 @@ function isNewContact(phone) {
     return !window.sessionStorage.getItem('turboVpbPhoneNumber') || window.sessionStorage.getItem('turboVpbPhoneNumber') !== phone
 }
 
-function handleContact(fullName, phone) {
+async function handleContact(fullName, phone) {
     console.log('got new contact', fullName, phone)
+
+    const callsThisSession = parseInt(window.sessionStorage.getItem('turboVpbCalls') || '0') + 1
 
     window.sessionStorage.setItem('turboVpbPhoneNumber', phone)
     window.sessionStorage.setItem('turboVpbFirstName', fullName.split(' ')[0])
     window.sessionStorage.setItem('turboVpbLastName', fullName.split(' ').slice(1).join(' '))
-    window.sessionStorage.setItem('turboVpbCalls', parseInt(window.sessionStorage.getItem('turboVpbCalls') || '0') + 1)
+    window.sessionStorage.setItem('turboVpbCalls', callsThisSession)
     window.sessionStorage.setItem('turboVpbLastContactLoadTime', Date.now())
 
-    sendDetails()
+    await sendDetails()
+
+    if (callsThisSession > 0) {
+        await saveCall()
+    }
 }
 
 async function sendConnect() {
@@ -255,4 +267,15 @@ async function sendDetails() {
     } catch (err) {
         console.error('error sending contact details', err)
     }
+}
+
+async function saveCall() {
+    // TODO save call start time, duration, and result
+    let { totalCalls = '0' } = await browser.storage.local.get(['totalCalls'])
+    totalCalls = parseInt(totalCalls)
+    totalCalls += 1
+    console.log(`saving call (total calls made: ${totalCalls})`)
+    await browser.storage.local.set({
+        totalCalls
+    })
 }

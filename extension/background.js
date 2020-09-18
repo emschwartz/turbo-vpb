@@ -158,6 +158,8 @@ async function createPeer(peerId, tabId) {
                     } catch (err) {
                         console.error('Error sending call result to content_script', err)
                     }
+                } else {
+                    console.warn(`got unexpected message type from peer: ${message.type}`)
                 }
             })
         } else {
