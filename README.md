@@ -1,5 +1,5 @@
-# [![TurboVPB Logo](./extension/icons/phone-outgoing-blue.svg) TurboVPB](https://turbovpb.com)
-TurboVPB is a free browser extension that speeds up phone banking with EveryAction's Open Virtual Phone Bank (OpenVPB), VAN, VoteBuilder, and BlueVote.
+# ![TurboVPB Logo](./extension/icons/phone-outgoing-blue.svg) TurboVPB
+[TurboVPB](https://turbovpb.com) is a free browser extension that speeds up phone banking with EveryAction's Open Virtual Phone Bank (OpenVPB), VAN, VoteBuilder, and BlueVote.
 
 Get the extension at [turbovpb.com](https://turbovpb.com).
 
