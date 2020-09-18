@@ -4,8 +4,8 @@
 Get the extension at [turbovpb.com](https://turbovpb.com).
 
 ## Code Overview
-- [`docs`](./docs/README.md) - the TurboVPB website
-- [`extension`](./extension/README.md) - source code of the extension
+- [`docs`](./docs#turbovpb-website) - the TurboVPB website
+- [`extension`](./extension#turbovpb-extension) - source code of the extension
 
 ## Technical Details
 
