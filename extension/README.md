@@ -13,4 +13,4 @@
 - [WebExtension Polyfill](https://github.com/mozilla/webextension-polyfill) - wraps Chrome-specific browser APIs with the WebExtension standard interfaces
 - [Content Scripts Register Polyfill](https://github.com/fregante/webext-dynamic-content-scripts) - adds support for dynamically loading Content Scripts in Chrome
 - [kjua](https://larsjung.de/kjua/) - a QR code generator
-- [Tingle.js] - a minimalist modal plugin (used for the QR code popup)
+- [Tingle.js](https://tingle.robinparisi.com/) - a minimalist modal plugin (used for the QR code popup)
