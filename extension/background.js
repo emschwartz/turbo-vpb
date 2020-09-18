@@ -181,14 +181,24 @@ async function createPeer(peerId, tabId) {
     })
 }
 
-browser.runtime.onInstalled.addListener(async ({ reason, temporary }) => {
+browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
     const { statsStartDate } = await browser.storage.local.get(['statsStartDate'])
     if (!statsStartDate) {
         console.log('setting stats start date')
         await browser.storage.local.set({ statsStartDate: (new Date()).toISOString() })
     }
 
-    browser.browserAction.openPopup()
+    if (reason === 'update' && previousVersion && previousVersion.startsWith('0.6')) {
+        // Before, OpenVPB was enabled by default so we should save that it is enabled
+
+        let { enableOnOrigins = [] } = await browser.storage.local.get('enableOnOrigins')
+        if (enableOnOrigins.includes(OPENVPB_ORIGIN)) {
+            return
+        }
+        enableOnOrigins.push(OPENVPB_ORIGIN)
+        await Promise.all(enableOnOrigins.map(enableOrigin))
+        await browser.storage.local.set({ enableOnOrigins })
+    }
 })
 
 browser.storage.local.get('enableOnOrigins')
@@ -199,14 +209,11 @@ browser.storage.local.get('enableOnOrigins')
     })
 
 async function enableOrigin(origin) {
-    // OpenVPB is enabled by default so we don't need to load the content scripts
-    if (origin === OPENVPB_ORIGIN) {
-        return
-    }
-
     console.log(`registering content scripts for ${origin}`)
     let originSpecificJs
-    if (origin === EVERYACTION_ORIGIN || origin === VOTEBUILDER_ORIGIN) {
+    if (origin === OPENVPB_ORIGIN) {
+        originSpecificJs = { file: 'openvpb.js' }
+    } else if (origin === EVERYACTION_ORIGIN || origin === VOTEBUILDER_ORIGIN) {
         originSpecificJs = { file: 'everyaction.js' }
     } else if (origin === BLUEVOTE_ORIGIN) {
         originSpecificJs = { file: 'bluevote.js' }

@@ -60,8 +60,7 @@ async function onOpen() {
                 canEnable = true
                 siteName = 'OpenVPB'
                 origin = OPENVPB_ORIGIN
-                // TODO make OpenVPB optional?
-                isEnabled = true
+                isEnabled = enableOnOrigins.includes(OPENVPB_ORIGIN)
             } else if (VOTEBUILDER_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'VoteBuilder'

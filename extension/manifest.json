@@ -20,23 +20,6 @@
         "96": "icons/phone-outgoing-96.png",
         "128": "icons/phone-outgoing-128.png"
     },
-    "content_scripts": [
-        {
-            "matches": [
-                "https://www.openvpb.com/VirtualPhoneBank/*"
-            ],
-            "js": [
-                "dependencies/browser-polyfill.js",
-                "dependencies/kjua.js",
-                "dependencies/tingle.js",
-                "content.js",
-                "openvpb.js"
-            ],
-            "css": [
-                "dependencies/tingle.css"
-            ]
-        }
-    ],
     "background": {
         "scripts": [
             "dependencies/browser-polyfill.js",
