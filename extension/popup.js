@@ -5,8 +5,8 @@ const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 
 const OPENVPB_REGEX = /https\:\/\/(www\.)?openvpb\.com/i
 const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
-const VOTEBUILDER_REGEX = /https\:(www\.)?votebuilder.com/i
-const BLUEVOTE_REGEX = /https\:.*\.bluevote.com/i
+const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i
+const BLUEVOTE_REGEX = /https\:\/\/.*\.bluevote.com/i
 
 let isEnabled = false
 let canEnable = false
