@@ -23,6 +23,9 @@ document.getElementById('openOptions').addEventListener('click', async () => {
 document.getElementById('toggleOnSite').addEventListener('mouseenter', hoverToggleSite)
 document.getElementById('toggleOnSite').addEventListener('mouseleave', resetStatusLook)
 document.getElementById('showQrCode').addEventListener('click', showQrCode)
+if (/firefox/i.test(navigator.userAgent)) {
+    document.getElementById('webStoreLink').setAttribute('href', 'https://addons.mozilla.org/en-US/firefox/addon/turbovpb/')
+}
 
 async function onOpen() {
     const [{ enableOnOrigins = [], statsStartDate, totalCalls = '0' }, [activeTab]] = await Promise.all([
