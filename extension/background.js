@@ -192,6 +192,8 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
         console.log('setting stats start date')
         await browser.storage.local.set({ statsStartDate: (new Date()).toISOString() })
     }
+
+    browser.browserAction.openPopup()
 })
 
 browser.permissions.getAll()
