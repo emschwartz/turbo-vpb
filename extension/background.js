@@ -1,6 +1,11 @@
 const peers = {}
 const unregisterContentScripts = {}
 
+const OPENVPB_REGEX = /https\:\/\/(www\.)?openvpb\.com/i
+const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
+const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i
+const BLUEVOTE_REGEX = /https\:\/\/.*\.bluevote.com/i
+
 const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
 const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
@@ -197,11 +202,11 @@ browser.permissions.getAll()
     })
 
 function getContentScripts(origin) {
-    if (origin === OPENVPB_ORIGIN) {
+    if (OPENVPB_REGEX.test(origin)) {
         originSpecificJs = { file: 'openvpb.js' }
-    } else if (origin === EVERYACTION_ORIGIN || origin === VOTEBUILDER_ORIGIN) {
+    } else if (EVERYACTION_REGEX.test(origin) || VOTEBUILDER_REGEX.test(origin)) {
         originSpecificJs = { file: 'everyaction.js' }
-    } else if (origin === BLUEVOTE_ORIGIN) {
+    } else if (BLUEVOTE_REGEX.test(origin)) {
         originSpecificJs = { file: 'bluevote.js' }
     } else {
         console.error(`unknown origin ${origin}`)
