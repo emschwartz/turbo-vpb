@@ -77,6 +77,10 @@ if (!window.sessionStorage.getItem('turboVpbHideModal')) {
 }
 
 function showModal() {
+    if (modal && modal.isOpen()) {
+        console.log('modal is already open')
+        return
+    }
     console.log('creating modal')
     modal = new tingle.modal({
         closeMethods: ['overlay', 'escape', 'button']
