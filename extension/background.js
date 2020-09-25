@@ -208,9 +208,7 @@ browser.storage.local.get('enableOnOrigins')
         }
     })
 
-async function enableOrigin(origin) {
-    console.log(`registering content scripts for ${origin}`)
-    let originSpecificJs
+function getContentScripts(origin) {
     if (origin === OPENVPB_ORIGIN) {
         originSpecificJs = { file: 'openvpb.js' }
     } else if (origin === EVERYACTION_ORIGIN || origin === VOTEBUILDER_ORIGIN) {
@@ -221,16 +219,21 @@ async function enableOrigin(origin) {
         console.error(`unknown origin ${origin}`)
         return
     }
+    return [
+        { file: 'dependencies/browser-polyfill.js' },
+        { file: 'dependencies/tingle.js' },
+        { file: 'dependencies/kjua.js' },
+        { file: 'content.js' },
+        originSpecificJs
+    ]
+}
+
+async function enableOrigin(origin) {
+    console.log(`registering content scripts for ${origin}`)
     try {
         const { unregister } = await browser.contentScripts.register({
             matches: [origin],
-            js: [
-                { file: 'dependencies/browser-polyfill.js' },
-                { file: 'dependencies/tingle.js' },
-                { file: 'dependencies/kjua.js' },
-                { file: 'content.js' },
-                originSpecificJs
-            ],
+            js: getContentScripts(origin),
             css: [{ file: 'dependencies/tingle.css' }]
         })
         unregisterContentScripts[origin] = unregister

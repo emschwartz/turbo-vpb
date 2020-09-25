@@ -144,6 +144,8 @@ async function toggleOnSite() {
     }
 
     try {
+        const backgroundPage = await browser.runtime.getBackgroundPage()
+
         if (!isEnabled) {
             const alreadyEnabled = await browser.permissions.contains({ origins: [origin] })
 
@@ -163,32 +165,38 @@ async function toggleOnSite() {
                 const backgroundPage = await browser.runtime.getBackgroundPage()
                 await backgroundPage.enableOrigin(origin)
 
-                console.log('saving origin as enabled')
-                const { enableOnOrigins = [] } = await browser.storage.local.get(['enableOnOrigins'])
+                let { enableOnOrigins = [] } = await browser.storage.local.get(['enableOnOrigins'])
                 if (!enableOnOrigins.includes(origin)) {
+                    enableOnOrigins.push(origin)
+                    console.log('saving origin as enabled', enableOnOrigins)
                     await browser.storage.local.set({
-                        enableOnOrigins: enableOnOrigins.concat([origin])
+                        enableOnOrigins
                     })
                 }
 
                 isEnabled = true
+
+                console.log('injecting content scripts')
+                const contentScripts = backgroundPage.getContentScripts(origin)
+                for (let script of contentScripts) {
+                    await browser.tabs.executeScript(script)
+                }
+                await browser.tabs.insertCSS({ file: 'dependencies/tingle.css' })
+                console.log('injected content scripts into current page')
+                await showQrCode()
             } else {
                 console.log('permission denied')
             }
+
         } else {
             console.log('disabling origin:', origin)
-            const backgroundPage = await browser.runtime.getBackgroundPage()
             await backgroundPage.disableOrigin(origin)
 
-            const { enableOnOrigins = [] } = await browser.storage.local.get(['enableOnOrigins'])
-            console.log(enableOnOrigins)
-            const originIndex = enableOnOrigins.indexOf(origin)
-            if (originIndex !== -1) {
-                console.log('saving origin as disabled')
-                await browser.storage.local.set({
-                    enableOnOrigins: enableOnOrigins.splice(originIndex, 1)
-                })
-            }
+            let { enableOnOrigins = [] } = await browser.storage.local.get(['enableOnOrigins'])
+            enableOnOrigins = enableOnOrigins.filter((entry) => entry !== origin)
+            await browser.storage.local.set({
+                enableOnOrigins
+            })
 
             isEnabled = false
         }
