@@ -56,27 +56,29 @@ async function onOpen() {
         if (activeTab.url) {
             console.log('Current tab URL:', activeTab.url)
 
+            const permissions = await browser.permissions.getAll()
+
             if (OPENVPB_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'OpenVPB'
                 origin = OPENVPB_ORIGIN
-                isEnabled = enableOnOrigins.includes(OPENVPB_ORIGIN)
+                isEnabled = enableOnOrigins.includes(OPENVPB_ORIGIN) && permissions.origins.includes(OPENVPB_ORIGIN)
             } else if (VOTEBUILDER_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'VoteBuilder'
                 origin = VOTEBUILDER_ORIGIN
-                isEnabled = enableOnOrigins.includes(VOTEBUILDER_ORIGIN)
+                isEnabled = enableOnOrigins.includes(VOTEBUILDER_ORIGIN) && permissions.origins.includes(VOTEBUILDER_ORIGIN)
             } else if (BLUEVOTE_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'BlueVote'
                 origin = BLUEVOTE_ORIGIN
-                isEnabled = enableOnOrigins.includes(BLUEVOTE_ORIGIN)
+                isEnabled = enableOnOrigins.includes(BLUEVOTE_ORIGIN) && permissions.origins.includes(BLUEVOTE_ORIGIN)
             } else if (EVERYACTION_REGEX.test(activeTab.url)) {
                 // TODO request permission for specific subdomain
                 canEnable = true
                 siteName = 'VAN'
                 origin = EVERYACTION_ORIGIN
-                isEnabled = enableOnOrigins.includes(EVERYACTION_ORIGIN)
+                isEnabled = enableOnOrigins.includes(EVERYACTION_ORIGIN) && permissions.origins.includes(EVERYACTION_ORIGIN)
             }
         }
     }
