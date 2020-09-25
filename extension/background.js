@@ -187,24 +187,12 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
         console.log('setting stats start date')
         await browser.storage.local.set({ statsStartDate: (new Date()).toISOString() })
     }
-
-    if (reason === 'update' && previousVersion && previousVersion.startsWith('0.6')) {
-        // Before, OpenVPB was enabled by default so we should save that it is enabled
-
-        let { enableOnOrigins = [] } = await browser.storage.local.get('enableOnOrigins')
-        if (enableOnOrigins.includes(OPENVPB_ORIGIN)) {
-            return
-        }
-        enableOnOrigins.push(OPENVPB_ORIGIN)
-        await Promise.all(enableOnOrigins.map(enableOrigin))
-        await browser.storage.local.set({ enableOnOrigins })
-    }
 })
 
-browser.storage.local.get('enableOnOrigins')
-    .then(async ({ enableOnOrigins }) => {
-        if (enableOnOrigins && Array.isArray(enableOnOrigins)) {
-            await Promise.all(enableOnOrigins.map(enableOrigin))
+browser.permissions.getAll()
+    .then(async ({ origins = [] }) => {
+        for (let origin of origins) {
+            await enableOrigin(origin)
         }
     })
 

@@ -11,9 +11,9 @@
         "activeTab"
     ],
     "optional_permissions": [
-        "https://www.openvpb.com/*",
-        "https://*.everyaction.com/*",
-        "https://www.votebuilder.com/*",
+        "https://www.openvpb.com/VirtualPhoneBank*",
+        "https://*.everyaction.com/ContactDetailScript*",
+        "https://www.votebuilder.com/ContactDetailScript*",
         "https://phonebank.bluevote.com/*"
     ],
     "icons": {

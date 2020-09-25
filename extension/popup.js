@@ -13,6 +13,7 @@ let canEnable = false
 let siteName
 let origin
 let activeTabId
+let regex
 
 onOpen().catch(console.error)
 document.getElementById('toggleOnSite').addEventListener('click', toggleOnSite)
@@ -28,16 +29,16 @@ if (/firefox/i.test(navigator.userAgent)) {
 }
 
 async function onOpen() {
-    const [{ enableOnOrigins = [], statsStartDate, totalCalls = '0' }, [activeTab]] = await Promise.all([
+    const [{ statsStartDate, totalCalls = '0' }, [activeTab], permissions] = await Promise.all([
         browser.storage.local.get([
-            'enableOnOrigins',
             'statsStartDate',
             'totalCalls'
         ]),
         browser.tabs.query({
             active: true,
             currentWindow: true
-        })
+        }),
+        browser.permissions.getAll()
     ])
 
     // Display stats
@@ -56,29 +57,31 @@ async function onOpen() {
         if (activeTab.url) {
             console.log('Current tab URL:', activeTab.url)
 
-            const permissions = await browser.permissions.getAll()
-
             if (OPENVPB_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'OpenVPB'
                 origin = OPENVPB_ORIGIN
-                isEnabled = enableOnOrigins.includes(OPENVPB_ORIGIN) && permissions.origins.includes(OPENVPB_ORIGIN)
+                regex = OPENVPB_REGEX
+                isEnabled = permissions.origins.some((o) => OPENVPB_REGEX.test(o))
             } else if (VOTEBUILDER_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'VoteBuilder'
                 origin = VOTEBUILDER_ORIGIN
-                isEnabled = enableOnOrigins.includes(VOTEBUILDER_ORIGIN) && permissions.origins.includes(VOTEBUILDER_ORIGIN)
+                regex = VOTEBUILDER_REGEX
+                isEnabled = permissions.origins.some((o) => VOTEBUILDER_REGEX.test(o))
             } else if (BLUEVOTE_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'BlueVote'
                 origin = BLUEVOTE_ORIGIN
-                isEnabled = enableOnOrigins.includes(BLUEVOTE_ORIGIN) && permissions.origins.includes(BLUEVOTE_ORIGIN)
+                regex = BLUEVOTE_REGEX
+                isEnabled = permissions.origins.some((o) => BLUEVOTE_REGEX.test(o))
             } else if (EVERYACTION_REGEX.test(activeTab.url)) {
                 // TODO request permission for specific subdomain
                 canEnable = true
                 siteName = 'VAN'
                 origin = EVERYACTION_ORIGIN
-                isEnabled = enableOnOrigins.includes(EVERYACTION_ORIGIN) && permissions.origins.includes(EVERYACTION_ORIGIN)
+                regex = EVERYACTION_REGEX
+                isEnabled = permissions.origins.some((o) => EVERYACTION_REGEX.test(o))
             }
         }
     }
@@ -147,32 +150,18 @@ async function toggleOnSite() {
         const backgroundPage = await browser.runtime.getBackgroundPage()
 
         if (!isEnabled) {
-            const alreadyEnabled = await browser.permissions.contains({ origins: [origin] })
-
-            // Request permissions
-            let permissionGranted = false
-            if (!alreadyEnabled) {
-                console.log('requesting permission for:', origin)
-                permissionGranted = await browser.permissions.request({
-                    origins: [origin],
-                    permissions: []
-                })
-            }
+            console.log('requesting permission for:', origin)
+            let permissionGranted
+            permissionGranted = await browser.permissions.request({
+                origins: [origin],
+                permissions: []
+            })
 
             // Save origin as enabled
-            if (alreadyEnabled || permissionGranted) {
+            if (permissionGranted) {
                 console.log('permission granted')
                 const backgroundPage = await browser.runtime.getBackgroundPage()
                 await backgroundPage.enableOrigin(origin)
-
-                let { enableOnOrigins = [] } = await browser.storage.local.get(['enableOnOrigins'])
-                if (!enableOnOrigins.includes(origin)) {
-                    enableOnOrigins.push(origin)
-                    console.log('saving origin as enabled', enableOnOrigins)
-                    await browser.storage.local.set({
-                        enableOnOrigins
-                    })
-                }
 
                 isEnabled = true
 
@@ -189,14 +178,16 @@ async function toggleOnSite() {
             }
 
         } else {
-            console.log('disabling origin:', origin)
             await backgroundPage.disableOrigin(origin)
 
-            let { enableOnOrigins = [] } = await browser.storage.local.get(['enableOnOrigins'])
-            enableOnOrigins = enableOnOrigins.filter((entry) => entry !== origin)
-            await browser.storage.local.set({
-                enableOnOrigins
+            const { origins } = await browser.permissions.getAll()
+            const originsToRemove = origins.filter((origin) => regex.test(origin))
+            console.log('disabling origin:', originsToRemove)
+
+            const wasRemoved = await browser.permissions.remove({
+                origins: originsToRemove
             })
+            console.log(`permission was ${wasRemoved ? '' : 'not '}removed`)
 
             isEnabled = false
         }
