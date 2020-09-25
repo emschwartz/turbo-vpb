@@ -14,6 +14,7 @@ let siteName
 let origin
 let activeTabId
 let regex
+let firstRender = true
 
 onOpen().catch(console.error)
 document.getElementById('toggleOnSite').addEventListener('click', toggleOnSite)
@@ -103,16 +104,18 @@ function hoverToggleSite() {
 
     if (isEnabled) {
         document.getElementById('statusText').innerText = 'Click To Disable'
-        document.getElementById('iconCheck').setAttribute('hidden', true)
-        document.getElementById('iconCross').removeAttribute('hidden')
+        document.getElementById('iconEnabled').setAttribute('hidden', true)
+        document.getElementById('iconPause').removeAttribute('hidden')
         document.getElementById('statusIcon').classList.remove('text-dark', 'text-success')
         document.getElementById('statusIcon').classList.add('text-danger')
+        document.getElementById('toggleOnSite').title = `Click To Disable TurboVPB on ${siteName}`
     } else {
         document.getElementById('statusText').innerText = 'Click To Enable'
-        document.getElementById('iconCheck').removeAttribute('hidden')
-        document.getElementById('iconCross').setAttribute('hidden', true)
+        // document.getElementById('iconDisabled').removeAttribute('hidden')
+        // document.getElementById('iconDisabled').setAttribute('hidden', true)
         document.getElementById('statusIcon').classList.remove('text-dark', 'text-danger')
         document.getElementById('statusIcon').classList.add('text-success')
+        document.getElementById('toggleOnSite').title = `Click To Enable TurboVPB on ${siteName}`
     }
 }
 
@@ -122,23 +125,37 @@ function resetStatusLook() {
         document.getElementById('showQrCode').removeAttribute('href')
         return
     }
+    document.getElementById('iconUnavailable').setAttribute('hidden', true)
+    document.getElementById('iconPause').setAttribute('hidden', true)
+
     if (isEnabled) {
         document.getElementById('statusText').innerText = `Enabled on ${siteName}`
-        document.getElementById('iconCheck').removeAttribute('hidden')
-        document.getElementById('iconCross').setAttribute('hidden', true)
+        document.getElementById('iconEnabled').removeAttribute('hidden')
+        document.getElementById('iconDisabled').setAttribute('hidden', true)
 
         document.getElementById('showQrCode').setAttribute('href', '#')
         document.getElementById('showQrCode').classList.replace('text-muted', 'text-dark')
     } else {
-        document.getElementById('statusText').innerText = `Disabled on ${siteName}`
-        document.getElementById('iconCheck').setAttribute('hidden', true)
-        document.getElementById('iconCross').removeAttribute('hidden')
+        document.getElementById('statusText').innerText = 'Click To Enable' // `Disabled on ${siteName}`
+        document.getElementById('iconEnabled').setAttribute('hidden', true)
+        document.getElementById('iconDisabled').removeAttribute('hidden')
+
+        if (firstRender) {
+            document.getElementById('iconDisabled').classList.add('glow')
+            document.getElementById('statusText').classList.add('glow')
+            setTimeout(() => {
+                document.getElementById('iconDisabled').classList.remove('glow')
+                document.getElementById('statusText').classList.remove('glow')
+            }, 2500)
+        }
 
         document.getElementById('showQrCode').removeAttribute('href')
         document.getElementById('showQrCode').classList.replace('text-dark', 'text-muted')
     }
     document.getElementById('statusIcon').classList.remove('text-success', 'text-danger')
     document.getElementById('statusIcon').classList.add('text-dark')
+
+    firstRender = false
 }
 
 async function toggleOnSite() {

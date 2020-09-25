@@ -28,6 +28,32 @@
         width: 1.2em;
         height: 1.2em;
     }
+
+    .glow {
+        animation: pulse 1s 2;
+        animation-delay: 600ms;
+        transition: all .2s ease-in-out;
+    }
+
+    @keyframes pulse {
+        0% {
+            color: #343a40;
+        }
+
+        45% {
+            color: #2db94d;
+            transform: scale(1.1);
+        }
+
+        55% {
+            color: #2db94d;
+            transform: scale(1.1);
+        }
+
+        100% {
+            color: #343a40;
+        }
+    }
 </style>
 
 <body>
@@ -101,14 +127,28 @@
             <div class="col">
                 <a id="toggleOnSite" class="text-muted">
                     <div id="statusIcon" class="buttonIcon">
-                        <div id="iconCheck" hidden>
+                        <div id="iconEnabled" hidden>
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
-                        <div id="iconCross">
+                        <div id="iconDisabled" hidden>
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div id="iconPause" hidden>
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div id="iconUnavailable">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
