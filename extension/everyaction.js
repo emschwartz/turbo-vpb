@@ -71,10 +71,12 @@ function getContactDetails() {
 
         if (saveNextButton()) {
             // Log successful calls
-            saveNextButton().addEventListener('click', () => {
-                if (!couldntReachContact) {
-                    console.log('logged successful call')
-                    window.sessionStorage.setItem('turboVpbSuccessfulCalls', parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls') || 0) + 1)
+            saveNextButton().addEventListener('click', async () => {
+                if (couldntReachContact) {
+                    // TODO save actual result
+                    await saveCall('NotContacted')
+                } else {
+                    await saveCall('Contacted')
                 }
             })
         } else {

@@ -1,6 +1,3 @@
-const peers = {}
-const unregisterContentScripts = {}
-
 const OPENVPB_REGEX = /https\:\/\/(www\.)?openvpb\.com/i
 const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
 const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i
@@ -11,6 +8,32 @@ const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 const OPENVPB_ORIGIN = 'https://www.openvpb.com/VirtualPhoneBank*'
 
+const peers = {}
+const unregisterContentScripts = {}
+
+// Stored as:
+//   sessionId -> { timestamp: string, duration: number, result: string, sentText: string }[]
+const sessionRecords = {}
+let totalCalls = 0
+let totalTexts = 0
+
+// Load previously stored statistics
+browser.storage.local.get(['sessionRecords', 'totalCalls', 'totalTexts'])
+    .then((fromStorage) => {
+        Object.assign(sessionRecords, fromStorage.sessionRecords || {})
+        totalCalls += (fromStorage.totalCalls || 0)
+        totalTexts += (fromStorage.totalTexts || 0)
+    })
+
+// Load content scripts for enabled domains
+browser.permissions.getAll()
+    .then(async ({ origins = [] }) => {
+        for (let origin of origins) {
+            await enableOrigin(origin)
+        }
+    })
+
+// Handle messages sent from content scripts
 browser.runtime.onMessage.addListener(async (message, sender) => {
     if (typeof message !== 'object') {
         console.log('got message that was not an object', message)
@@ -37,11 +60,19 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
         const data = message.data
         data.type = 'contact'
         sendMessage(peerId, data)
+    } else if (message.type === 'callResult') {
+        const { sessionId, callNumber, result } = message
+        await saveCallResult({
+            sessionId,
+            callNumber,
+            result
+        })
     } else {
         console.log('got unexpected message', message)
     }
 })
 
+// Handle tabs closing
 browser.tabs.onRemoved.addListener(async (tabId) => {
     for (let peerId in peers) {
         if (peers[peerId].tabId === tabId) {
@@ -75,6 +106,8 @@ async function createPeer(peerId, tabId) {
     }
 
     console.log(`creating peer ${peerId} for tab ${tabId}`)
+
+    const sessionId = await sessionIdFromPeerId(peerId)
 
     peers[peerId] = {
         peer: null,
@@ -160,9 +193,25 @@ async function createPeer(peerId, tabId) {
                             type: 'callResult',
                             result: message.result
                         })
+
+                        if (message.result.toLowerCase() === 'texted') {
+                            await saveTextRecord({
+                                sessionId,
+                                callNumber: message.callNumber,
+                                timestamp: message.timestamp
+                            })
+
+                        }
                     } catch (err) {
                         console.error('Error sending call result to content_script', err)
                     }
+                } else if (message.type === 'callRecord') {
+                    await saveCallRecord({
+                        sessionId,
+                        callNumber: message.callNumber,
+                        timestamp: message.timestamp,
+                        duration: message.duration
+                    })
                 } else {
                     console.warn(`got unexpected message type from peer: ${message.type}`)
                 }
@@ -195,13 +244,6 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
 
     browser.browserAction.openPopup()
 })
-
-browser.permissions.getAll()
-    .then(async ({ origins = [] }) => {
-        for (let origin of origins) {
-            await enableOrigin(origin)
-        }
-    })
 
 function getContentScripts(origin) {
     if (OPENVPB_REGEX.test(origin)) {
@@ -277,4 +319,74 @@ function sendMessage(peerId, message) {
             })
         }
     }
+}
+
+// This comes from the mobile page
+async function saveCallRecord({ sessionId, callNumber, timestamp, duration }) {
+    if (!sessionRecords[sessionId]) {
+        sessionRecords[sessionId] = []
+    }
+    if (!sessionRecords[sessionId][callNumber]) {
+        sessionRecords[sessionId][callNumber] = {}
+    }
+    sessionRecords[sessionId][callNumber].timestamp = timestamp
+    sessionRecords[sessionId][callNumber].duration = duration
+    totalCalls += 1
+
+    // TODO make sure we don't run out of storage space
+    await browser.storage.local.set({ sessionRecords, totalCalls })
+}
+
+// This comes from the content script
+async function saveCallResult({ sessionId, callNumber, result }) {
+    if (!sessionRecords[sessionId]) {
+        sessionRecords[sessionId] = []
+    }
+    if (!sessionRecords[sessionId][callNumber]) {
+        sessionRecords[sessionId][callNumber] = {}
+    }
+    if (!sessionRecords[sessionId][callNumber].result) {
+        sessionRecords[sessionId][callNumber].result = result
+    }
+    if (!sessionRecords[sessionId][callNumber].timestamp) {
+        sessionRecords[sessionId][callNumber].timestamp = (new Date()).toISOString()
+    }
+
+    await browser.storage.local.set({ sessionRecords })
+}
+
+// This comes from the mobile site
+async function saveTextRecord({ sessionId, callNumber, timestamp }) {
+    if (!sessionRecords[sessionId]) {
+        sessionRecords[sessionId] = []
+    }
+    if (!sessionRecords[sessionId][callNumber]) {
+        sessionRecords[sessionId][callNumber] = {}
+    }
+
+    sessionRecords[sessionId][callNumber].result = 'Texted'
+    sessionRecords[sessionId][callNumber].sentText = timestamp
+    totalTexts += 1
+
+    await browser.storage.local.set({ sessionRecords, totalTexts })
+}
+
+function getTotalCalls() {
+    return totalCalls
+}
+
+// This uses half of a SHA-256 hash of the peerId as a session ID
+// The session ID is currently used only to ensure that the mobile browser
+// reloads the tab if you open a different link (the tab will not be reloaded
+// if only the hash changes)
+async function sessionIdFromPeerId(peerId) {
+    const peerIdArray = [...peerId].reduce((result, char, index, array) => {
+        if (index % 2 === 0) {
+            result.push(parseInt(array.slice(index, index + 2).join(''), 16))
+        }
+        return result
+    }, [])
+    const peerIdHashArray = new Uint8Array(await window.crypto.subtle.digest('SHA-256', Uint8Array.from(peerIdArray)))
+    const peerIdHash = [...peerIdHashArray].map(byte => byte.toString(16).padStart(2, '0')).join('')
+    return peerIdHash.slice(0, 16)
 }

@@ -94,9 +94,11 @@ function getContactDetails() {
 
 async function onSaveNextClick() {
     console.log('saving contact result')
-    if (!couldntReachContact) {
-        console.log('logged successful call')
-        window.sessionStorage.setItem('turboVpbSuccessfulCalls', parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls') || 0) + 1)
+    if (couldntReachContact) {
+        // TODO save actual result
+        await saveCall('NotContacted')
+    } else {
+        await saveCall('Contacted')
     }
 
     if (firstCall) {

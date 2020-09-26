@@ -13,6 +13,7 @@ let startTime = Date.now()
 let sessionTimeInterval
 let sessionComplete = false
 let lastCallStartTime
+let callNumber
 
 let peerManager
 
@@ -122,13 +123,13 @@ if (sessionIsComplete()) {
                     e.target.classList.replace('btn-warning', 'btn-primary')
                 }, 800)
             } else {
-                lastCallStartTime = Date.now()
+                lastCallStartTime = new Date()
             }
         })
     document.getElementById('phoneNumber')
         .addEventListener('touchstart', () => {
             if (window.localStorage.getItem('requireLongPressMode')) {
-                lastCallStartTime = Date.now()
+                lastCallStartTime = new Date()
             }
         })
 
@@ -157,9 +158,16 @@ if (sessionIsComplete()) {
 
         // Collect call statistics
         if (lastCallStartTime) {
-            const callDuration = Date.now() - lastCallStartTime
+            const duration = Date.now() - lastCallStartTime.valueOf()
+            console.log(`last call duration was approximately ${duration}ms`)
+
+            await peerManager.sendMessage({
+                type: 'callRecord',
+                timestamp: lastCallStartTime.toISOString(),
+                callNumber,
+                duration
+            })
             lastCallStartTime = null
-            console.log(`last call duration was approximately ${callDuration}ms`)
 
             // TODO we might miss the last call if they never return to the page
             // await fetchRetry('https://stats.turbovpb.com/calls', {
@@ -184,6 +192,10 @@ function handleData(data) {
 
     if (data.messageTemplates) {
         messageTemplates = data.messageTemplates
+    }
+
+    if (typeof data.callNumber === 'number') {
+        callNumber = data.callNumber
     }
 
     if (data.contact) {
@@ -252,7 +264,9 @@ function handleData(data) {
                         console.log(`sending call result: ${result}`)
                         await peerManager.sendMessage({
                             type: 'callResult',
-                            result
+                            result,
+                            callNumber,
+                            timestamp: (new Date()).toISOString()
                         })
 
                         // return fetchRetry('https://stats.turbovpb.com/texts', {

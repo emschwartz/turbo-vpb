@@ -11,7 +11,7 @@ let modalOpenedTime
 
 // Initialize Stats
 if (!window.sessionStorage.getItem('turboVpbCalls')) {
-    window.sessionStorage.setItem('turboVpbCalls', '-1')
+    window.sessionStorage.setItem('turboVpbCalls', '0')
 }
 if (!window.sessionStorage.getItem('turboVpbSuccessfulCalls')) {
     window.sessionStorage.setItem('turboVpbSuccessfulCalls', '0')
@@ -185,19 +185,8 @@ async function createPeer() {
 
     console.log('using peerId:', peerId)
 
-    // This uses half of a SHA-256 hash of the peerId as a session ID
-    // The session ID is currently used only to ensure that the mobile browser
-    // reloads the tab if you open a different link (the tab will not be reloaded
-    // if only the hash changes)
-    const peerIdArray = [...peerId].reduce((result, char, index, array) => {
-        if (index % 2 === 0) {
-            result.push(parseInt(array.slice(index, index + 2).join(''), 16))
-        }
-        return result
-    }, [])
-    const peerIdHashArray = new Uint8Array(await window.crypto.subtle.digest('SHA-256', Uint8Array.from(peerIdArray)))
-    const peerIdHash = [...peerIdHashArray].map(byte => byte.toString(16).padStart(2, '0')).join('')
-    const sessionId = peerIdHash.slice(0, 16)
+    const sessionId = await sessionIdFromPeerId(peerId)
+    window.sessionStorage.setItem('turboVpbSessionId', sessionId)
 
     const version = browser.runtime.getManifest().version
     const userAgent = encodeURIComponent(navigator.userAgent)
@@ -214,26 +203,20 @@ function isNewContact(phone) {
 async function handleContact(fullName, phone) {
     console.log('got new contact', fullName, phone)
 
-    const callsThisSession = parseInt(window.sessionStorage.getItem('turboVpbCalls') || '0') + 1
-
     window.sessionStorage.setItem('turboVpbPhoneNumber', phone)
     window.sessionStorage.setItem('turboVpbFirstName', fullName.split(' ')[0])
     window.sessionStorage.setItem('turboVpbLastName', fullName.split(' ').slice(1).join(' '))
-    window.sessionStorage.setItem('turboVpbCalls', callsThisSession)
     window.sessionStorage.setItem('turboVpbLastContactLoadTime', Date.now())
 
     await sendDetails()
-
-    if (callsThisSession > 0) {
-        await saveCall()
-    }
 }
 
 async function sendConnect() {
     try {
         await browser.runtime.sendMessage({
             type: 'connect',
-            peerId: window.sessionStorage.getItem('turboVpbPeerId')
+            peerId: window.sessionStorage.getItem('turboVpbPeerId'),
+            sessionId: window.sessionStorage.getItem('turboVpbSessionId')
         })
     } catch (err) {
         console.error(err)
@@ -264,7 +247,8 @@ async function sendDetails() {
                     successfulCalls: parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls')),
                     lastContactLoadTime: parseInt(window.sessionStorage.getItem('turboVpbLastContactLoadTime')),
                     startTime: parseInt(window.sessionStorage.getItem('turboVpbStartTime'))
-                }
+                },
+                callNumber: parseInt(window.sessionStorage.getItem('turboVpbCalls')),
             }
         })
         console.log('sent contact')
@@ -273,13 +257,34 @@ async function sendDetails() {
     }
 }
 
-async function saveCall() {
-    // TODO save call start time, duration, and result
-    let { totalCalls = '0' } = await browser.storage.local.get(['totalCalls'])
-    totalCalls = parseInt(totalCalls)
-    totalCalls += 1
-    console.log(`saving call (total calls made: ${totalCalls})`)
-    await browser.storage.local.set({
-        totalCalls
+async function saveCall(result) {
+    if (result === 'Contacted') {
+        console.log('logged successful call')
+        window.sessionStorage.setItem('turboVpbSuccessfulCalls', parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls') || 0) + 1)
+    }
+    const callsThisSession = parseInt(window.sessionStorage.getItem('turboVpbCalls') || '0')
+    await browser.runtime.sendMessage({
+        type: 'callResult',
+        sessionId: window.sessionStorage.getItem('turboVpbSessionId'),
+        callNumber: callsThisSession,
+        result
     })
+
+    window.sessionStorage.setItem('turboVpbCalls', callsThisSession + 1)
+}
+
+// This uses half of a SHA-256 hash of the peerId as a session ID
+// The session ID is currently used only to ensure that the mobile browser
+// reloads the tab if you open a different link (the tab will not be reloaded
+// if only the hash changes)
+async function sessionIdFromPeerId(peerId) {
+    const peerIdArray = [...peerId].reduce((result, char, index, array) => {
+        if (index % 2 === 0) {
+            result.push(parseInt(array.slice(index, index + 2).join(''), 16))
+        }
+        return result
+    }, [])
+    const peerIdHashArray = new Uint8Array(await window.crypto.subtle.digest('SHA-256', Uint8Array.from(peerIdArray)))
+    const peerIdHash = [...peerIdHashArray].map(byte => byte.toString(16).padStart(2, '0')).join('')
+    return peerIdHash.slice(0, 16)
 }
