@@ -6,7 +6,7 @@ const SUCCESS_COLOR = '#28a745'
 const WARNING_COLOR = '#ffc107'
 
 let modal
-let alreadyConnected = false
+let isConnected = false
 let modalOpenedTime
 
 // Initialize Stats
@@ -40,7 +40,7 @@ browser.runtime.onMessage.addListener((message) => {
             console.log('closing qr code modal')
             modal.close()
         }
-        alreadyConnected = true
+        isConnected = true
         const badges = document.getElementsByClassName('turboVpbConnectionStatus')
         for (let connectionStatus of badges) {
             connectionStatus.innerText = 'Connected'
@@ -48,6 +48,7 @@ browser.runtime.onMessage.addListener((message) => {
         }
     } else if (message.type === 'peerDisconnected') {
         console.log('peer disconnected')
+        isConnected = false
         const badges = document.getElementsByClassName('turboVpbConnectionStatus')
         for (let connectionStatus of badges) {
             connectionStatus.innerText = 'Not Connected'
@@ -161,7 +162,7 @@ function createConnectionStatusBadge() {
 
     badge.className = 'turboVpbConnectionStatus badge px-1'
 
-    if (alreadyConnected) {
+    if (isConnected) {
         badge.innerText = 'Connected'
         badge.style = `font-weight: bold; color: #fff; background-color: ${SUCCESS_COLOR}`
     } else {
