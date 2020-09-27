@@ -30,6 +30,7 @@ if (/firefox/i.test(navigator.userAgent)) {
 }
 
 async function onOpen() {
+    console.log('popup opened')
     const [{ statsStartDate, totalCalls = '0' }, [activeTab], permissions] = await Promise.all([
         browser.storage.local.get([
             'statsStartDate',
@@ -41,16 +42,19 @@ async function onOpen() {
         }),
         browser.permissions.getAll()
     ])
+    browser.storage.onChanged.addListener((changes) => {
+        if (changes.totalCalls) {
+            showTotalCalls(changes.totalCalls.newValue)
+        }
+    })
 
     // Display stats
     if (statsStartDate) {
         const date = new Date(statsStartDate)
         document.getElementById('statsStartDate').innerText = `${date.getMonth() + 1}/${date.getDate()}`
     }
-    document.getElementById('numCalls').innerText = `${totalCalls} Call${totalCalls !== '1' ? 's' : ''}`
-    if (totalCalls === '0') {
-        document.getElementById('encouragement').innerText = 'Login to a phone bank to get started'
-    }
+
+    showTotalCalls(totalCalls)
 
     if (activeTab) {
         activeTabId = activeTab.id
@@ -95,6 +99,15 @@ async function onOpen() {
         document.getElementById('toggleOnSite').classList.replace('text-muted', 'text-dark')
     }
     resetStatusLook()
+}
+
+function showTotalCalls(totalCalls) {
+    document.getElementById('numCalls').innerText = `${totalCalls} Call${totalCalls !== '1' ? 's' : ''}`
+    if (totalCalls === '0') {
+        document.getElementById('encouragement').innerText = 'Login to a phone bank to get started'
+    } else {
+        document.getElementById('encouragement').innerText = 'Keep up the great work!'
+    }
 }
 
 function hoverToggleSite() {
