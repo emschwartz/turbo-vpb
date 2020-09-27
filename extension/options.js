@@ -60,12 +60,18 @@ function addMessageTemplate(template) {
 function saveSettings() {
     console.log('saving settings')
     const messageTemplates = []
-    for (let elem of document.getElementsByClassName('message-template')) {
-        const label = elem.querySelector('.message-template-label').value
-        if (label) {
+    const elements = document.getElementsByClassName('message-template')
+    for (let i = 0; i < elements.length; i++) {
+        const elem = elements[i]
+        const message = elem.querySelector('.message-template-message').value
+        if (message) {
+            const label = elem.querySelector('.message-template-label')
+            if (!label.value) {
+                label.value = `Message ${i + 1}`
+            }
             messageTemplates.push({
-                label,
-                message: elem.querySelector('.message-template-message').value,
+                label: label.value,
+                message,
                 result: elem.querySelector('.message-template-result-texted').checked ? 'Texted' : null
             })
         }
