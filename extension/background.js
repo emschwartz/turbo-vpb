@@ -12,10 +12,19 @@ const peers = {}
 const unregisterContentScripts = {}
 
 // Stored as:
-//   sessionId -> { timestamp: string, duration: number, result: string, sentText: string }[]
+//   sessionId -> [ timestamp, duration, result, textedTimestamp ]
 const sessionRecords = {}
 let totalCalls = 0
 let totalTexts = 0
+const TIMESTAMP_INDEX = 0
+const DURATION_INDEX = 1
+const RESULT_INDEX = 2
+const TEXTED_TIMESTAMP_INDEX = 3
+const RESULT_CODES = {
+    Contacted: 1,
+    NotContacted: 2,
+    Texted: 3
+}
 
 // Load previously stored statistics
 browser.storage.local.get(['sessionRecords', 'totalCalls', 'totalTexts'])
@@ -328,10 +337,10 @@ async function saveCallRecord({ sessionId, callNumber, timestamp, duration }) {
         sessionRecords[sessionId] = []
     }
     if (!sessionRecords[sessionId][callNumber]) {
-        sessionRecords[sessionId][callNumber] = {}
+        sessionRecords[sessionId][callNumber] = []
     }
-    sessionRecords[sessionId][callNumber].timestamp = timestamp
-    sessionRecords[sessionId][callNumber].duration = duration
+    sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX] = timestamp
+    sessionRecords[sessionId][callNumber][DURATION_INDEX] = duration
     totalCalls += 1
 
     // TODO make sure we don't run out of storage space
@@ -345,13 +354,13 @@ async function saveCallResult({ sessionId, callNumber, result }) {
         sessionRecords[sessionId] = []
     }
     if (!sessionRecords[sessionId][callNumber]) {
-        sessionRecords[sessionId][callNumber] = {}
+        sessionRecords[sessionId][callNumber] = []
     }
-    if (!sessionRecords[sessionId][callNumber].result) {
-        sessionRecords[sessionId][callNumber].result = result
+    if (!sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX]) {
+        sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX] = Date.now()
     }
-    if (!sessionRecords[sessionId][callNumber].timestamp) {
-        sessionRecords[sessionId][callNumber].timestamp = (new Date()).toISOString()
+    if (!sessionRecords[sessionId][callNumber][RESULT_INDEX]) {
+        sessionRecords[sessionId][callNumber][RESULT_INDEX] = RESULT_CODES[result] || result
     }
 
     await browser.storage.local.set({ sessionRecords })
@@ -364,11 +373,11 @@ async function saveTextRecord({ sessionId, callNumber, timestamp }) {
         sessionRecords[sessionId] = []
     }
     if (!sessionRecords[sessionId][callNumber]) {
-        sessionRecords[sessionId][callNumber] = {}
+        sessionRecords[sessionId][callNumber] = []
     }
 
-    sessionRecords[sessionId][callNumber].result = 'Texted'
-    sessionRecords[sessionId][callNumber].sentText = timestamp
+    sessionRecords[sessionId][callNumber][RESULT_INDEX] = RESULT_CODES.Texted
+    sessionRecords[sessionId][callNumber][TEXTED_TIMESTAMP_INDEX] = timestamp
     totalTexts += 1
 
     await browser.storage.local.set({ sessionRecords, totalTexts })

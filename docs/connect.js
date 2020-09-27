@@ -123,13 +123,13 @@ if (sessionIsComplete()) {
                     e.target.classList.replace('btn-warning', 'btn-primary')
                 }, 800)
             } else {
-                lastCallStartTime = new Date()
+                lastCallStartTime = Date.now()
             }
         })
     document.getElementById('phoneNumber')
         .addEventListener('touchstart', () => {
             if (window.localStorage.getItem('requireLongPressMode')) {
-                lastCallStartTime = new Date()
+                lastCallStartTime = Date.now()
             }
         })
 
@@ -158,12 +158,12 @@ if (sessionIsComplete()) {
 
         // Collect call statistics
         if (lastCallStartTime) {
-            const duration = Date.now() - lastCallStartTime.valueOf()
+            const duration = Date.now() - lastCallStartTime
             console.log(`last call duration was approximately ${duration}ms`)
 
             await peerManager.sendMessage({
                 type: 'callRecord',
-                timestamp: lastCallStartTime.toISOString(),
+                timestamp: lastCallStartTime,
                 callNumber,
                 duration
             })
