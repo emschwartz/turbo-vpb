@@ -8,9 +8,7 @@
     "homepage_url": "https://turbovpb.com",
     "permissions": [
         "storage",
-        "activeTab"
-    ],
-    "optional_permissions": [
+        "activeTab",
         "https://www.openvpb.com/VirtualPhoneBank*",
         "https://*.everyaction.com/ContactDetailScript*",
         "https://www.votebuilder.com/ContactDetailScript*",
