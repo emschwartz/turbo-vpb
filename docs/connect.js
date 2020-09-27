@@ -7,6 +7,8 @@ const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
 
 let messageTemplates = []
+let phoneNumber
+let firstName
 let yourName = ''
 
 let startTime = Date.now()
@@ -192,6 +194,11 @@ function handleData(data) {
 
     if (data.messageTemplates) {
         messageTemplates = data.messageTemplates
+
+        // If we only received new message templates, recreate the links with the old contact details
+        if (!data.contact) {
+            createTextMessageLinks(firstName, phoneNumber)
+        }
     }
 
     if (typeof data.callNumber === 'number') {
@@ -203,10 +210,11 @@ function handleData(data) {
         if (!matches) {
             return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
         }
-        let phoneNumber = matches.join('')
+        phoneNumber = matches.join('')
         if (phoneNumber.length === 10) {
             phoneNumber = '1' + phoneNumber
         }
+        firstName = data.contact.firstName
 
         document.getElementById('contactDetails').hidden = false
         document.getElementById('statistics').hidden = false
@@ -216,73 +224,7 @@ function handleData(data) {
         document.getElementById('phoneNumber').href = "tel:" + phoneNumber
         document.getElementById('phoneNumber').innerText = `Call ${data.contact.phoneNumber}`
 
-        // TODO: reuse elements?
-        const textMessageLinks = document.getElementById('textMessageLinks')
-        while (textMessageLinks.firstChild) {
-            textMessageLinks.removeChild(textMessageLinks.firstChild)
-        }
-        if (messageTemplates.length === 0) {
-            document.getElementById('textMessageInstructions')
-                .removeAttribute('hidden')
-        } else {
-            document.getElementById('textMessageInstructions')
-                .setAttribute('hidden', 'true')
-        }
-        for (let { label, message, result } of messageTemplates) {
-            const a = document.createElement('a')
-            a.className = "btn btn-outline-secondary btn-block p-3 my-3"
-            a.role = 'button'
-            a.target = "_blank"
-            const messageBody = message
-                .replace(/\[their name\]/i, data.contact.firstName)
-                .replace(/\[your name\]/i, yourName)
-            a.href = `sms://${phoneNumber};?&body=${messageBody}`
-            a.innerText = `Send ${label}`
-            a.addEventListener('click', async (e) => {
-                if (window.localStorage.getItem('requireLongPressMode')) {
-                    console.log('long press mode enabled, ignoring click')
-                    try {
-                        e.preventDefault()
-                    } catch (err) {
-                        console.error('error preventing click on text message button', err.message)
-                    }
-
-                    // Copy the message body to the clipboard instead
-                    // TODO figure out if there's a better option than this
-                    if (navigator.clipboard) {
-                        await navigator.clipboard.writeText(messageBody)
-
-                        a.innerText = 'Message Copied to Clipboard'
-                        a.classList.replace('btn-outline-secondary', 'btn-outline-success')
-                        setTimeout(() => {
-                            a.innerText = `Send ${label}`
-                            a.classList.replace('btn-outline-success', 'btn-outline-secondary')
-                        }, 800)
-                    }
-                } else {
-                    if (result) {
-                        console.log(`sending call result: ${result}`)
-                        await peerManager.sendMessage({
-                            type: 'callResult',
-                            result,
-                            callNumber,
-                            timestamp: (new Date()).toISOString()
-                        })
-
-                        // return fetchRetry('https://stats.turbovpb.com/texts', {
-                        //     method: 'POST',
-                        //     headers: {
-                        //         'Content-Type': 'application/json; charset=UTF-8'
-                        //     },
-                        //     body: JSON.stringify({
-                        //         session_id: sessionId
-                        //     })
-                        // }, 3)
-                    }
-                }
-            })
-            textMessageLinks.appendChild(a)
-        }
+        createTextMessageLinks(firstName, phoneNumber)
     }
 
     if (data.stats) {
@@ -302,6 +244,75 @@ function handleData(data) {
     if (data.type === 'disconnect') {
         console.log('got disconnect message from extension')
         markSessionComplete()
+    }
+}
+
+function createTextMessageLinks(firstName, phoneNumber) {
+    const textMessageLinks = document.getElementById('textMessageLinks')
+    while (textMessageLinks.firstChild) {
+        textMessageLinks.removeChild(textMessageLinks.firstChild)
+    }
+    if (messageTemplates.length === 0) {
+        document.getElementById('textMessageInstructions')
+            .removeAttribute('hidden')
+    }
+    else {
+        document.getElementById('textMessageInstructions')
+            .setAttribute('hidden', 'true')
+    }
+    for (let { label, message, result } of messageTemplates) {
+        const a = document.createElement('a')
+        a.className = "btn btn-outline-secondary btn-block p-3 my-3"
+        a.role = 'button'
+        a.target = "_blank"
+        const messageBody = message
+            .replace(/\[their name\]/i, firstName)
+            .replace(/\[your name\]/i, yourName)
+        a.href = `sms://${phoneNumber};?&body=${messageBody}`
+        a.innerText = `Send ${label}`
+        a.addEventListener('click', async (e) => {
+            if (window.localStorage.getItem('requireLongPressMode')) {
+                console.log('long press mode enabled, ignoring click')
+                try {
+                    e.preventDefault()
+                }
+                catch (err) {
+                    console.error('error preventing click on text message button', err.message)
+                }
+                // Copy the message body to the clipboard instead
+                // TODO figure out if there's a better option than this
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(messageBody)
+                    a.innerText = 'Message Copied to Clipboard'
+                    a.classList.replace('btn-outline-secondary', 'btn-outline-success')
+                    setTimeout(() => {
+                        a.innerText = `Send ${label}`
+                        a.classList.replace('btn-outline-success', 'btn-outline-secondary')
+                    }, 800)
+                }
+            }
+            else {
+                if (result) {
+                    console.log(`sending call result: ${result}`)
+                    await peerManager.sendMessage({
+                        type: 'callResult',
+                        result,
+                        callNumber,
+                        timestamp: (new Date()).toISOString()
+                    })
+                    // return fetchRetry('https://stats.turbovpb.com/texts', {
+                    //     method: 'POST',
+                    //     headers: {
+                    //         'Content-Type': 'application/json; charset=UTF-8'
+                    //     },
+                    //     body: JSON.stringify({
+                    //         session_id: sessionId
+                    //     })
+                    // }, 3)
+                }
+            }
+        })
+        textMessageLinks.appendChild(a)
     }
 }
 

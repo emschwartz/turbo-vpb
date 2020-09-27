@@ -42,6 +42,21 @@ browser.permissions.getAll()
         }
     })
 
+// Send message templates if they change
+browser.storage.onChanged.addListener(async (changes) => {
+    if (!changes.messageTemplates) {
+        return
+    }
+
+    const messageTemplates = changes.messageTemplates.newValue
+    for (let peerId in peers) {
+        sendMessage(peerId, {
+            type: 'messageTemplateUpdate',
+            messageTemplates
+        })
+    }
+})
+
 // Handle messages sent from content scripts
 browser.runtime.onMessage.addListener(async (message, sender) => {
     if (typeof message !== 'object') {
