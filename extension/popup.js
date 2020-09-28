@@ -10,6 +10,7 @@ const BLUEVOTE_REGEX = /https\:\/\/.*\.bluevote.com/i
 
 let isEnabled = false
 let canEnable = false
+let shouldShowQrCode = false
 let siteName
 let origin
 let activeTabId
@@ -68,12 +69,14 @@ async function onOpen() {
                 origin = OPENVPB_ORIGIN
                 regex = OPENVPB_REGEX
                 isEnabled = permissions.origins.some((o) => OPENVPB_REGEX.test(o))
+                shouldShowQrCode = /VirtualPhoneBank\/.+/i.test(activeTab.url)
             } else if (VOTEBUILDER_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'VoteBuilder'
                 origin = VOTEBUILDER_ORIGIN
                 regex = VOTEBUILDER_REGEX
                 isEnabled = permissions.origins.some((o) => VOTEBUILDER_REGEX.test(o))
+                shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
             } else if (BLUEVOTE_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'BlueVote'
@@ -87,6 +90,7 @@ async function onOpen() {
                 origin = EVERYACTION_ORIGIN
                 regex = EVERYACTION_REGEX
                 isEnabled = permissions.origins.some((o) => EVERYACTION_REGEX.test(o))
+                shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
             }
         }
     }
@@ -146,8 +150,6 @@ function resetStatusLook() {
         document.getElementById('iconEnabled').removeAttribute('hidden')
         document.getElementById('iconDisabled').setAttribute('hidden', true)
 
-        document.getElementById('showQrCode').setAttribute('href', '#')
-        document.getElementById('showQrCode').classList.replace('text-muted', 'text-dark')
     } else {
         document.getElementById('statusText').innerText = 'Click To Enable' // `Disabled on ${siteName}`
         document.getElementById('iconEnabled').setAttribute('hidden', true)
@@ -161,10 +163,16 @@ function resetStatusLook() {
                 document.getElementById('statusText').classList.remove('glow')
             }, 2500)
         }
+    }
 
+    if (isEnabled && shouldShowQrCode) {
+        document.getElementById('showQrCode').setAttribute('href', '#')
+        document.getElementById('showQrCode').classList.replace('text-muted', 'text-dark')
+    } else {
         document.getElementById('showQrCode').removeAttribute('href')
         document.getElementById('showQrCode').classList.replace('text-dark', 'text-muted')
     }
+
     document.getElementById('statusIcon').classList.remove('text-success', 'text-danger')
     document.getElementById('statusIcon').classList.add('text-dark')
 
