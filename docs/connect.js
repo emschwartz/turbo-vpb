@@ -65,6 +65,23 @@ if (Sentry) {
     console.error('Could not load Sentry')
 }
 
+if (/^0\.7\./.test(extensionVersion)) {
+    document.getElementById('textMessageInstructionsTextOnly').setAttribute('hidden', 'true')
+    document.getElementById('textMessageInstructionsWithLink').removeAttribute('hidden')
+
+    document.getElementById('openOptionsPage').addEventListener('click', async (e) => {
+        e.preventDefault()
+
+        if (peerManager) {
+            await peerManager.sendMessage({
+                type: 'openOptions'
+            })
+        } else {
+            console.error('cannot send open options message because peer manager is undefined')
+        }
+    })
+}
+
 // Connect to the extension if a remotePeerId is specified and the session isn't complete
 if (sessionIsComplete()) {
     markSessionComplete()

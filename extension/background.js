@@ -236,6 +236,8 @@ async function createPeer(peerId, tabId) {
                         timestamp: message.timestamp,
                         duration: message.duration
                     })
+                } else if (message.type === 'openOptions') {
+                    await browser.runtime.openOptionsPage()
                 } else {
                     console.warn(`got unexpected message type from peer: ${message.type}`)
                 }

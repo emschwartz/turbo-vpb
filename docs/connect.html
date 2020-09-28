@@ -65,9 +65,14 @@
                             class="btn btn-primary btn-lg btn-block p-3 my-3 h2"></a>
                         <div id="textMessageLinks"></div>
                         <div id="textMessageInstructions" class="alert alert-info text-justify" role="alert" hidden>
-                            <small>
+                            <small id="textMessageInstructionsTextOnly">
                                 You can enable 2-click texting in the TurboVPB extension settings in your browser.
                                 Buttons to send each message will appear here.
+                            </small>
+                            <small id="textMessageInstructionsWithLink" hidden>
+                                You can enable 2-click texting by adding message templates in the settings.
+                                <a id="openOptionsPage" href="#" class="alert-link">Click here</a> to open TurboVPB's
+                                settings on your computer.
                             </small>
                         </div>
                     </div>
