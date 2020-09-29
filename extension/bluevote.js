@@ -69,7 +69,7 @@ function getContactDetails() {
 
             // Log successful calls
             if (saveNextButton()) {
-                saveNextButton().addEventListener('click', () => {
+                saveNextButton().addEventListener('click', async () => {
                     if (couldntReachContact) {
                         // TODO save actual result
                         await saveCall('NotContacted')
