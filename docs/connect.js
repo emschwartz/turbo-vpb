@@ -195,7 +195,7 @@ if (sessionIsComplete()) {
                     'Content-Type': 'application/json; charset=UTF-8'
                 },
                 body: JSON.stringify({
-                    duration: callDuration
+                    duration
                     // TODO add call result
                 })
             }, 3)
