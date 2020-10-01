@@ -189,17 +189,16 @@ if (sessionIsComplete()) {
             lastCallStartTime = null
 
             // TODO we might miss the last call if they never return to the page
-            // await fetchRetry('https://stats.turbovpb.com/calls', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json; charset=UTF-8'
-            //     },
-            //     body: JSON.stringify({
-            //         session_id: sessionId,
-            //         duration: callDuration
-            //         // TODO add call result
-            //     })
-            // }, 3)
+            await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8'
+                },
+                body: JSON.stringify({
+                    duration: callDuration
+                    // TODO add call result
+                })
+            }, 3)
         }
     })
 }
@@ -317,15 +316,9 @@ function createTextMessageLinks(firstName, phoneNumber) {
                         callNumber,
                         timestamp: (new Date()).toISOString()
                     })
-                    // return fetchRetry('https://stats.turbovpb.com/texts', {
-                    //     method: 'POST',
-                    //     headers: {
-                    //         'Content-Type': 'application/json; charset=UTF-8'
-                    //     },
-                    //     body: JSON.stringify({
-                    //         session_id: sessionId
-                    //     })
-                    // }, 3)
+                    return fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+                        method: 'POST'
+                    }, 3)
                 }
             }
         })
