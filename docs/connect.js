@@ -188,17 +188,21 @@ if (sessionIsComplete()) {
             })
             lastCallStartTime = null
 
-            // TODO we might miss the last call if they never return to the page
-            await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json; charset=UTF-8'
-                },
-                body: JSON.stringify({
-                    duration
-                    // TODO add call result
-                })
-            }, 3)
+            try {
+                // TODO we might miss the last call if they never return to the page
+                await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8'
+                    },
+                    body: JSON.stringify({
+                        duration
+                        // TODO add call result
+                    })
+                }, 3)
+            } catch (err) {
+                console.error('Error saving call stats', err)
+            }
         }
     })
 }
@@ -316,9 +320,13 @@ function createTextMessageLinks(firstName, phoneNumber) {
                         callNumber,
                         timestamp: (new Date()).toISOString()
                     })
-                    return fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
-                        method: 'POST'
-                    }, 3)
+                    try {
+                        await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+                            method: 'POST'
+                        }, 3)
+                    } catch (err) {
+                        console.error('Error saving text stats', err)
+                    }
                 }
             }
         })
