@@ -38,7 +38,15 @@ browser.storage.local.get(['sessionRecords', 'totalCalls', 'totalTexts'])
 browser.permissions.getAll()
     .then(async ({ origins = [] }) => {
         for (let origin of origins) {
-            await enableOrigin(origin)
+            if (OPENVPB_REGEX.test(origin)) {
+                await enableOrigin(OPENVPB_ORIGIN)
+            } else if (EVERYACTION_REGEX.test(origin)) {
+                await enableOrigin(EVERYACTION_ORIGIN)
+            } else if (VOTEBUILDER_REGEX.test(origin)) {
+                await enableOrigin(VOTEBUILDER_ORIGIN)
+            } else if (BLUEVOTE_REGEX.test(origin)) {
+                await enableOrigin(BLUEVOTE_ORIGIN)
+            }
         }
     })
 
