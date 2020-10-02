@@ -226,6 +226,9 @@ function handleData(data) {
     }
 
     if (data.contact) {
+        if (!data.contact.phoneNumber || !data.contact.firstName) {
+            return displayError(new Error(`Got invalid contact details from extension: ${JSON.stringify(data.contact)}`))
+        }
         const matches = data.contact.phoneNumber.match(/\d+/g)
         if (!matches) {
             return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
