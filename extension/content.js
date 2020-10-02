@@ -23,7 +23,9 @@ if (!window.sessionStorage.getItem('turboVpbLastContactLoadTime')) {
     window.sessionStorage.setItem('turboVpbLastContactLoadTime', Date.now())
 }
 
-createPeer()
+let url
+sendConnect()
+    .then((newUrl) => url = newUrl)
 
 browser.runtime.onMessage.addListener((message) => {
     if (message.type === 'contactRequest') {
@@ -62,9 +64,18 @@ browser.runtime.onMessage.addListener((message) => {
     }
 })
 
-window.addEventListener('focus', () => {
+window.addEventListener('focus', async () => {
     console.log('sending connect message to background to ensure peer is still connected')
-    sendConnect()
+    const newUrl = await sendConnect()
+    if (url !== newUrl) {
+        url = newUrl
+        console.log(`URL changed to ${url}, updating QR code(s)`)
+
+        const newQrCode = createQrCode()
+        for (let elem of document.getElementsByClassName('turboVpbQrCode')) {
+            elem.replaceWith(newQrCode.cloneNode())
+        }
+    }
 })
 
 if (!window.sessionStorage.getItem('turboVpbHideModal')) {
@@ -114,9 +125,9 @@ function showModal() {
 }
 
 function createQrCode({ backgroundColor = '#fff', height = '30vh', width = '30vh' } = {}) {
-    const url = window.sessionStorage.getItem('turboVpbUrl')
     if (url) {
         const container = document.createElement('div')
+        container.classList.add('turboVpbQrCode')
         const qrLink = document.createElement('a')
         qrLink.href = url
         qrLink.target = '_blank'
@@ -174,29 +185,6 @@ function createConnectionStatusBadge() {
     return badge
 }
 
-async function createPeer() {
-    let peerId = window.sessionStorage.getItem('turboVpbPeerId')
-
-    if (!peerId) {
-        const array = new Uint8Array(16)
-        crypto.getRandomValues(array)
-        peerId = [...array].map(byte => byte.toString(16).padStart(2, '0')).join('')
-        window.sessionStorage.setItem('turboVpbPeerId', peerId)
-    }
-
-    console.log('using peerId:', peerId)
-
-    const sessionId = await sessionIdFromPeerId(peerId)
-    window.sessionStorage.setItem('turboVpbSessionId', sessionId)
-
-    const version = browser.runtime.getManifest().version
-    const userAgent = encodeURIComponent(navigator.userAgent)
-    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}&userAgent=${userAgent}#${peerId}`
-    window.sessionStorage.setItem('turboVpbUrl', url)
-
-    sendConnect()
-}
-
 function isNewContact(phone) {
     return !window.sessionStorage.getItem('turboVpbPhoneNumber') || window.sessionStorage.getItem('turboVpbPhoneNumber') !== phone
 }
@@ -214,10 +202,8 @@ async function handleContact(fullName, phone) {
 
 async function sendConnect() {
     try {
-        await browser.runtime.sendMessage({
+        return browser.runtime.sendMessage({
             type: 'connect',
-            peerId: window.sessionStorage.getItem('turboVpbPeerId'),
-            sessionId: window.sessionStorage.getItem('turboVpbSessionId')
         })
     } catch (err) {
         console.error(err)
@@ -233,7 +219,6 @@ async function sendDetails() {
     try {
         await browser.runtime.sendMessage({
             type: 'contact',
-            peerId: window.sessionStorage.getItem('turboVpbPeerId'),
             data: {
                 domain: window.location.href,
                 messageTemplates,
@@ -272,20 +257,4 @@ async function saveCall(result) {
     })
 
     window.sessionStorage.setItem('turboVpbCalls', callsThisSession + 1)
-}
-
-// This uses half of a SHA-256 hash of the peerId as a session ID
-// The session ID is currently used only to ensure that the mobile browser
-// reloads the tab if you open a different link (the tab will not be reloaded
-// if only the hash changes)
-async function sessionIdFromPeerId(peerId) {
-    const peerIdArray = [...peerId].reduce((result, char, index, array) => {
-        if (index % 2 === 0) {
-            result.push(parseInt(array.slice(index, index + 2).join(''), 16))
-        }
-        return result
-    }, [])
-    const peerIdHashArray = new Uint8Array(await window.crypto.subtle.digest('SHA-256', Uint8Array.from(peerIdArray)))
-    const peerIdHash = [...peerIdHashArray].map(byte => byte.toString(16).padStart(2, '0')).join('')
-    return peerIdHash.slice(0, 16)
 }

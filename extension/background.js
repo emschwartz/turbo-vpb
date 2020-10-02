@@ -61,8 +61,8 @@ browser.storage.onChanged.addListener(async (changes) => {
     }
 
     const messageTemplates = changes.messageTemplates.newValue
-    for (let peerId in peers) {
-        sendMessage(peerId, {
+    for (let tabId in peers) {
+        sendMessage(tabId, {
             type: 'messageTemplateUpdate',
             messageTemplates
         })
@@ -77,9 +77,8 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     }
 
     if (message.type === 'connect') {
-        const peerId = message.peerId
-        await createPeer(peerId, sender.tab.id)
-        const openConnections = peers[peerId].connections.filter(conn => conn && conn.peerConnection && conn.peerConnection.iceConnectionState === 'connected')
+        await createPeer(sender.tab.id)
+        const openConnections = peers[sender.tab.id].connections.filter(conn => conn && conn.peerConnection && conn.peerConnection.iceConnectionState === 'connected')
 
         // If the page reloaded, it will send a connect request.
         // Tell it if there were already connected peers so it can correctly display the status
@@ -89,17 +88,17 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
                 type: 'peerConnected'
             })
         }
+        return peers[sender.tab.id].url
     } else if (message.type === 'contact') {
-        const peerId = message.peerId
-        await createPeer(peerId, sender.tab.id)
-        console.log('sending contact to peer', peerId)
+        await createPeer(sender.tab.id)
+        console.log('sending contact to peer', sender.tab.id)
         const data = message.data
         data.type = 'contact'
-        sendMessage(peerId, data)
+        sendMessage(sender.tab.id, data)
     } else if (message.type === 'callResult') {
-        const { sessionId, callNumber, result } = message
+        const { callNumber, result } = message
         await saveCallResult({
-            sessionId,
+            sessionId: peers[sender.tab.id].sessionId,
             callNumber,
             result
         })
@@ -110,44 +109,48 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
 
 // Handle tabs closing
 browser.tabs.onRemoved.addListener(async (tabId) => {
-    for (let peerId in peers) {
-        if (peers[peerId].tabId === tabId) {
-            console.log(`sending disconnect message to peer: ${peerId}`)
-            sendMessage(peerId, {
-                type: 'disconnect'
-            })
-            // TODO only destroy peer after message has been flushed
-            setTimeout(() => {
-                console.log(`destroying peer ${peerId} because the tab was closed`)
-                destroyPeer(peerId)
-            }, 300)
-        }
+    if (peers[tabId]) {
+        console.log(`sending disconnect message to peer: ${tabId}`)
+        sendMessage(tabId, {
+            type: 'disconnect'
+        })
+        // TODO only destroy peer after message has been flushed
+        setTimeout(() => {
+            console.log(`destroying peer ${tabId} because the tab was closed`)
+            destroyPeer(tabId)
+        }, 300)
     }
 })
 
-async function createPeer(peerId, tabId) {
-    if (peers[peerId] && !peers[peerId].destroyed && !peers[peerId].disconnected) {
-        if (peers[peerId].tabId !== tabId) {
-            console.log(`peer ${peerId} is now in tab ${tabId}`)
-            peers[peerId].tabId = tabId
+async function createPeer(tabId) {
+    if (peers[tabId]) {
+        if (!peers[tabId].peer) {
+            // Duplicate request, currently in the process of connecting
+            return
         }
-
-        // TODO reconnect
-        return
+        if (!peers[tabId].peer.destroyed && !peers[tabId].peer.disconnected) {
+            // Already connected
+            return
+        }
     }
 
-    if (peers[peerId] && peers[peerId].peer === null) {
-        // Duplicate request
-        return
-    }
+    // Create Peer ID
+    const array = new Uint8Array(16)
+    crypto.getRandomValues(array)
+    const peerId = [...array].map(byte => byte.toString(16).padStart(2, '0')).join('')
+    const sessionId = await sessionIdFromPeerId(peerId)
+
+    const version = browser.runtime.getManifest().version
+    const userAgent = encodeURIComponent(navigator.userAgent)
+    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}&userAgent=${userAgent}#${peerId}`
 
     console.log(`creating peer ${peerId} for tab ${tabId}`)
 
-    const sessionId = await sessionIdFromPeerId(peerId)
-
-    peers[peerId] = {
+    peers[tabId] = {
         peer: null,
-        tabId,
+        peerId,
+        url,
+        sessionId,
         connections: []
     }
 
@@ -182,50 +185,50 @@ async function createPeer(peerId, tabId) {
             iceServers
         }
     })
-    peers[peerId].peer = peer
+    peers[tabId].peer = peer
 
-    peer.on('open', () => console.log(`peer ${peerId} listening for connections`))
+    peer.on('open', () => console.log(`peer for tab ${tabId} listening for connections`))
     peer.on('error', (err) => {
         console.error(err)
-        destroyPeer(peerId)
+        destroyPeer(tabId)
     })
     peer.on('close', () => {
-        console.log(`peer ${peerId} closed`)
-        destroyPeer(peerId)
+        console.log(`peer for tab ${tabId} closed`)
+        destroyPeer(tabId)
     })
 
     peer.on('connection', async (conn) => {
-        peers[peerId].connections.push(conn)
-        const connIndex = peers[peerId].connections.length - 1
-        console.log(`peer ${peerId} got connection ${connIndex}`)
+        peers[tabId].connections.push(conn)
+        const connIndex = peers[tabId].connections.length - 1
+        console.log(`peer ${tabId} got connection ${connIndex}`)
         conn.on('close', () => {
-            console.log(`peer ${peerId} connection ${connIndex} closed`)
-            delete peers[peerId].connections[connIndex]
+            console.log(`peer ${tabId} connection ${connIndex} closed`)
+            delete peers[tabId].connections[connIndex]
         })
         conn.on('iceStateChanged', async (state) => {
-            console.log(`peer ${peerId} connection ${connIndex} state: ${state}`)
+            console.log(`peer ${tabId} connection ${connIndex} state: ${state}`)
             // TODO if the state is disconnected, should we let the content script know it's disconnected?
-            const openConnections = peers[peerId].connections.filter(conn => conn && conn.peerConnection && conn.peerConnection.iceConnectionState === 'connected')
+            const openConnections = peers[tabId].connections.filter(conn => conn && conn.peerConnection && conn.peerConnection.iceConnectionState === 'connected')
             if (openConnections.length === 0) {
-                await browser.tabs.sendMessage(peers[peerId].tabId, {
+                await browser.tabs.sendMessage(tabId, {
                     type: 'peerDisconnected'
                 })
             } else {
-                await browser.tabs.sendMessage(peers[peerId].tabId, {
+                await browser.tabs.sendMessage(tabId, {
                     type: 'peerConnected'
                 })
             }
         })
         conn.on('error', (err) => {
-            console.log(`peer ${peerId} connection ${connIndex} error`, err)
-            delete peers[peerId].connections[connIndex]
+            console.log(`peer ${tabId} connection ${connIndex} error`, err)
+            delete peers[tabId].connections[connIndex]
         })
         if (conn.serialization === 'json') {
             conn.on('data', async (message) => {
                 if (message.type === 'callResult') {
-                    console.log(`peer ${peerId} connection ${connIndex} sent call result:`, message)
+                    console.log(`peer ${tabId} connection ${connIndex} sent call result:`, message)
                     try {
-                        await browser.tabs.sendMessage(peers[peerId].tabId, {
+                        await browser.tabs.sendMessage(tabId, {
                             type: 'callResult',
                             result: message.result
                         })
@@ -255,19 +258,19 @@ async function createPeer(peerId, tabId) {
                 }
             })
         } else {
-            console.warn(`Peer connection for peerId ${peerId} serialization should be json but it is: ${conn.serialization}`)
-            return destroyPeer(peerId)
+            console.warn(`Peer connection for peerId ${tabId} serialization should be json but it is: ${conn.serialization}`)
+            return destroyPeer(tabId)
         }
         try {
             console.log('requesting contact from content script')
-            await browser.tabs.sendMessage(peers[peerId].tabId, {
+            await browser.tabs.sendMessage(tabId, {
                 type: 'contactRequest'
             })
         } catch (err) {
             console.error('Error sending contact request to content_script', err)
             if (err.message === 'tab is null') {
                 console.warn('destroying peer because tab was closed')
-                destroyPeer(peerId)
+                destroyPeer(tabId)
             }
         }
     })
@@ -328,25 +331,25 @@ async function disableOrigin(origin) {
     }
 }
 
-function destroyPeer(peerId) {
-    if (peers[peerId]) {
-        peers[peerId].peer.destroy()
-        delete peers[peerId]
+function destroyPeer(tabId) {
+    if (peers[tabId]) {
+        peers[tabId].peer.destroy()
+        delete peers[tabId]
     } else {
-        console.warn(`not destroying peer: ${peerId} because it was already destroyed or does not exist`)
+        console.warn(`not destroying peer: ${tabId} because it was already destroyed or does not exist`)
     }
 }
 
-function sendMessage(peerId, message) {
-    if (!peers[peerId] || peers[peerId].connections.length === 0) {
-        console.log('not sending message because there is no open connection for peer', peerId)
+function sendMessage(tabId, message) {
+    if (!peers[tabId] || peers[tabId].connections.length === 0) {
+        console.log('not sending message because there is no open connection for peer', tabId)
         return
     }
 
     message.extensionVersion = browser.runtime.getManifest().version
     message.extensionUserAgent = navigator.userAgent
     message.extensionPlatform = navigator.platform
-    const connectedPeers = peers[peerId].connections.filter((conn) => !!conn)
+    const connectedPeers = peers[tabId].connections.filter((conn) => !!conn)
     console.log(`sending message to ${connectedPeers.length} peer(s)`)
     for (let conn of connectedPeers) {
         if (conn.open) {
