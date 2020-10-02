@@ -78,11 +78,7 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
 
     if (message.type === 'connect') {
         await createPeer(sender.tab.id)
-        const openConnections = peers[sender.tab.id].connections.filter(conn => conn && conn.peerConnection && conn.peerConnection.iceConnectionState === 'connected')
-
-        // If the page reloaded, it will send a connect request.
-        // Tell it if there were already connected peers so it can correctly display the status
-        if (openConnections.length > 0) {
+        if (peers[sender.tab.id].peer.isConnected()) {
             console.log('letting tab know there is still open connection')
             await browser.tabs.sendMessage(sender.tab.id, {
                 type: 'peerConnected'
@@ -122,6 +118,17 @@ browser.tabs.onRemoved.addListener(async (tabId) => {
     }
 })
 
+// Run when installed or updated
+browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
+    const { statsStartDate } = await browser.storage.local.get(['statsStartDate'])
+    if (!statsStartDate) {
+        console.log('setting stats start date')
+        await browser.storage.local.set({ statsStartDate: (new Date()).toISOString() })
+    }
+
+    browser.browserAction.openPopup()
+})
+
 async function createPeer(tabId) {
     if (peers[tabId]) {
         if (!peers[tabId].peer) {
@@ -134,134 +141,27 @@ async function createPeer(tabId) {
         }
     }
 
-    // Create Peer ID
-    const array = new Uint8Array(16)
-    crypto.getRandomValues(array)
-    const peerId = [...array].map(byte => byte.toString(16).padStart(2, '0')).join('')
-    const sessionId = await sessionIdFromPeerId(peerId)
-
+    const peer = new PeerConnection()
+    const sessionId = peer.getSessionId()
+    const connectionSecret = peer.getConnectionSecret()
     const version = browser.runtime.getManifest().version
     const userAgent = encodeURIComponent(navigator.userAgent)
-    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}&userAgent=${userAgent}#${peerId}`
-
-    console.log(`creating peer ${peerId} for tab ${tabId}`)
+    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}&userAgent=${userAgent}#${connectionSecret}`
 
     peers[tabId] = {
-        peer: null,
-        peerId,
+        peer,
         url,
-        sessionId,
-        connections: []
+        sessionId
     }
-
-    let iceServers = [{
-        "url": "stun:stun.l.google.com:19302",
-        "urls": "stun:stun.l.google.com:19302"
-    }, {
-        "url": "stun:global.stun.twilio.com:3478?transport=udp",
-        "urls": "stun:global.stun.twilio.com:3478?transport=udp"
-    }]
-    try {
-        // The response will be cached so we'll only request it once every 12 hours
-        const res = await fetch('https://nts.turbovpb.com/ice')
-        iceServers = await res.json()
-        iceServers = iceServers.slice(0, 2)
-        console.log('using ice servers', iceServers)
-    } catch (err) {
-        console.warn('unable to fetch ice servers', err)
+    peer.onerror = (err) => {
+        console.log(`error from peer for tab ${tabId}`, err)
+        destroyPeer(tabId)
     }
-
-    // Note that PeerJS peers are created in the background script instead
-    // of in the content_script because loading the peerjs.js script as
-    // part of the content_script caused an error. It complained about the
-    // webrtc-adapter peerjs is using internally trying to set a read-only property
-    const peer = new Peer(peerId, {
-        host: 'peerjs.turbovpb.com',
-        path: '/',
-        secure: true,
-        debug: 1,
-        pingInterval: 1000,
-        config: {
-            iceServers
-        }
-    })
-    peers[tabId].peer = peer
-
-    peer.on('open', () => console.log(`peer for tab ${tabId} listening for connections`))
-    peer.on('error', (err) => {
-        console.error(err)
-        destroyPeer(tabId)
-    })
-    peer.on('close', () => {
-        console.log(`peer for tab ${tabId} closed`)
-        destroyPeer(tabId)
-    })
-
-    peer.on('connection', async (conn) => {
-        peers[tabId].connections.push(conn)
-        const connIndex = peers[tabId].connections.length - 1
-        console.log(`peer ${tabId} got connection ${connIndex}`)
-        conn.on('close', () => {
-            console.log(`peer ${tabId} connection ${connIndex} closed`)
-            delete peers[tabId].connections[connIndex]
-        })
-        conn.on('iceStateChanged', async (state) => {
-            console.log(`peer ${tabId} connection ${connIndex} state: ${state}`)
-            // TODO if the state is disconnected, should we let the content script know it's disconnected?
-            const openConnections = peers[tabId].connections.filter(conn => conn && conn.peerConnection && conn.peerConnection.iceConnectionState === 'connected')
-            if (openConnections.length === 0) {
-                await browser.tabs.sendMessage(tabId, {
-                    type: 'peerDisconnected'
-                })
-            } else {
-                await browser.tabs.sendMessage(tabId, {
-                    type: 'peerConnected'
-                })
-            }
-        })
-        conn.on('error', (err) => {
-            console.log(`peer ${tabId} connection ${connIndex} error`, err)
-            delete peers[tabId].connections[connIndex]
-        })
-        if (conn.serialization === 'json') {
-            conn.on('data', async (message) => {
-                if (message.type === 'callResult') {
-                    console.log(`peer ${tabId} connection ${connIndex} sent call result:`, message)
-                    try {
-                        await browser.tabs.sendMessage(tabId, {
-                            type: 'callResult',
-                            result: message.result
-                        })
-
-                        if (message.result.toLowerCase() === 'texted') {
-                            await saveTextRecord({
-                                sessionId,
-                                callNumber: message.callNumber,
-                                timestamp: message.timestamp
-                            })
-
-                        }
-                    } catch (err) {
-                        console.error('Error sending call result to content_script', err)
-                    }
-                } else if (message.type === 'callRecord') {
-                    await saveCallRecord({
-                        sessionId,
-                        callNumber: message.callNumber,
-                        timestamp: message.timestamp,
-                        duration: message.duration
-                    })
-                } else if (message.type === 'openOptions') {
-                    await browser.runtime.openOptionsPage()
-                } else {
-                    console.warn(`got unexpected message type from peer: ${message.type}`)
-                }
-            })
-        } else {
-            console.warn(`Peer connection for peerId ${tabId} serialization should be json but it is: ${conn.serialization}`)
-            return destroyPeer(tabId)
-        }
+    peer.onconnect = async () => {
         try {
+            await browser.tabs.sendMessage(tabId, {
+                type: 'peerConnected'
+            })
             console.log('requesting contact from content script')
             await browser.tabs.sendMessage(tabId, {
                 type: 'contactRequest'
@@ -273,18 +173,69 @@ async function createPeer(tabId) {
                 destroyPeer(tabId)
             }
         }
-    })
+    }
+    peer.ondisconnect = async () => {
+        await browser.tabs.sendMessage(tabId, {
+            type: 'peerDisconnected'
+        })
+    }
+    peer.onmessage = async (message) => {
+        if (message.type === 'callResult') {
+            console.log(`peer ${tabId} connection ${connIndex} sent call result:`, message)
+            try {
+                await browser.tabs.sendMessage(tabId, {
+                    type: 'callResult',
+                    result: message.result
+                })
+
+                if (message.result.toLowerCase() === 'texted') {
+                    await saveTextRecord({
+                        sessionId,
+                        callNumber: message.callNumber,
+                        timestamp: message.timestamp
+                    })
+
+                }
+            } catch (err) {
+                console.error('Error sending call result to content_script', err)
+            }
+        } else if (message.type === 'callRecord') {
+            await saveCallRecord({
+                sessionId,
+                callNumber: message.callNumber,
+                timestamp: message.timestamp,
+                duration: message.duration
+            })
+        } else if (message.type === 'openOptions') {
+            await browser.runtime.openOptionsPage()
+        } else {
+            console.warn(`got unexpected message type from peer: ${message.type}`)
+        }
+    }
+    await peer.connect()
 }
 
-browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
-    const { statsStartDate } = await browser.storage.local.get(['statsStartDate'])
-    if (!statsStartDate) {
-        console.log('setting stats start date')
-        await browser.storage.local.set({ statsStartDate: (new Date()).toISOString() })
+function destroyPeer(tabId) {
+    if (peers[tabId]) {
+        peers[tabId].peer.destroy()
+        delete peers[tabId]
+    } else {
+        console.warn(`not destroying peer: ${tabId} because it was already destroyed or does not exist`)
+    }
+}
+
+function sendMessage(tabId, message) {
+    if (!peers[tabId]) {
+        return
     }
 
-    browser.browserAction.openPopup()
-})
+    message.extensionVersion = browser.runtime.getManifest().version
+    message.extensionUserAgent = navigator.userAgent
+    message.extensionPlatform = navigator.platform
+
+    peers[tabId].peer.sendMessage(message)
+}
+
 
 function getContentScripts(origin) {
     if (OPENVPB_REGEX.test(origin)) {
@@ -328,37 +279,6 @@ async function disableOrigin(origin) {
         return true
     } else {
         return false
-    }
-}
-
-function destroyPeer(tabId) {
-    if (peers[tabId]) {
-        peers[tabId].peer.destroy()
-        delete peers[tabId]
-    } else {
-        console.warn(`not destroying peer: ${tabId} because it was already destroyed or does not exist`)
-    }
-}
-
-function sendMessage(tabId, message) {
-    if (!peers[tabId] || peers[tabId].connections.length === 0) {
-        console.log('not sending message because there is no open connection for peer', tabId)
-        return
-    }
-
-    message.extensionVersion = browser.runtime.getManifest().version
-    message.extensionUserAgent = navigator.userAgent
-    message.extensionPlatform = navigator.platform
-    const connectedPeers = peers[tabId].connections.filter((conn) => !!conn)
-    console.log(`sending message to ${connectedPeers.length} peer(s)`)
-    for (let conn of connectedPeers) {
-        if (conn.open) {
-            conn.send(message)
-        } else {
-            conn.once('open', () => {
-                conn.send(message)
-            })
-        }
     }
 }
 
@@ -417,20 +337,4 @@ async function saveTextRecord({ sessionId, callNumber, timestamp }) {
 
 function getTotalCalls() {
     return totalCalls
-}
-
-// This uses half of a SHA-256 hash of the peerId as a session ID
-// The session ID is currently used only to ensure that the mobile browser
-// reloads the tab if you open a different link (the tab will not be reloaded
-// if only the hash changes)
-async function sessionIdFromPeerId(peerId) {
-    const peerIdArray = [...peerId].reduce((result, char, index, array) => {
-        if (index % 2 === 0) {
-            result.push(parseInt(array.slice(index, index + 2).join(''), 16))
-        }
-        return result
-    }, [])
-    const peerIdHashArray = new Uint8Array(await window.crypto.subtle.digest('SHA-256', Uint8Array.from(peerIdArray)))
-    const peerIdHash = [...peerIdHashArray].map(byte => byte.toString(16).padStart(2, '0')).join('')
-    return peerIdHash.slice(0, 16)
 }

@@ -27,6 +27,7 @@
             "dependencies/browser-polyfill.js",
             "dependencies/content-scripts-register-polyfill.js",
             "dependencies/peerjs.js",
+            "peer-connection.js",
             "background.js"
         ]
     },
