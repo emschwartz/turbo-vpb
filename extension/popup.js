@@ -1,12 +1,14 @@
-const OPENVPB_ORIGIN = 'https://www.openvpb.com/VirtualPhoneBank*'
-const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
-const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
-const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
-
 const OPENVPB_REGEX = /https\:\/\/(www\.)?openvpb\.com/i
 const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
 const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i
 const BLUEVOTE_REGEX = /https\:\/\/.*\.bluevote.com/i
+const STARTTHEVAN_REGEX = /https\:\/\/(www\.)?startthevan.com/i
+
+const OPENVPB_ORIGIN = 'https://www.openvpb.com/VirtualPhoneBank*'
+const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
+const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
+const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
+const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
 
 let isEnabled = false
 let canEnable = false
@@ -83,6 +85,7 @@ async function onOpen() {
                 origin = BLUEVOTE_ORIGIN
                 regex = BLUEVOTE_REGEX
                 isEnabled = permissions.origins.some((o) => BLUEVOTE_REGEX.test(o))
+                shouldShowQrCode = true
             } else if (EVERYACTION_REGEX.test(activeTab.url)) {
                 // TODO request permission for specific subdomain
                 canEnable = true
@@ -90,6 +93,13 @@ async function onOpen() {
                 origin = EVERYACTION_ORIGIN
                 regex = EVERYACTION_REGEX
                 isEnabled = permissions.origins.some((o) => EVERYACTION_REGEX.test(o))
+                shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
+            } else if (STARTTHEVAN_REGEX.test(activeTab.url)) {
+                canEnable = true
+                siteName = 'StartTheVAN'
+                origin = STARTTHEVAN_ORIGIN
+                regex = STARTTHEVAN_REGEX
+                isEnabled = permissions.origins.some((o) => STARTTHEVAN_REGEX.test(o))
                 shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
             }
         }
