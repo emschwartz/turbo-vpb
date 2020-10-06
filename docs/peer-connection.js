@@ -36,14 +36,8 @@ class PeerConnection {
         this.reconnect()
     }
 
-    async reconnect() {
+    reconnect() {
         if (this.connecting || this.isConnected()) {
-            console.log('Peer already connected')
-            // The pubsub server only stores messages for a couple of minutes and
-            // won't allow the browser to connect if there isn't a message waiting for them
-            await this.sendMessage({
-                type: 'connect'
-            })
             return
         }
         this.connecting = true

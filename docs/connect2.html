@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="dependencies/bootstrap.min.css">
+    <title>TurboVPB | Turbocharge OpenVPB</title>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
+        <a class="navbar-brand" href="https://turbovpb.com"><svg width="1em" height="1em" viewBox="0 0 16 16"
+                class="bi bi-telephone-outbound-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd"
+                    d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
+            </svg> TurboVPB</a>
+        <span id="status" class="badge badge-warning ml-auto">Not Connected</span>
+    </nav>
+
+    <div class="container-sm p-3" id="warningContainer" hidden>
+        <div class="alert alert-danger">
+            <h4 class="alert-heading" id="warningHeading">
+                Uh oh! Looks like something went wrong
+            </h4>
+            <p id="warningText1">
+                In order for this page to work, you need to
+                copy the full URL including the # sign with the
+                random-looking letters after it. Try scanning
+                the QR code from the extension on your phone.
+            </p>
+            <p id="warningText2" hidden></p>
+        </div>
+    </div>
+    <div class="container-sm p-3" id="mainContainer">
+        <div id="statistics" class="text-center mt-2 container" hidden>
+            <h4 class="card-title"><span id="numCalls">0 Calls</span></h4>
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <td>Contacts Reached</td>
+                        <td id="successfulCalls">0</td>
+                    </tr>
+                    <tr>
+                        <td>Avg Time Per Contact</td>
+                        <td id="avgCallTime">00:00</td>
+                    </tr>
+                    <tr>
+                        <td>Total Session Time</td>
+                        <td id="sessionTime">00:00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="contactDetails" hidden>
+        <div class="row mt-auto p-1">
+            <div class="col"></div>
+            <div class="col-md">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 id="name" class="card-title"></h2>
+                        <a href="" target="_blank" id="phoneNumber"
+                            class="btn btn-primary btn-lg btn-block p-3 my-3 h2"></a>
+                        <div id="textMessageLinks"></div>
+                        <div id="textMessageInstructions" class="alert alert-info text-justify" role="alert" hidden>
+                            <small id="textMessageInstructionsTextOnly">
+                                You can enable 2-click texting in the TurboVPB extension settings in your browser.
+                                Buttons to send each message will appear here.
+                            </small>
+                            <small id="textMessageInstructionsWithLink" hidden>
+                                You can enable 2-click texting by adding message templates in the settings.
+                                <a id="openOptionsPage" href="#" class="alert-link">Click here</a> to open TurboVPB's
+                                settings on your computer.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col"></div>
+        </div>
+        <div class="mx-4 mt-4 mb-5">
+            <div class="custom-control custom-switch text-muted">
+                <input class="custom-control-input" type="checkbox" id="requireLongPressMode">
+                <label class="custom-control-label" for="requireLongPressMode">
+                    Long-press to call (for Google Voice)
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="sessionEnded" class="row p-1" hidden>
+        <div class="col"></div>
+        <div class="col-md">
+            <div class="alert alert-primary">
+                <h4 class="alert-heading">
+                    Session Complete
+                </h4>
+                <p>
+                    The virtual phone bank tab was closed. Scan another TurboVPB QR Code to make more calls.
+                </p>
+                <p>
+                    If you like TurboVPB, please leave a review in the extension store and share it with others!
+                </p>
+            </div>
+        </div>
+        <div class="col"></div>
+    </div>
+
+    <script>
+        ; (function () {
+            if (!/debug/.test(window.location) && localStorage.getItem('active-eruda') != 'true') {
+                return
+            }
+            document.write('<scr' + 'ipt src="dependencies/eruda.js"></scr' + 'ipt>');
+            document.write('<scr' + 'ipt>eruda.init();</scr' + 'ipt>');
+        })();
+    </script>
+
+    <script src="dependencies/sentry-5.22.3.min.js"></script>
+    <script>
+        // Call init before anything else in case there is an error loading the script
+        if (Sentry) {
+            console.log('Initializing Sentry')
+            Sentry.init({
+                dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315'
+            });
+        } else {
+            console.error('Could not load Sentry')
+        }
+    </script>
+    <script src="dependencies/ackee-tracker.min.js"></script>
+    <script src="peer-connection.js"></script>
+    <script src="connect.js"></script>
+</body>
+
+</html>

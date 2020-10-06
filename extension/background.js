@@ -78,12 +78,6 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
 
     if (message.type === 'connect') {
         await createPeer(sender.tab.id)
-        if (peers[sender.tab.id].peer.isConnected()) {
-            console.log('letting tab know there is still open connection')
-            await browser.tabs.sendMessage(sender.tab.id, {
-                type: 'peerConnected'
-            })
-        }
         return peers[sender.tab.id].url
     } else if (message.type === 'contact') {
         await createPeer(sender.tab.id)
@@ -135,52 +129,47 @@ async function createPeer(tabId) {
             // Duplicate request, currently in the process of connecting
             return
         }
-        if (!peers[tabId].peer.destroyed && !peers[tabId].peer.disconnected) {
-            // Already connected
-            return
-        }
-    }
 
-    const peer = new PeerConnection()
-    const sessionId = peer.getSessionId()
-    const connectionSecret = peer.getConnectionSecret()
-    const version = browser.runtime.getManifest().version
-    const userAgent = encodeURIComponent(navigator.userAgent)
-    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}&userAgent=${userAgent}#${connectionSecret}`
-
-    peers[tabId] = {
-        peer,
-        url,
-        sessionId
+        // Make sure we're still connected
+        peers[tabId].peer.reconnect()
+        return
     }
+    peers[tabId] = {}
+
+    const peer = new PeerConnection({
+        reconnectInterval: 100
+    })
     peer.onerror = (err) => {
         console.log(`error from peer for tab ${tabId}`, err)
         destroyPeer(tabId)
     }
     peer.onconnect = async () => {
-        try {
-            await browser.tabs.sendMessage(tabId, {
-                type: 'peerConnected'
-            })
-            console.log('requesting contact from content script')
-            await browser.tabs.sendMessage(tabId, {
-                type: 'contactRequest'
-            })
-        } catch (err) {
-            console.error('Error sending contact request to content_script', err)
-            if (err.message === 'tab is null') {
-                console.warn('destroying peer because tab was closed')
-                destroyPeer(tabId)
-            }
-        }
+        console.log(`peer for tab ${tabId} connected`)
     }
     peer.ondisconnect = async () => {
+        console.log(`peer for tab ${tabId} disconnected`)
         await browser.tabs.sendMessage(tabId, {
             type: 'peerDisconnected'
         })
     }
     peer.onmessage = async (message) => {
-        if (message.type === 'callResult') {
+        if (message.type === 'connect') {
+            try {
+                await browser.tabs.sendMessage(tabId, {
+                    type: 'peerConnected'
+                })
+                console.log('requesting contact from content script', tabId)
+                await browser.tabs.sendMessage(tabId, {
+                    type: 'contactRequest'
+                })
+            } catch (err) {
+                console.error('Error sending contact request to content_script', err)
+                if (err.message === 'tab is null') {
+                    console.warn('destroying peer because tab was closed', tabId)
+                    destroyPeer(tabId)
+                }
+            }
+        } else if (message.type === 'callResult') {
             console.log(`peer ${tabId} connection ${connIndex} sent call result:`, message)
             try {
                 await browser.tabs.sendMessage(tabId, {
@@ -207,12 +196,25 @@ async function createPeer(tabId) {
                 duration: message.duration
             })
         } else if (message.type === 'openOptions') {
+            console.log('got request to open options page')
             await browser.runtime.openOptionsPage()
         } else {
             console.warn(`got unexpected message type from peer: ${message.type}`)
         }
     }
     await peer.connect()
+
+    const sessionId = peer.getSessionId()
+    const connectionSecret = await peer.getConnectionSecret()
+    const version = browser.runtime.getManifest().version
+    const userAgent = encodeURIComponent(navigator.userAgent)
+    const url = `https://turbovpb.com/connect2?session=${sessionId}&version=${version}&userAgent=${userAgent}#${connectionSecret}`
+
+    peers[tabId] = {
+        peer,
+        url,
+        sessionId
+    }
 }
 
 function destroyPeer(tabId) {
