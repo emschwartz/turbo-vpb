@@ -6,6 +6,7 @@ let couldntReachContact = false
 // it's not loading the next contact right away. So, we just click through
 // that popup
 let firstCall = true
+qrCodeOpts = { backgroundColor: '#f8f9fa' }
 
 setInterval(getContactDetails, 50)
 
@@ -26,7 +27,7 @@ function getContactDetails() {
     if (!document.getElementById('turbovpbcontainer')) {
         const sidebarContainer = document.getElementById('openvpbsidebarcontainer') || document.getElementById('openVpbSideBarContainer')
         if (sidebarContainer) {
-            const qrCode = createQrCode({ backgroundColor: '#f8f9fa' })
+            const qrCode = createQrCode(qrCodeOpts)
             if (qrCode) {
                 const container = document.createElement('div')
                 container.id = "turbovpbcontainer"

@@ -9,6 +9,7 @@ const ERROR_COLOR = '#dc3545'
 let modal
 let isConnected = false
 let modalOpenedTime
+let qrCodeOpts
 
 // Initialize Stats
 if (!window.sessionStorage.getItem('turboVpbCalls')) {
@@ -80,7 +81,7 @@ window.addEventListener('focus', async () => {
         url = newUrl
         console.log(`URL changed to ${url}, updating QR code(s)`)
 
-        const newQrCode = createQrCode()
+        const newQrCode = createQrCode(qrCodeOpts)
         for (let elem of document.getElementsByClassName('turboVpbQrCode')) {
             elem.replaceWith(newQrCode.cloneNode(true))
         }
