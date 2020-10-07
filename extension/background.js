@@ -139,15 +139,21 @@ async function createPeer(tabId) {
     // Close the WebSocket if no peer connects within the timeout
     // If the user reloads the VPB tab or it comes back into focus,
     // the content script will send another connect message and trigger a reconnect
-    const connectTimeout = setTimeout(() => {
+    let timedOut = false
+    const connectTimeout = setTimeout(async () => {
         console.log(`peer ${tabId} timed out waiting for connection`)
+        timedOut = true
         if (peers[tabId] && peers[tabId].peer) {
             peers[tabId].peer.destroy()
         }
-        browser.tabs.sendMessage(tabId, {
-            type: 'peerError',
-            message: 'Timed out waiting for connection'
-        })
+        try {
+            await browser.tabs.sendMessage(tabId, {
+                type: 'peerError',
+                message: 'Timed out waiting for connection'
+            })
+        } catch (err) {
+            console.error(`error sending message to tab ${tabId}`, err)
+        }
     }, 900000) // 15 min
 
     console.log(`creating peer for tab ${tabId}`)
@@ -162,12 +168,38 @@ async function createPeer(tabId) {
     }
     peer.onconnect = () => {
         console.log(`peer for tab ${tabId} connected`)
-
-        peer.onconnecting = async () => {
-            console.log(`peer for tab ${tabId} disconnected`)
+    }
+    peer.onclose = async () => {
+        console.log(`peer for tab ${tabId} disconnected`)
+        if (!timedOut) {
+            try {
+                await browser.tabs.sendMessage(tabId, {
+                    type: 'peerClosed'
+                })
+            } catch (err) {
+                console.error(`error sending message to tab ${tabId}, err`)
+            }
+        }
+    }
+    peer.onopen = async () => {
+        console.log(`peer for tab ${tabId} opened`)
+        try {
             await browser.tabs.sendMessage(tabId, {
-                type: 'peerDisconnected'
+                type: 'peerOpened'
             })
+        } catch (err) {
+            console.error(`error sending message to tab ${tabId}, err`)
+        }
+    }
+    peer.onconnecting = async () => {
+        console.log(`peer for tab ${tabId} disconnected`)
+        timedOut = false
+        try {
+            await browser.tabs.sendMessage(tabId, {
+                type: 'peerConnecting'
+            })
+        } catch (err) {
+            console.error(`error sending message to tab ${tabId}, err`)
         }
     }
     peer.onmessage = async (message) => {

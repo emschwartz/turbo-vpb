@@ -137,7 +137,11 @@ if (sessionIsComplete()) {
 
         // Make sure we're still connected
         if (peerConnection) {
+            const startTime = Date.now()
             peerConnection.connect()
+                .then(() => {
+                    console.log(`reconnecting took ${Date.now() - startTime}ms`)
+                })
         }
 
         // Collect call statistics
@@ -145,12 +149,16 @@ if (sessionIsComplete()) {
             const duration = Date.now() - lastCallStartTime
             console.log(`last call duration was approximately ${duration}ms`)
 
-            await peerConnection.sendMessage({
-                type: 'callRecord',
-                timestamp: lastCallStartTime,
-                callNumber,
-                duration
-            })
+            try {
+                await peerConnection.sendMessage({
+                    type: 'callRecord',
+                    timestamp: lastCallStartTime,
+                    callNumber,
+                    duration
+                })
+            } catch (err) {
+                console.error('Error sending call record to extension', err)
+            }
             lastCallStartTime = null
 
             try {
@@ -173,6 +181,7 @@ if (sessionIsComplete()) {
 }
 
 async function createPeer() {
+    let connected = false
     peerConnection = await PeerConnection.create({
         sessionId,
         encryptionKey,
@@ -183,6 +192,7 @@ async function createPeer() {
     })
     let connectTimeout
     peerConnection.onconnect = () => {
+        console.log('connected')
         setStatus('Connected', 'success')
         clearTimeout(connectTimeout)
 
@@ -195,13 +205,24 @@ async function createPeer() {
     }
     peerConnection.onmessage = (message) => {
         clearTimeout(connectTimeout)
+        if (connected && message.type === 'connect') {
+            // Remind the peer that we're still connected
+            peerConnection.sendMessage({
+                type: 'connect'
+            })
+        }
+        connected = true
         handleData(message)
     }
-    peerConnection.onconnecting = () => {
+    peerConnection.onconnecting = connecting
+    peerConnection.onopen = connecting
+    function connecting() {
+        console.log('connecting')
         if (sessionIsComplete()) {
             peerConnection.destroy()
             return
         }
+        clearTimeout(connectTimeout)
         connectTimeout = setTimeout(() => {
             const err = new Error('Timed out waiting for message from extension. Is the phone bank tab still open?')
             console.error('Timed out waiting for message')
@@ -213,7 +234,14 @@ async function createPeer() {
         document.getElementById('warningContainer').hidden = true
         document.getElementById('contactDetails').hidden = true
     }
+    peerConnection.onclose = () => {
+        console.log('connection closed')
+        setStatus('Not Connected', 'warning')
+        document.getElementById('warningContainer').hidden = true
+        document.getElementById('contactDetails').hidden = true
+    }
     peerConnection.onerror = (err) => {
+        console.error('connection error', err)
         displayError(err)
         Sentry.captureException(err)
     }

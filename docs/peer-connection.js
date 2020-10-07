@@ -13,10 +13,14 @@ class PeerConnection {
         this.ws = null
         this.sessionId = null
         this.encryptionKey = null
-        this.connecting = false
         this.identity = null
+        this.connecting = false
+        this.connected = false
+        this.destroyed = false
 
+        this.onopen = () => { }
         this.onconnect = () => { }
+        this.onclose = () => { }
         this.onconnecting = () => { }
         this.onerror = () => { }
         this.onmessage = () => { }
@@ -37,55 +41,70 @@ class PeerConnection {
         return connection
     }
 
-    connect() {
-        if (this.connecting || this.isConnected()) {
-            console.log('Peer already connected')
-            return
-        }
-
-        this.connecting = true
-        if (this.ws) {
-            this.ws.close()
-        }
-
-        this.onconnecting()
-
-        const pubsubUrl = `${PUBSUB_URL_BASE}${this.sessionId}/${this.identity}`
-        console.log(`Connecting to ${pubsubUrl}`)
-        this.ws = new ReconnectingWebSocket(pubsubUrl, [], {
-            ...this.wsOpts,
-            binaryType: 'arraybuffer'
-        })
-        this.connecting = false
-
-        this.ws.onopen = async () => {
-            console.log('websocket open')
-            this.connecting = false
-            await this.sendMessage({
-                type: 'connect'
-            })
-        }
-        this.ws.onclose = () => {
-            console.log('websocket closed')
-            // ReconnectingWebSocket will automatically reconnect
-            this.onconnecting()
-        }
-        this.ws.onmessage = async ({ data }) => {
-            let message
-            try {
-                message = await decrypt(this.encryptionKey, data)
-            } catch (err) {
-                console.error(`Error decrypting message from peer ${this.sessionId}`, err.message || err)
-                return
+    async connect() {
+        return new Promise((resolve, reject) => {
+            if (this.connecting || this.isConnected()) {
+                console.log('peer already connected')
+                return resolve()
             }
-            this.onconnect()
-            this.onmessage(message)
-        }
-        this.ws.onerror = (err) => {
-            console.log('websocket error', err && (err.error || err.message))
+
+            this.connecting = true
+            if (this.ws) {
+                this.ws.close()
+            }
+
+            const pubsubUrl = `${PUBSUB_URL_BASE}${this.sessionId}/${this.identity}`
+            console.log(`Connecting to ${pubsubUrl}`)
+            this.ws = new ReconnectingWebSocket(pubsubUrl, [], {
+                ...this.wsOpts,
+                binaryType: 'arraybuffer'
+            })
             this.connecting = false
-            this.onerror(err && err.error)
-        }
+
+            this.ws.onopen = async () => {
+                console.log('websocket open')
+                this.connecting = false
+                await this.sendMessage({
+                    type: 'connect'
+                })
+                this.onopen()
+            }
+            this.ws.onclose = () => {
+                console.log('websocket closed')
+                this.connected = false
+                // ReconnectingWebSocket will automatically reconnect
+                this.onclose()
+            }
+            this.ws.onconnecting = () => {
+                console.log('websocket reconnecting')
+                this.onconnecting()
+            }
+            this.ws.onmessage = async ({ data }) => {
+                let message
+                try {
+                    message = await decrypt(this.encryptionKey, data)
+                } catch (err) {
+                    console.error(`Error decrypting message from peer ${this.sessionId}`, err.message || err)
+                    return
+                }
+                if (!this.connected) {
+                    this.onconnect()
+                    this.connected = true
+                    resolve()
+                }
+                this.onmessage(message)
+            }
+            this.ws.onerror = (err) => {
+                if (err && err.error) {
+                    err = err.error
+                }
+                console.log('websocket error', err)
+                this.connecting = false
+                this.connected = false
+                this.onerror(err)
+                reject(err)
+            }
+        })
     }
 
     async getConnectionSecret() {
@@ -97,6 +116,7 @@ class PeerConnection {
     }
 
     destroy() {
+        this.destroyed = true
         this.ws.close()
     }
 
@@ -107,6 +127,10 @@ class PeerConnection {
 
     isConnected() {
         return this.ws && this.ws.readyState === ReconnectingWebSocket.OPEN
+    }
+
+    isDestroyed() {
+        return this.destroyed
     }
 }
 

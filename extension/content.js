@@ -50,7 +50,13 @@ browser.runtime.onMessage.addListener((message) => {
             connectionStatus.innerText = 'Connected'
             connectionStatus.style = `color: #fff; background-color: ${SUCCESS_COLOR}`
         }
-    } else if (message.type === 'peerDisconnected') {
+    } else if (message.type === 'peerOpened') {
+        const badges = document.getElementsByClassName('turboVpbConnectionStatus')
+        for (let connectionStatus of badges) {
+            connectionStatus.innerText = 'Waiting for Connection'
+            connectionStatus.style = `color: #000; background-color: ${WARNING_COLOR}`
+        }
+    } else if (message.type === 'peerClosed' || message.type === 'peerConnecting') {
         console.log('peer disconnected')
         isConnected = false
         const badges = document.getElementsByClassName('turboVpbConnectionStatus')
