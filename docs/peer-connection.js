@@ -9,9 +9,8 @@ for (let i = 0; i < BASE64_URL_CHARACTERS.length; i++) {
 }
 
 class PeerConnection {
-    constructor(wsOpts = {}) {
+    constructor() {
         this.ws = null
-        this.wsOpts = wsOpts
         this.sessionId = null
         this.encryptionKey = null
         this.connecting = false
@@ -23,23 +22,27 @@ class PeerConnection {
         this.onmessage = () => { }
     }
 
-    async connect(sessionId, encryptionKey) {
+    static async create({ sessionId, encryptionKey, wsOpts } = {}) {
+        const connection = new PeerConnection()
+        connection.wsOpts = wsOpts
         if (sessionId && encryptionKey) {
-            this.identity = 'browser'
-            this.sessionId = sessionId
-            this.encryptionKey = await importKey(encryptionKey)
+            connection.identity = 'browser'
+            connection.sessionId = sessionId
+            connection.encryptionKey = await importKey(encryptionKey)
         } else {
-            this.identity = 'extension'
-            this.sessionId = encodeBase64Url(crypto.getRandomValues(new Uint8Array(16)))
-            this.encryptionKey = await generateKey()
+            connection.identity = 'extension'
+            connection.sessionId = encodeBase64Url(crypto.getRandomValues(new Uint8Array(16)))
+            connection.encryptionKey = await generateKey()
         }
-        this.reconnect()
+        return connection
     }
 
-    reconnect() {
+    connect() {
         if (this.connecting || this.isConnected()) {
+            console.log('Peer already connected')
             return
         }
+
         this.connecting = true
         if (this.ws) {
             this.ws.close()
@@ -78,10 +81,10 @@ class PeerConnection {
             this.onconnect()
             this.onmessage(message)
         }
-        this.ws.onerror = ({ error }) => {
-            console.log('websocket error', error)
+        this.ws.onerror = (err) => {
+            console.log('websocket error', err && (err.error || err.message))
             this.connecting = false
-            this.onerror(error)
+            this.onerror(err && err.error)
         }
     }
 

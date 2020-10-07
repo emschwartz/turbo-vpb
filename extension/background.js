@@ -131,28 +131,47 @@ async function createPeer(tabId) {
         }
 
         // Make sure we're still connected
-        peers[tabId].peer.reconnect()
+        peers[tabId].peer.connect()
         return
     }
     peers[tabId] = {}
 
-    const peer = new PeerConnection({
-        reconnectInterval: 100
+    // Close the WebSocket if no peer connects within the timeout
+    // If the user reloads the VPB tab or it comes back into focus,
+    // the content script will send another connect message and trigger a reconnect
+    const connectTimeout = setTimeout(() => {
+        console.log(`peer ${tabId} timed out waiting for connection`)
+        if (peers[tabId] && peers[tabId].peer) {
+            peers[tabId].peer.destroy()
+        }
+        browser.tabs.sendMessage(tabId, {
+            type: 'peerError',
+            message: 'Timed out waiting for connection'
+        })
+    }, 900000) // 15 min
+
+    console.log(`creating peer for tab ${tabId}`)
+    const peer = await PeerConnection.create({
+        wsOpts: {
+            reconnectInterval: 100
+        }
     })
     peer.onerror = (err) => {
         console.log(`error from peer for tab ${tabId}`, err)
         destroyPeer(tabId)
     }
-    peer.onconnect = async () => {
+    peer.onconnect = () => {
         console.log(`peer for tab ${tabId} connected`)
-    }
-    peer.ondisconnect = async () => {
-        console.log(`peer for tab ${tabId} disconnected`)
-        await browser.tabs.sendMessage(tabId, {
-            type: 'peerDisconnected'
-        })
+
+        peer.onconnecting = async () => {
+            console.log(`peer for tab ${tabId} disconnected`)
+            await browser.tabs.sendMessage(tabId, {
+                type: 'peerDisconnected'
+            })
+        }
     }
     peer.onmessage = async (message) => {
+        clearTimeout(connectTimeout)
         if (message.type === 'connect') {
             try {
                 await browser.tabs.sendMessage(tabId, {
@@ -202,7 +221,8 @@ async function createPeer(tabId) {
             console.warn(`got unexpected message type from peer: ${message.type}`)
         }
     }
-    await peer.connect()
+
+    peer.connect()
 
     const sessionId = peer.getSessionId()
     const connectionSecret = await peer.getConnectionSecret()
@@ -217,8 +237,16 @@ async function createPeer(tabId) {
     }
 }
 
-function destroyPeer(tabId) {
+async function destroyPeer(tabId) {
     if (peers[tabId]) {
+        try {
+            await browser.tabs.sendMessage(tabId, {
+                type: 'peerError',
+                message: 'Peer closed'
+            })
+        } catch (err) {
+            // Ignoring this error because the tab might already be closed
+        }
         peers[tabId].peer.destroy()
         delete peers[tabId]
     } else {
@@ -227,7 +255,8 @@ function destroyPeer(tabId) {
 }
 
 function sendMessage(tabId, message) {
-    if (!peers[tabId]) {
+    if (!peers[tabId] || !peers[tabId].peer) {
+        console.log('not sending message, peer has not yet been created')
         return
     }
 

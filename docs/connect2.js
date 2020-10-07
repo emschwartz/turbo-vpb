@@ -91,41 +91,7 @@ if (sessionIsComplete()) {
     document.getElementById('warningContainer').removeAttribute('hidden')
 } else {
     // Create PeerConnection and set up event handlers
-    peerConnection = new PeerConnection({
-        reconnectInterval: 25,
-        maxReconnectAttempts: 3
-    })
-    peerConnection.onconnect = () => {
-        setStatus('Connected', 'success')
-
-        // Update session time
-        if (!sessionTimeInterval) {
-            sessionTimeInterval = setInterval(() => {
-                document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
-            }, 1000)
-        }
-    }
-    peerConnection.onmessage = handleData
-    peerConnection.onconnecting = (target) => {
-        if (sessionIsComplete()) {
-            peerConnection.destroy()
-            return
-        }
-
-        setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
-        document.getElementById('warningContainer').hidden = true
-        document.getElementById('contactDetails').hidden = true
-    }
-    peerConnection.onerror = (err) => {
-        displayError(err)
-        Sentry.captureException(err)
-    }
-
-    peerConnection.connect(sessionId, encryptionKey)
-        .catch((err) => {
-            displayError(err)
-            Sentry.captureException(err)
-        })
+    createPeer()
 
     // Estimate call duration
     // Start the timer either on click or on the touchstart event
@@ -171,7 +137,7 @@ if (sessionIsComplete()) {
 
         // Make sure we're still connected
         if (peerConnection) {
-            peerConnection.reconnect()
+            peerConnection.connect()
         }
 
         // Collect call statistics
@@ -204,6 +170,55 @@ if (sessionIsComplete()) {
             }
         }
     })
+}
+
+async function createPeer() {
+    peerConnection = await PeerConnection.create({
+        sessionId,
+        encryptionKey,
+        wsOpts: {
+            reconnectInterval: 25,
+            maxReconnectAttempts: 3
+        }
+    })
+    let connectTimeout
+    peerConnection.onconnect = () => {
+        setStatus('Connected', 'success')
+        clearTimeout(connectTimeout)
+
+        // Update session time
+        if (!sessionTimeInterval) {
+            sessionTimeInterval = setInterval(() => {
+                document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
+            }, 1000)
+        }
+    }
+    peerConnection.onmessage = (message) => {
+        clearTimeout(connectTimeout)
+        handleData(message)
+    }
+    peerConnection.onconnecting = () => {
+        if (sessionIsComplete()) {
+            peerConnection.destroy()
+            return
+        }
+        connectTimeout = setTimeout(() => {
+            const err = new Error('Timed out waiting for message from extension. Is the phone bank tab still open?')
+            console.error('Timed out waiting for message')
+            displayError(err)
+            Sentry.captureException(err)
+        }, 3000)
+
+        setStatus('Connecting to Extension', 'warning')
+        document.getElementById('warningContainer').hidden = true
+        document.getElementById('contactDetails').hidden = true
+    }
+    peerConnection.onerror = (err) => {
+        displayError(err)
+        Sentry.captureException(err)
+    }
+
+    peerConnection.connect()
 }
 
 function handleData(data) {
@@ -357,12 +372,12 @@ function displayError(err) {
 
     // Display full error message
     document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
-    document.getElementById('warningText1').innerText = `Error ${err && err.message}`
+    document.getElementById('warningText1').innerText = `Error: ${err && err.message}`
 
     const warningText2 = document.getElementById('warningText2')
     warningText2.innerHTML = ''
     warningText2.innerText =
-        `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send this pre-filled email to: `
+        `Try closing the phone bank tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send this pre-filled email to: `
     const a = document.createElement('a')
     a.innerText = 'evan@turbovpb.com'
     const emailBody = encodeURIComponent(`Hi Evan,
