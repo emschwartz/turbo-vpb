@@ -1,8 +1,8 @@
 {
     "manifest_version": 2,
     "name": "TurboVPB Beta",
-    "version": "0.7.3.1",
-    "version_name": "0.7.4 Beta 1",
+    "version": "0.7.3.2",
+    "version_name": "0.8.0 Beta 1",
     "description": "Turbocharge phone banking with Open Virtual Phone Bank (OpenVPB), VAN / EveryAction, DNC VoteBuilder, and BlueVote.",
     "author": "Evan Schwartz",
     "homepage_url": "https://turbovpb.com",
