@@ -112,9 +112,7 @@ if (sessionIsComplete()) {
         })
     document.getElementById('phoneNumber')
         .addEventListener('touchstart', () => {
-            if (window.localStorage.getItem('requireLongPressMode')) {
-                lastCallStartTime = Date.now()
-            }
+            lastCallStartTime = Date.now()
         })
 
     // Require long-press mode setting
