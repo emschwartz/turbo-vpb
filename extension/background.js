@@ -12,6 +12,7 @@ const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
 
 const peers = {}
 const unregisterContentScripts = {}
+const INACTIVITY_TIMEOUT = 3600000 // 1 hr
 
 // Stored as:
 //   sessionId -> [ timestamp, duration, result, textedTimestamp ]
@@ -74,6 +75,15 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     if (typeof message !== 'object') {
         console.log('got message that was not an object', message)
         return
+    }
+
+    // Close the websocket connection if it is inactive for too long
+    if (peers[sender.tab.id]) {
+        clearTimeout(peers[sender.tab.id].inactivityTimeout)
+        peers[sender.tab.id].inactivityTimeout = setTimeout(() => {
+            console.warn(`peer for tab ${sender.tab.id} timed out from inactivity`)
+            peer.destroy()
+        }, INACTIVITY_TIMEOUT)
     }
 
     if (message.type === 'connect') {
