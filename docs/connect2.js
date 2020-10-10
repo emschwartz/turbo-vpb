@@ -331,7 +331,7 @@ function createTextMessageLinks(firstName, phoneNumber) {
         const messageBody = message
             .replace(/\[their name\]/i, firstName)
             .replace(/\[your name\]/i, yourName)
-        a.href = `sms://${phoneNumber};?&body=${messageBody}`
+        a.href = `sms://${phoneNumber};?&body=${encodeURIComponent(messageBody)}`
         a.innerText = `Send ${label}`
         a.addEventListener('click', async (e) => {
             if (window.localStorage.getItem('requireLongPressMode')) {
