@@ -169,7 +169,8 @@ async function createPeer(tabId) {
     console.log(`creating peer for tab ${tabId}`)
     const peer = await PeerConnection.create({
         wsOpts: {
-            reconnectInterval: 100
+            minReconnectionDelay: 100,
+            debug: true
         }
     })
     peer.onerror = (err) => {

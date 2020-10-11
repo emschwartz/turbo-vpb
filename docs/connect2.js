@@ -184,8 +184,9 @@ async function createPeer() {
         sessionId,
         encryptionKey,
         wsOpts: {
-            reconnectInterval: 25,
-            maxReconnectAttempts: 3
+            minReconnectionDelay: 25,
+            maxRetries: 3,
+            debug: true
         }
     })
     let connectTimeout

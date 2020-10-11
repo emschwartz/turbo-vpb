@@ -26,6 +26,7 @@
         "scripts": [
             "dependencies/browser-polyfill.js",
             "dependencies/content-scripts-register-polyfill.js",
+            "dependencies/reconnecting-websocket-iife.js",
             "peer-connection.js",
             "background.js"
         ]
