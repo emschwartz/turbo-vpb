@@ -18,6 +18,18 @@ function saveNextButton() {
         || document.querySelector('input[type="button"][value="Save Data / Next Call"]')
 }
 
+function getResultCodes() {
+    const elements = nonContactRadioButtons()
+    if (!elements || elements.length === 0) {
+        console.error('Could not find Result Codes')
+        return
+    }
+    const resultCodes = elements.map((e) => e.value)
+    console.log('determined result codes to be:', resultCodes)
+
+    window.sessionStorage.setItem('turboVpbResultCodes', JSON.stringify(resultCodes))
+}
+
 function getContactDetails() {
     // Create TurboVPB Container
     if (!document.getElementById('turbovpbcontainer')) {
@@ -40,6 +52,10 @@ function getContactDetails() {
                 content.appendChild(qrCode)
                 sidebarContainer.appendChild(container)
             }
+        }
+
+        if (!window.sessionStorage.getItem('turboVpbResultCodes')) {
+            getResultCodes()
         }
     }
 
@@ -92,12 +108,11 @@ function getContactDetails() {
 function markResult(result) {
     const resultCode = result.toLowerCase()
     if (!resultCode === 'texted') {
-        console.warn(`does not support ${result} on bluevote`)
-        return
+        resultCode = 'not home'
     }
     try {
         for (let radioUnit of nonContactRadioButtons()) {
-            if (radioUnit.parentNode.innerText === 'Not Home') {
+            if (radioUnit.parentNode.innerText.toLowerCase() === resultCode) {
                 radioUnit.click()
                 setTimeout(() => saveNextButton().click(), 1)
                 return

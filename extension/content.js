@@ -8,6 +8,7 @@ const WARNING_COLOR = '#ffc107'
 let modal
 let isConnected = false
 let modalOpenedTime
+let resultCodes = null
 
 // Initialize Stats
 if (!window.sessionStorage.getItem('turboVpbCalls')) {
@@ -235,6 +236,7 @@ async function sendDetails() {
                     startTime: parseInt(window.sessionStorage.getItem('turboVpbStartTime'))
                 },
                 callNumber: parseInt(window.sessionStorage.getItem('turboVpbCalls')),
+                resultCodes: JSON.parse(window.sessionStorage.getItem('turboVpbResultCodes') || '[]')
             }
         })
         console.log('sent contact')

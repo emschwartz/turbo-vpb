@@ -13,6 +13,29 @@ function saveNextButton() {
         || document.querySelector('input.btn[type="submit"]')
 }
 
+function getResultCodes() {
+    const button = couldntReachButton()
+    if (!button) {
+        console.error('Could not find Could Not Reach button')
+        return
+    }
+    button.click()
+
+    const resultCodes = []
+    const elements = document.getElementsByClassName('script-result')
+    if (!elements) {
+        console.error('Could not find result codes')
+        return
+    }
+    for (let i = 0; i < elements.length; i++) {
+        resultCodes.push(elements[i].innerText)
+    }
+    console.log('determined result codes to be:', resultCodes)
+    document.getElementById('cancel-has-made-contact').click()
+
+    window.sessionStorage.setItem('turboVpbResultCodes', JSON.stringify(resultCodes))
+}
+
 function getContactDetails() {
     // Create TurboVPB Container
     if (!document.getElementById('turbovpbcontainer')) {
@@ -39,6 +62,10 @@ function getContactDetails() {
                 panelContent.appendChild(qrCode)
                 gridElements[0].appendChild(container)
             }
+        }
+
+        if (!window.sessionStorage.getItem('turboVpbResultCodes')) {
+            getResultCodes()
         }
     }
 

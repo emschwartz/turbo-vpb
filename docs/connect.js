@@ -10,6 +10,8 @@ let messageTemplates = []
 let phoneNumber
 let firstName
 let yourName = ''
+// resultCode -> number of times used
+let resultCodes = {}
 
 let startTime = Date.now()
 let sessionTimeInterval
@@ -266,6 +268,38 @@ function handleData(data) {
         console.log('got disconnect message from extension')
         markSessionComplete()
     }
+
+    if (Array.isArray(data.resultCodes)) {
+        const callResultLinks = document.getElementById('callResultLinks')
+        while (callResultLinks.firstChild) {
+            callResultLinks.removeChild(callResultLinks.firstChild)
+        }
+        // Sort result codes by frequency of use
+        const orderedResultCodes = data.resultCodes.sort((a, b) => (resultCodes[b] || 0) - (resultCodes[a] || 0))
+        for (let result of orderedResultCodes) {
+            if (!resultCodes[result]) {
+                resultCodes[result] = 0
+            }
+            const button = document.createElement('button')
+            button.className = "btn btn-outline-danger btn-block p-3 my-3"
+            button.role = 'button'
+            button.innerText = result
+
+            button.addEventListener('click', (e) => {
+                console.log(`Sending call result: ${result}`)
+                resultCodes[result] += 1
+
+                return peerManager.sendMessage({
+                    type: 'callResult',
+                    result,
+                    callNumber,
+                    timestamp: (new Date()).toISOString()
+                })
+            })
+
+            callResultLinks.appendChild(button)
+        }
+    }
 }
 
 function createTextMessageLinks(firstName, phoneNumber) {
@@ -311,8 +345,7 @@ function createTextMessageLinks(firstName, phoneNumber) {
                         a.classList.replace('btn-outline-success', 'btn-outline-secondary')
                     }, 800)
                 }
-            }
-            else {
+            } else {
                 if (result) {
                     console.log(`sending call result: ${result}`)
                     await peerManager.sendMessage({
