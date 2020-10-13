@@ -181,7 +181,7 @@ async function createPeer(tabId) {
     }
     peer.onmessage = async (message) => {
         if (message.type === 'callResult') {
-            console.log(`peer ${tabId} connection ${connIndex} sent call result:`, message)
+            console.log(`peer ${tabId} connection sent call result:`, message)
             try {
                 await browser.tabs.sendMessage(tabId, {
                     type: 'callResult',
