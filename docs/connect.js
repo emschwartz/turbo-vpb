@@ -248,6 +248,12 @@ function handleData(data) {
         document.getElementById('phoneNumber').innerText = `Call ${data.contact.phoneNumber}`
 
         createTextMessageLinks(firstName, phoneNumber)
+
+        // Scroll to contact card
+        if (!isScrolledIntoView(document.getElementById('name'))) {
+            document.getElementById('contactDetails').scrollIntoView()
+            window.scrollBy(0, 0 - document.querySelector('nav').scrollHeight)
+        }
     }
 
     if (data.stats) {
@@ -478,6 +484,19 @@ function msToTimeString(ms) {
         time += sec
     }
     return time
+}
+
+function isScrolledIntoView(el) {
+    const rect = el.getBoundingClientRect()
+    const elemTop = rect.top
+    const elemBottom = rect.bottom
+
+    // Only completely visible elements return true:
+    // const isVisible = (elemTop >= 0) && (elemBottom <= window.innerHeight);
+
+    // Partially visible elements return true:
+    const isVisible = elemTop < window.innerHeight && elemBottom >= 0
+    return isVisible
 }
 
 async function fetchRetry(url, params, times) {
