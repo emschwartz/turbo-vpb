@@ -115,6 +115,7 @@ if (sessionIsComplete()) {
         }
 
         setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
+        setLoading()
         document.getElementById('warningContainer').hidden = true
         document.getElementById('contactDetails').hidden = true
     }
@@ -229,6 +230,9 @@ function handleData(data) {
         if (!data.contact.phoneNumber || !data.contact.firstName) {
             return displayError(new Error(`Got invalid contact details from extension: ${JSON.stringify(data.contact)}`))
         }
+
+        setLoadingFinished()
+
         const matches = data.contact.phoneNumber.match(/\d+/g)
         if (!matches) {
             return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
@@ -291,16 +295,17 @@ function handleData(data) {
             button.role = 'button'
             button.innerText = result
 
-            button.addEventListener('click', (e) => {
+            button.addEventListener('click', async (e) => {
                 console.log(`Sending call result: ${result}`)
                 resultCodes[result] += 1
 
-                return peerManager.sendMessage({
+                await peerManager.sendMessage({
                     type: 'callResult',
                     result,
                     callNumber,
                     timestamp: (new Date()).toISOString()
                 })
+                setLoading()
             })
 
             callResultLinks.appendChild(button)
@@ -360,6 +365,7 @@ function createTextMessageLinks(firstName, phoneNumber) {
                         callNumber,
                         timestamp: (new Date()).toISOString()
                     })
+                    setLoading()
                     try {
                         await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
                             method: 'POST'
@@ -392,6 +398,7 @@ function setStatus(status, alertType) {
 
 function displayError(err) {
     setStatus('Error. Reload Tab.', 'danger')
+    setLoadingFinished()
 
     // Display full error message
     document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
@@ -497,6 +504,16 @@ function isScrolledIntoView(el) {
     // Partially visible elements return true:
     const isVisible = elemTop < window.innerHeight && elemBottom >= 0
     return isVisible
+}
+
+function setLoading() {
+    document.getElementById('loading').removeAttribute('hidden')
+    document.getElementById('contactDetails').setAttribute('hidden', 'true')
+}
+
+function setLoadingFinished() {
+    document.getElementById('loading').setAttribute('hidden', 'true')
+    document.getElementById('contactDetails').removeAttribute('hidden')
 }
 
 async function fetchRetry(url, params, times) {
