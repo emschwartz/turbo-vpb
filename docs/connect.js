@@ -1,3 +1,5 @@
+const CONNECT_TIMEOUT = 10000
+
 const debugMode = window.location.href.includes('debug')
 const searchParams = (new URL(window.location.href)).searchParams
 const sessionId = searchParams.get('session') || ''
@@ -20,6 +22,7 @@ let lastCallStartTime
 let callNumber
 
 let peerManager
+let connectTimer
 
 // Analytics
 try {
@@ -99,6 +102,7 @@ if (sessionIsComplete()) {
     })
     peerManager.onConnect = () => {
         setStatus('Connected', 'success')
+        clearTimeout(connectTimer)
 
         // Update session time
         if (!sessionTimeInterval) {
@@ -116,6 +120,13 @@ if (sessionIsComplete()) {
 
         setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
         setLoading()
+
+        clearTimeout(connectTimer)
+        connectTimer = setTimeout(() => {
+            displayError(new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?'))
+            peerManager.stop()
+        }, CONNECT_TIMEOUT)
+
         document.getElementById('warningContainer').hidden = true
         document.getElementById('contactDetails').hidden = true
     }
