@@ -77,6 +77,7 @@ let callNumber
 
 let peerManager
 let connectTimer
+let pendingSaveMessage
 
 // Analytics
 try {
@@ -241,6 +242,11 @@ if (sessionIsComplete()) {
             await peerManager.reconnect(null, true)
         }
 
+        if (pendingSaveMessage) {
+            showSaveMessage(pendingSaveMessage)
+            pendingSaveMessage = null
+        }
+
         // Collect call statistics
         if (lastCallStartTime) {
             const duration = Date.now() - lastCallStartTime
@@ -387,6 +393,7 @@ function handleData(data) {
                     timestamp: (new Date()).toISOString()
                 })
                 setLoading()
+                showSaveMessage(result)
             })
 
             callResultLinks.appendChild(button)
@@ -455,6 +462,7 @@ function createTextMessageLinks(firstName, phoneNumber) {
                         timestamp: (new Date()).toISOString()
                     })
                     setLoading()
+                    pendingSaveMessage = result
                     try {
                         await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
                             method: 'POST'
@@ -545,6 +553,7 @@ function markSessionComplete() {
     }
 
     setStatus('Session Complete', 'primary')
+    document.getElementById('loading').setAttribute('hidden', 'true')
 }
 
 function sessionIsComplete() {
@@ -603,6 +612,14 @@ function setLoading() {
 function setLoadingFinished() {
     document.getElementById('loading').setAttribute('hidden', 'true')
     document.getElementById('contactDetails').removeAttribute('hidden')
+}
+
+function showSaveMessage(result) {
+    document.getElementById('snackbar').classList.add('show')
+    document.getElementById('snackbarMessage').innerText = `Saved Call Result: ${result}`
+    setTimeout(() => {
+        document.getElementById('snackbar').classList.remove('show')
+    }, 2500)
 }
 
 async function fetchRetry(url, params, times) {
