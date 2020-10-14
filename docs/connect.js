@@ -358,6 +358,11 @@ function handleData(data) {
         // Sort result codes by frequency of use
         const orderedResultCodes = data.resultCodes.sort((a, b) => (resultCodes[b] || 0) - (resultCodes[a] || 0))
         for (let result of orderedResultCodes) {
+            // Don't show Texted result code if TurboVPB texting is enabled
+            if (result.toLowerCase() === 'texted' && messageTemplates) {
+                continue
+            }
+
             if (!resultCodes[result]) {
                 resultCodes[result] = 0
             }
