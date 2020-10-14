@@ -74,7 +74,7 @@ window.addEventListener('focus', async () => {
 
         const newQrCode = createQrCode()
         for (let elem of document.getElementsByClassName('turboVpbQrCode')) {
-            elem.replaceWith(newQrCode.cloneNode())
+            elem.replaceWith(newQrCode.cloneNode(true))
         }
     }
 })
