@@ -68,6 +68,13 @@ let firstName
 let yourName = ''
 // resultCode -> number of times used
 let resultCodes = {}
+if (localStorage.getItem('resultCodes')) {
+    try {
+        resultCodes = JSON.parse(localStorage.getItem('resultCodes'))
+    } catch (err) {
+        console.error('Result codes is corrupted', err)
+    }
+}
 
 let startTime = Date.now()
 let sessionTimeInterval
@@ -390,6 +397,7 @@ function handleData(data) {
             button.addEventListener('click', async (e) => {
                 console.log(`Sending call result: ${result}`)
                 resultCodes[result] += 1
+                localStorage.setItem('resultCodes', JSON.stringify(resultCodes))
 
                 await peerManager.sendMessage({
                     type: 'callResult',
