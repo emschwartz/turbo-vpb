@@ -144,7 +144,7 @@ if (sessionIsComplete()) {
 
     // Estimate call duration
     // Start the timer either on click or on the touchstart event
-    document.getElementById('phoneNumber')
+    document.getElementById('phoneNumberLink')
         .addEventListener('click', (e) => {
             if (window.localStorage.getItem('requireLongPressMode')) {
                 e.preventDefault()
@@ -159,7 +159,7 @@ if (sessionIsComplete()) {
                 lastCallStartTime = Date.now()
             }
         })
-    document.getElementById('phoneNumber')
+    document.getElementById('phoneNumberLink')
         .addEventListener('touchstart', () => {
             lastCallStartTime = Date.now()
         })
@@ -259,7 +259,7 @@ function handleData(data) {
 
         document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
 
-        document.getElementById('phoneNumber').href = "tel:" + phoneNumber
+        document.getElementById('phoneNumberLink').href = "tel:" + phoneNumber
         document.getElementById('phoneNumber').innerText = `Call ${data.contact.phoneNumber}`
 
         createTextMessageLinks(firstName, phoneNumber)
@@ -448,7 +448,7 @@ function displayError(err) {
     document.getElementById('contactDetails').hidden = true
     document.getElementById('statistics').hidden = true
     document.getElementById('name').innerText = ''
-    document.getElementById('phoneNumber').href = ''
+    document.getElementById('phoneNumberLink').href = ''
     document.getElementById('phoneNumber').innerText = ''
 }
 
