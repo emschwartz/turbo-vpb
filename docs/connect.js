@@ -314,7 +314,7 @@ function handleData(data) {
         document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
 
         document.getElementById('phoneNumberLink').href = "tel:" + phoneNumber
-        document.getElementById('phoneNumber').innerText = `Call ${data.contact.phoneNumber}`
+        document.getElementById('phoneNumber').innerText = data.contact.phoneNumber
 
         createTextMessageLinks(firstName, phoneNumber)
 
