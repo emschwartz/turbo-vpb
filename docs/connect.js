@@ -186,7 +186,10 @@ function start() {
                 }, 1000)
             }
         }
-        peerManager.onData = handleData
+        peerManager.onData = (data) => {
+            clearTimeout(connectTimer)
+            handleData(data)
+        }
         peerManager.onReconnecting = (target) => {
             if (sessionIsComplete()) {
                 console.log('Session is complete, stopping peer manager')
