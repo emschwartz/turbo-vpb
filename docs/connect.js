@@ -136,10 +136,10 @@ document.addEventListener('readystatechange', () => {
     console.log('document readyState:', document.readyState)
 })
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start)
-} else {
+if (document.readyState === 'complete') {
     start()
+} else {
+    document.addEventListener('load', start)
 }
 
 function start() {
@@ -189,6 +189,7 @@ function start() {
         peerManager.onData = handleData
         peerManager.onReconnecting = (target) => {
             if (sessionIsComplete()) {
+                console.log('Session is complete, stopping peer manager')
                 peerManager.stop()
                 peerManager = null
                 return
@@ -199,6 +200,7 @@ function start() {
 
             clearTimeout(connectTimer)
             connectTimer = setTimeout(() => {
+                console.error('connection timed out')
                 displayError(new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?'))
                 peerManager.stop()
                 peerManager = null
@@ -568,6 +570,7 @@ function displayError(err) {
 }
 
 function markSessionComplete() {
+    console.log('Session complete')
     sessionComplete = true
     window.sessionStorage.setItem('sessionComplete', 'true')
     document.getElementById('contact-details').remove()
