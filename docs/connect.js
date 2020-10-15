@@ -259,14 +259,14 @@ function start() {
                 return
             }
 
-            // Make sure we're still connected
-            if (peerManager) {
-                await peerManager.reconnect(null, true)
-            }
-
             if (pendingSaveMessage) {
                 showSaveMessage(pendingSaveMessage)
                 pendingSaveMessage = null
+            }
+
+            // Make sure we're still connected
+            if (peerManager) {
+                await peerManager.reconnect(null, true)
             }
 
             // Collect call statistics
