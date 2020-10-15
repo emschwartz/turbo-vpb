@@ -111,7 +111,7 @@ if (Sentry) {
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
         release: extensionVersion,
         beforeBreadcrumb: (breadcrumb) => {
-            if (breadcrumb.category === 'xhr' &&
+            if ((breadcrumb.category === 'xhr' || breadcrumb.category === 'fetch') &&
                 breadcrumb.data &&
                 (breadcrumb.data.url.startsWith('https://analytics.turbovpb.com' || breadcrumb.data.url.startsWith('https://stats.turbovpb.com')))) {
                 return null
