@@ -191,7 +191,6 @@ function start() {
                 clearTimeout(connectTimer)
                 console.log('Session is complete, stopping peer manager')
                 peerManager.stop()
-                peerManager = null
                 return
             }
 
@@ -259,17 +258,18 @@ function start() {
                 pendingSaveMessage = null
             }
 
-            // Make sure we're still connected
-            if (peerManager && !peerManager.isStopped()) {
-                await peerManager.reconnect(null, true)
+            let duration
+            if (lastCallStartTime) {
+                duration = Date.now() - lastCallStartTime
+                console.log(`last call duration was approximately ${duration}ms`)
             }
 
-            // Collect call statistics
-            if (lastCallStartTime) {
-                const duration = Date.now() - lastCallStartTime
-                console.log(`last call duration was approximately ${duration}ms`)
+            if (peerManager && !peerManager.isStopped()) {
+                // Make sure we're still connected
+                await peerManager.reconnect(null, true)
 
-                if (!peerManager.isStopped()) {
+                // Send call stats to extension
+                if (lastCallStartTime) {
                     await peerManager.sendMessage({
                         type: 'callRecord',
                         timestamp: lastCallStartTime,
@@ -277,23 +277,23 @@ function start() {
                         duration
                     })
                 }
-                lastCallStartTime = null
+            }
+            lastCallStartTime = null
 
-                try {
-                    // TODO we might miss the last call if they never return to the page
-                    await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json; charset=UTF-8'
-                        },
-                        body: JSON.stringify({
-                            duration
-                            // TODO add call result
-                        })
-                    }, 3)
-                } catch (err) {
-                    console.error('Error saving call stats', err)
-                }
+            try {
+                // TODO we might miss the last call if they never return to the page
+                await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8'
+                    },
+                    body: JSON.stringify({
+                        duration
+                        // TODO add call result
+                    })
+                }, 3)
+            } catch (err) {
+                console.error('Error saving call stats', err)
             }
         })
     }
@@ -307,7 +307,6 @@ function restartConnectionTimeout() {
         displayError(err)
         Sentry.captureException(err)
         peerManager.stop()
-        peerManager = null
     }, CONNECT_TIMEOUT)
 }
 
@@ -602,7 +601,6 @@ function markSessionComplete() {
 
     if (peerManager) {
         peerManager.stop()
-        peerManager = null
     }
 
     setStatus('Session Complete', 'primary')
