@@ -433,7 +433,7 @@ function createTextMessageLinks(firstName, phoneNumber) {
         a.role = 'button'
         a.target = "_blank"
         const messageBody = message
-            .replace(/\[their name\]/i, firstName)
+            .replace(/\[(?:their|thier|there) name\]/i, firstName)
             .replace(/\[your name\]/i, yourName)
         a.href = `sms://${phoneNumber};?&body=${encodeURIComponent(messageBody)}`
         if (result) {
