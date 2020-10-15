@@ -132,158 +132,172 @@ if (Sentry) {
     console.error('Could not load Sentry')
 }
 
-if (/^0\.7\./.test(extensionVersion)) {
-    document.getElementById('textMessageInstructionsTextOnly').setAttribute('hidden', 'true')
-    document.getElementById('textMessageInstructionsWithLink').removeAttribute('hidden')
+document.addEventListener('readystatechange', () => {
+    console.log('document readyState:', document.readyState)
+})
 
-    document.getElementById('openOptionsPage').addEventListener('click', async (e) => {
-        e.preventDefault()
-
-        if (peerManager) {
-            await peerManager.sendMessage({
-                type: 'openOptions'
-            })
-        } else {
-            console.error('cannot send open options message because peer manager is undefined')
-        }
-    })
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start)
+} else {
+    start()
 }
 
-// Connect to the extension if a remotePeerId is specified and the session isn't complete
-if (sessionIsComplete()) {
-    markSessionComplete()
-} else if (!remotePeerId) {
-    // Show error
-    document.getElementById('mainContainer').setAttribute('hidden', true)
-    document.getElementById('warningContainer').removeAttribute('hidden')
-} else {
-    // Create PeerManager and set up event handlers
-    peerManager = new PeerManager({
-        debugMode,
-        remotePeerId
-    })
-    peerManager.onConnect = () => {
-        setStatus('Connected', 'success')
-        clearTimeout(connectTimer)
+function start() {
+    document.removeEventListener('load', start)
 
-        // Update session time
-        if (!sessionTimeInterval) {
-            sessionTimeInterval = setInterval(() => {
-                document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
-            }, 1000)
-        }
-    }
-    peerManager.onData = handleData
-    peerManager.onReconnecting = (target) => {
-        if (sessionIsComplete()) {
-            peerManager.stop()
-            return
-        }
+    if (/^0\.7\./.test(extensionVersion)) {
+        document.getElementById('textMessageInstructionsTextOnly').setAttribute('hidden', 'true')
+        document.getElementById('textMessageInstructionsWithLink').removeAttribute('hidden')
 
-        setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
-        setLoading()
+        document.getElementById('openOptionsPage').addEventListener('click', async (e) => {
+            e.preventDefault()
 
-        clearTimeout(connectTimer)
-        connectTimer = setTimeout(() => {
-            displayError(new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?'))
-            peerManager.stop()
-        }, CONNECT_TIMEOUT)
-
-        document.getElementById('warningContainer').hidden = true
-        document.getElementById('contactDetails').hidden = true
-    }
-    peerManager.onError = (err) => {
-        displayError(err)
-
-        Sentry.captureException(err, {
-            tags: {
-                error_type: err.type
-            }
-        })
-    }
-
-    peerManager.connect()
-
-    // Estimate call duration
-    // Start the timer either on click or on the touchstart event
-    document.getElementById('phoneNumberLink')
-        .addEventListener('click', (e) => {
-            if (window.localStorage.getItem('requireLongPressMode')) {
-                e.preventDefault()
-                const label = e.target.innerText
-                e.target.classList.replace('btn-primary', 'btn-warning')
-                e.target.innerText = 'Long-Press to Call'
-                setTimeout(() => {
-                    e.target.innerText = label
-                    e.target.classList.replace('btn-warning', 'btn-primary')
-                }, 800)
+            if (peerManager) {
+                await peerManager.sendMessage({
+                    type: 'openOptions'
+                })
             } else {
-                lastCallStartTime = Date.now()
+                console.error('cannot send open options message because peer manager is undefined')
             }
         })
-    document.getElementById('phoneNumberLink')
-        .addEventListener('touchstart', () => {
-            lastCallStartTime = Date.now()
-        })
-
-    // Require long-press mode setting
-    if (window.localStorage.getItem('requireLongPressMode')) {
-        document.getElementById('requireLongPressMode').checked = true
     }
-    document.getElementById('requireLongPressMode')
-        .addEventListener('change', (e) => {
-            if (e.target.checked) {
-                window.localStorage.setItem('requireLongPressMode', 'true')
-            } else {
-                window.localStorage.removeItem('requireLongPressMode')
-            }
+
+    // Connect to the extension if a remotePeerId is specified and the session isn't complete
+    if (sessionIsComplete()) {
+        markSessionComplete()
+    } else if (!remotePeerId) {
+        // Show error
+        document.getElementById('mainContainer').setAttribute('hidden', true)
+        document.getElementById('warningContainer').removeAttribute('hidden')
+    } else {
+        // Create PeerManager and set up event handlers
+        peerManager = new PeerManager({
+            debugMode,
+            remotePeerId
         })
+        peerManager.onConnect = () => {
+            setStatus('Connected', 'success')
+            clearTimeout(connectTimer)
 
-    document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState !== 'visible') {
-            return
+            // Update session time
+            if (!sessionTimeInterval) {
+                sessionTimeInterval = setInterval(() => {
+                    document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
+                }, 1000)
+            }
         }
+        peerManager.onData = handleData
+        peerManager.onReconnecting = (target) => {
+            if (sessionIsComplete()) {
+                peerManager.stop()
+                return
+            }
 
-        // Make sure we're still connected
-        if (peerManager) {
-            await peerManager.reconnect(null, true)
+            setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
+            setLoading()
+
+            clearTimeout(connectTimer)
+            connectTimer = setTimeout(() => {
+                displayError(new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?'))
+                peerManager.stop()
+            }, CONNECT_TIMEOUT)
+
+            document.getElementById('warningContainer').hidden = true
+            document.getElementById('contactDetails').hidden = true
         }
+        peerManager.onError = (err) => {
+            displayError(err)
 
-        if (pendingSaveMessage) {
-            showSaveMessage(pendingSaveMessage)
-            pendingSaveMessage = null
-        }
-
-        // Collect call statistics
-        if (lastCallStartTime) {
-            const duration = Date.now() - lastCallStartTime
-            console.log(`last call duration was approximately ${duration}ms`)
-
-            await peerManager.sendMessage({
-                type: 'callRecord',
-                timestamp: lastCallStartTime,
-                callNumber,
-                duration
+            Sentry.captureException(err, {
+                tags: {
+                    error_type: err.type
+                }
             })
-            lastCallStartTime = null
-
-            try {
-                // TODO we might miss the last call if they never return to the page
-                await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json; charset=UTF-8'
-                    },
-                    body: JSON.stringify({
-                        duration
-                        // TODO add call result
-                    })
-                }, 3)
-            } catch (err) {
-                console.error('Error saving call stats', err)
-            }
         }
-    })
+
+        peerManager.connect()
+
+        // Estimate call duration
+        // Start the timer either on click or on the touchstart event
+        document.getElementById('phoneNumberLink')
+            .addEventListener('click', (e) => {
+                if (window.localStorage.getItem('requireLongPressMode')) {
+                    e.preventDefault()
+                    const label = e.target.innerText
+                    e.target.classList.replace('btn-primary', 'btn-warning')
+                    e.target.innerText = 'Long-Press to Call'
+                    setTimeout(() => {
+                        e.target.innerText = label
+                        e.target.classList.replace('btn-warning', 'btn-primary')
+                    }, 800)
+                } else {
+                    lastCallStartTime = Date.now()
+                }
+            })
+        document.getElementById('phoneNumberLink')
+            .addEventListener('touchstart', () => {
+                lastCallStartTime = Date.now()
+            })
+
+        // Require long-press mode setting
+        if (window.localStorage.getItem('requireLongPressMode')) {
+            document.getElementById('requireLongPressMode').checked = true
+        }
+        document.getElementById('requireLongPressMode')
+            .addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    window.localStorage.setItem('requireLongPressMode', 'true')
+                } else {
+                    window.localStorage.removeItem('requireLongPressMode')
+                }
+            })
+
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState !== 'visible') {
+                return
+            }
+
+            // Make sure we're still connected
+            if (peerManager) {
+                await peerManager.reconnect(null, true)
+            }
+
+            if (pendingSaveMessage) {
+                showSaveMessage(pendingSaveMessage)
+                pendingSaveMessage = null
+            }
+
+            // Collect call statistics
+            if (lastCallStartTime) {
+                const duration = Date.now() - lastCallStartTime
+                console.log(`last call duration was approximately ${duration}ms`)
+
+                await peerManager.sendMessage({
+                    type: 'callRecord',
+                    timestamp: lastCallStartTime,
+                    callNumber,
+                    duration
+                })
+                lastCallStartTime = null
+
+                try {
+                    // TODO we might miss the last call if they never return to the page
+                    await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json; charset=UTF-8'
+                        },
+                        body: JSON.stringify({
+                            duration
+                            // TODO add call result
+                        })
+                    }, 3)
+                } catch (err) {
+                    console.error('Error saving call stats', err)
+                }
+            }
+        })
+    }
 }
 
 function handleData(data) {
