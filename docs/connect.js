@@ -1,3 +1,4 @@
+console.log('Loading connect.js')
 const CONNECT_TIMEOUT = 10000
 
 const TEXT_MESSAGE_MARK_TEXTED_ICON = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-chat-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">

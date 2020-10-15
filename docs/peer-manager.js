@@ -1,3 +1,5 @@
+console.log('Loading PeerManager')
+
 const DEFAULT_ICE_SERVERS = [{
     "url": "stun:stun.l.google.com:19302",
     "urls": "stun:stun.l.google.com:19302"
