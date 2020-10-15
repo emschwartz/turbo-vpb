@@ -259,7 +259,7 @@ function start() {
             }
 
             // Make sure we're still connected
-            if (peerManager) {
+            if (peerManager && !peerManager.isStopped()) {
                 await peerManager.reconnect(null, true)
             }
 
@@ -268,12 +268,14 @@ function start() {
                 const duration = Date.now() - lastCallStartTime
                 console.log(`last call duration was approximately ${duration}ms`)
 
-                await peerManager.sendMessage({
-                    type: 'callRecord',
-                    timestamp: lastCallStartTime,
-                    callNumber,
-                    duration
-                })
+                if (!peerManager.isStopped()) {
+                    await peerManager.sendMessage({
+                        type: 'callRecord',
+                        timestamp: lastCallStartTime,
+                        callNumber,
+                        duration
+                    })
+                }
                 lastCallStartTime = null
 
                 try {

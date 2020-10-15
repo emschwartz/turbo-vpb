@@ -186,6 +186,10 @@ class PeerManager {
             this.peer.destroy()
         }
     }
+
+    isStopped() {
+        return !this.active
+    }
 }
 
 async function getIceServers() {
