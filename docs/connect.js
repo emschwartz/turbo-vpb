@@ -136,14 +136,14 @@ document.addEventListener('readystatechange', () => {
     console.log('document readyState:', document.readyState)
 })
 
-if (document.readyState === 'complete') {
-    start()
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start)
 } else {
-    document.addEventListener('load', start)
+    start()
 }
 
 function start() {
-    document.removeEventListener('load', start)
+    document.removeEventListener('DOMContentLoaded', start)
 
     if (/^0\.7\./.test(extensionVersion)) {
         document.getElementById('text-message-instructions-text-only').setAttribute('hidden', 'true')
