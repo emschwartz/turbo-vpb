@@ -136,11 +136,10 @@ document.addEventListener('readystatechange', () => {
     console.log('document readyState:', document.readyState)
 })
 
+restartConnectionTimeout()
 start()
 
 function start() {
-    document.removeEventListener('DOMContentLoaded', start)
-
     if (/^0\.7\./.test(extensionVersion)) {
         document.getElementById('text-message-instructions-text-only').setAttribute('hidden', 'true')
         document.getElementById('text-message-instructions-with-link').removeAttribute('hidden')
@@ -188,6 +187,7 @@ function start() {
         }
         peerManager.onReconnecting = (target) => {
             if (sessionIsComplete()) {
+                clearTimeout(connectTimer)
                 console.log('Session is complete, stopping peer manager')
                 peerManager.stop()
                 peerManager = null
@@ -196,14 +196,7 @@ function start() {
 
             setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
             setLoading()
-
-            clearTimeout(connectTimer)
-            connectTimer = setTimeout(() => {
-                console.error('connection timed out')
-                displayError(new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?'))
-                peerManager.stop()
-                peerManager = null
-            }, CONNECT_TIMEOUT)
+            restartConnectionTimeout()
 
             document.getElementById('warning-container').hidden = true
             document.getElementById('contact-details').hidden = true
@@ -301,6 +294,18 @@ function start() {
             }
         })
     }
+}
+
+function restartConnectionTimeout() {
+    clearTimeout(connectTimer)
+    connectTimer = setTimeout(() => {
+        console.error('connection timed out')
+        const err = new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?')
+        displayError(err)
+        Sentry.captureException(err)
+        peerManager.stop()
+        peerManager = null
+    }, CONNECT_TIMEOUT)
 }
 
 function handleData(data) {
@@ -577,6 +582,8 @@ function markSessionComplete() {
     window.sessionStorage.setItem('sessionComplete', 'true')
     document.getElementById('contact-details').remove()
     document.getElementById('session-ended').removeAttribute('hidden')
+
+    clearTimeout(connectTimer)
 
     if (sessionTimeInterval) {
         clearInterval(sessionTimeInterval)
