@@ -544,8 +544,11 @@ function displayError(err) {
         a.innerText = 'evan@turbovpb.com'
         const emailBody = encodeURIComponent(`Hi Evan,
 
-        I like the idea for TurboVPB but I ran into a problem trying to use it. Please fix this issue.
+        I like the idea for TurboVPB but I ran into a problem trying to use it.
 
+        (Please describe what happened in as much detail as possible. Did the problem persist after closing the phone bank tab and rescanning the QR code? Which phone bank site are you using TurboVPB on?)
+
+        Please fix this issue.
         Thank you!
 
 
