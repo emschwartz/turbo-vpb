@@ -136,11 +136,7 @@ document.addEventListener('readystatechange', () => {
     console.log('document readyState:', document.readyState)
 })
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start)
-} else {
-    start()
-}
+start()
 
 function start() {
     document.removeEventListener('DOMContentLoaded', start)
