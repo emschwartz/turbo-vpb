@@ -190,6 +190,7 @@ function start() {
         peerManager.onReconnecting = (target) => {
             if (sessionIsComplete()) {
                 peerManager.stop()
+                peerManager = null
                 return
             }
 
@@ -200,6 +201,7 @@ function start() {
             connectTimer = setTimeout(() => {
                 displayError(new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?'))
                 peerManager.stop()
+                peerManager = null
             }, CONNECT_TIMEOUT)
 
             document.getElementById('warning-container').hidden = true
@@ -577,6 +579,7 @@ function markSessionComplete() {
 
     if (peerManager) {
         peerManager.stop()
+        peerManager = null
     }
 
     setStatus('Session Complete', 'primary')
