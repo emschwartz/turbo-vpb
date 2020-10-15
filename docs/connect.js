@@ -146,10 +146,10 @@ function start() {
     document.removeEventListener('load', start)
 
     if (/^0\.7\./.test(extensionVersion)) {
-        document.getElementById('textMessageInstructionsTextOnly').setAttribute('hidden', 'true')
-        document.getElementById('textMessageInstructionsWithLink').removeAttribute('hidden')
+        document.getElementById('text-message-instructions-text-only').setAttribute('hidden', 'true')
+        document.getElementById('text-message-instructions-with-link').removeAttribute('hidden')
 
-        document.getElementById('openOptionsPage').addEventListener('click', async (e) => {
+        document.getElementById('open-options-page').addEventListener('click', async (e) => {
             e.preventDefault()
 
             if (peerManager) {
@@ -167,8 +167,8 @@ function start() {
         markSessionComplete()
     } else if (!remotePeerId) {
         // Show error
-        document.getElementById('mainContainer').setAttribute('hidden', true)
-        document.getElementById('warningContainer').removeAttribute('hidden')
+        document.getElementById('main-container').setAttribute('hidden', true)
+        document.getElementById('warning-container').removeAttribute('hidden')
     } else {
         // Create PeerManager and set up event handlers
         peerManager = new PeerManager({
@@ -182,7 +182,7 @@ function start() {
             // Update session time
             if (!sessionTimeInterval) {
                 sessionTimeInterval = setInterval(() => {
-                    document.getElementById('sessionTime').innerText = msToTimeString(Date.now() - startTime)
+                    document.getElementById('session-time').innerText = msToTimeString(Date.now() - startTime)
                 }, 1000)
             }
         }
@@ -202,8 +202,8 @@ function start() {
                 peerManager.stop()
             }, CONNECT_TIMEOUT)
 
-            document.getElementById('warningContainer').hidden = true
-            document.getElementById('contactDetails').hidden = true
+            document.getElementById('warning-container').hidden = true
+            document.getElementById('contact-details').hidden = true
         }
         peerManager.onError = (err) => {
             displayError(err)
@@ -219,9 +219,9 @@ function start() {
 
         // Estimate call duration
         // Start the timer either on click or on the touchstart event
-        document.getElementById('phoneNumberLink')
+        document.getElementById('phone-number-link')
             .addEventListener('click', (e) => {
-                if (window.localStorage.getItem('requireLongPressMode')) {
+                if (window.localStorage.getItem('require-long-press-mode')) {
                     e.preventDefault()
                     const label = e.target.innerText
                     e.target.classList.replace('btn-primary', 'btn-warning')
@@ -234,16 +234,16 @@ function start() {
                     lastCallStartTime = Date.now()
                 }
             })
-        document.getElementById('phoneNumberLink')
+        document.getElementById('phone-number-link')
             .addEventListener('touchstart', () => {
                 lastCallStartTime = Date.now()
             })
 
         // Require long-press mode setting
         if (window.localStorage.getItem('requireLongPressMode')) {
-            document.getElementById('requireLongPressMode').checked = true
+            document.getElementById('require-long-press-mode').checked = true
         }
-        document.getElementById('requireLongPressMode')
+        document.getElementById('require-long-press-mode')
             .addEventListener('change', (e) => {
                 if (e.target.checked) {
                     window.localStorage.setItem('requireLongPressMode', 'true')
@@ -335,19 +335,19 @@ function handleData(data) {
         }
         firstName = data.contact.firstName
 
-        document.getElementById('contactDetails').hidden = false
+        document.getElementById('contact-details').hidden = false
         document.getElementById('statistics').hidden = false
 
         document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
 
-        document.getElementById('phoneNumberLink').href = "tel:" + phoneNumber
-        document.getElementById('phoneNumber').innerText = data.contact.phoneNumber
+        document.getElementById('phone-number-link').href = "tel:" + phoneNumber
+        document.getElementById('phone-number').innerText = data.contact.phoneNumber
 
         createTextMessageLinks(firstName, phoneNumber)
 
         // Scroll to contact card
         if (!isScrolledIntoView(document.getElementById('name'))) {
-            document.getElementById('contactDetails').scrollIntoView()
+            document.getElementById('contact-details').scrollIntoView()
             window.scrollBy(0, 0 - document.querySelector('nav').scrollHeight)
         }
     }
@@ -358,11 +358,11 @@ function handleData(data) {
         }
         if (data.stats.calls && data.stats.calls > 0) {
             // TODO maybe update this as the duration is being updated (every second)
-            document.getElementById('numCalls').innerText = `${data.stats.calls} Call${data.stats.calls > 1 ? 's' : ''}`
-            document.getElementById('avgCallTime').innerText = msToTimeString((Date.now() - startTime) / data.stats.calls)
+            document.getElementById('num-calls').innerText = `${data.stats.calls} Call${data.stats.calls > 1 ? 's' : ''}`
+            document.getElementById('avg-call-time').innerText = msToTimeString((Date.now() - startTime) / data.stats.calls)
         }
         if (data.stats.successfulCalls) {
-            document.getElementById('successfulCalls').innerText = data.stats.successfulCalls
+            document.getElementById('successful-calls').innerText = data.stats.successfulCalls
         }
     }
 
@@ -372,7 +372,7 @@ function handleData(data) {
     }
 
     if (Array.isArray(data.resultCodes)) {
-        const callResultLinks = document.getElementById('callResultLinks')
+        const callResultLinks = document.getElementById('call-result-links')
         while (callResultLinks.firstChild) {
             callResultLinks.removeChild(callResultLinks.firstChild)
         }
@@ -429,16 +429,16 @@ function handleData(data) {
 }
 
 function createTextMessageLinks(firstName, phoneNumber) {
-    const textMessageLinks = document.getElementById('textMessageLinks')
+    const textMessageLinks = document.getElementById('text-message-links')
     while (textMessageLinks.firstChild) {
         textMessageLinks.removeChild(textMessageLinks.firstChild)
     }
     if (messageTemplates.length === 0) {
-        document.getElementById('textMessageInstructions')
+        document.getElementById('text-message-instructions')
             .removeAttribute('hidden')
     }
     else {
-        document.getElementById('textMessageInstructions')
+        document.getElementById('text-message-instructions')
             .setAttribute('hidden', 'true')
     }
     for (let { label, message, result } of messageTemplates) {
@@ -525,11 +525,11 @@ function displayError(err) {
     setLoadingFinished()
 
     // Display full error message
-    document.getElementById('warningHeading').innerText = 'Error Connecting to Extension'
-    document.getElementById('warningText1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
+    document.getElementById('warning-heading').innerText = 'Error Connecting to Extension'
+    document.getElementById('warning-text1').innerText = `Error ${(err.type && err.type.replace('-', ' ')) || 'details'}: ${err.message}`
 
     if (err.type !== 'browser-incompatible') {
-        const warningText2 = document.getElementById('warningText2')
+        const warningText2 = document.getElementById('warning-text2')
         warningText2.innerHTML = ''
         warningText2.innerText =
             `Try closing the OpenVPB tab in your browser, opening a new one, and re-scanning the QR code. If that doesn't work, please send this pre-filled email to: `
@@ -551,25 +551,25 @@ function displayError(err) {
         warningText2.appendChild(a)
         warningText2.appendChild(document.createTextNode('.'))
     } else {
-        document.getElementById('warningText2').innerText =
+        document.getElementById('warning-text2').innerText =
             'Unfortunately, this means that TurboVPB will not work on your phone. Sorry :('
     }
-    document.getElementById('warningText2').hidden = false
-    document.getElementById('warningContainer').hidden = false
+    document.getElementById('warning-text2').hidden = false
+    document.getElementById('warning-container').hidden = false
 
     // Clear the contact details
-    document.getElementById('contactDetails').hidden = true
+    document.getElementById('contact-details').hidden = true
     document.getElementById('statistics').hidden = true
     document.getElementById('name').innerText = ''
-    document.getElementById('phoneNumberLink').href = ''
-    document.getElementById('phoneNumber').innerText = ''
+    document.getElementById('phone-number-link').href = ''
+    document.getElementById('phone-number').innerText = ''
 }
 
 function markSessionComplete() {
     sessionComplete = true
     window.sessionStorage.setItem('sessionComplete', 'true')
-    document.getElementById('contactDetails').remove()
-    document.getElementById('sessionEnded').removeAttribute('hidden')
+    document.getElementById('contact-details').remove()
+    document.getElementById('session-ended').removeAttribute('hidden')
 
     if (sessionTimeInterval) {
         clearInterval(sessionTimeInterval)
@@ -633,17 +633,17 @@ function isScrolledIntoView(el) {
 
 function setLoading() {
     document.getElementById('loading').removeAttribute('hidden')
-    document.getElementById('contactDetails').setAttribute('hidden', 'true')
+    document.getElementById('contact-details').setAttribute('hidden', 'true')
 }
 
 function setLoadingFinished() {
     document.getElementById('loading').setAttribute('hidden', 'true')
-    document.getElementById('contactDetails').removeAttribute('hidden')
+    document.getElementById('contact-details').removeAttribute('hidden')
 }
 
 function showSaveMessage(result) {
     document.getElementById('snackbar').classList.add('show')
-    document.getElementById('snackbarMessage').innerText = `Saved Call Result: ${result}`
+    document.getElementById('snackbar-message').innerText = `Saved Call Result: ${result}`
     setTimeout(() => {
         document.getElementById('snackbar').classList.remove('show')
     }, 2500)

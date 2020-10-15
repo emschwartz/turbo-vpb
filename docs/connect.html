@@ -18,36 +18,36 @@
         <span id="status" class="badge badge-warning ml-auto">Not Connected</span>
     </nav>
 
-    <div class="container-sm p-4" id="mainContainer">
-        <div id="warningContainer" hidden>
+    <div class="container-sm p-4" id="main-container">
+        <div id="warning-container" hidden>
             <div class="alert alert-danger">
-                <h4 class="alert-heading" id="warningHeading">
+                <h4 class="alert-heading" id="warning-heading">
                     Uh oh! Looks like something went wrong
                 </h4>
-                <p id="warningText1">
+                <p id="warning-text1">
                     In order for this page to work, you need to
                     copy the full URL including the # sign with the
                     random-looking letters after it. Try scanning
                     the QR code from the extension on your phone.
                 </p>
-                <p id="warningText2" hidden></p>
+                <p id="warning-text2" hidden></p>
             </div>
         </div>
         <div id="statistics" class="text-center mb-5" hidden>
-            <h4 id="numCalls" class="mb-3">0 Calls</h4>
+            <h4 id="num-calls" class="mb-3">0 Calls</h4>
             <table class="table text-secondary">
                 <tbody>
                     <tr>
                         <td>Contacts Reached</td>
-                        <td id="successfulCalls">0</td>
+                        <td id="successful-calls">0</td>
                     </tr>
                     <tr>
                         <td>Avg Time Per Contact</td>
-                        <td id="avgCallTime">00:00</td>
+                        <td id="avg-call-time">00:00</td>
                     </tr>
                     <tr>
                         <td>Total Session Time</td>
-                        <td id="sessionTime" style="width: 7em">00:00</td>
+                        <td id="session-time" style="width: 7em">00:00</td>
                     </tr>
                 </tbody>
             </table>
@@ -61,31 +61,31 @@
             </div>
         </div>
 
-        <div id="contactDetails" hidden>
+        <div id="contact-details" hidden>
             <div class="row mt-auto">
                 <div class="col"></div>
                 <div class="col-md">
                     <h2 id="name" class="text-center"></h2>
-                    <a href="" target="_blank" id="phoneNumberLink"
+                    <a href="" target="_blank" id="phone-number-link"
                         class="btn btn-primary btn-lg btn-block p-3 my-3 h2">
                         <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill mr-2"
                             fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd"
                                 d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.678.678 0 0 0 .178.643l2.457 2.457a.678.678 0 0 0 .644.178l2.189-.547a1.745 1.745 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.634 18.634 0 0 1-7.01-4.42 18.634 18.634 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877L1.885.511zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
                         </svg>
-                        <span id="phoneNumber"></span>
+                        <span id="phone-number"></span>
                     </a>
-                    <div id="textMessageLinks"></div>
-                    <div id="callResultLinks"></div>
-                    <div id="textMessageInstructions" class="alert alert-info text-justify" role="alert" hidden>
-                        <small id="textMessageInstructionsTextOnly">
+                    <div id="text-message-links"></div>
+                    <div id="call-result-links"></div>
+                    <div id="text-message-instructions" class="alert alert-info text-justify" role="alert" hidden>
+                        <small id="text-message-instructions-text-only">
                             You can enable 2-click texting in the TurboVPB extension settings in your
                             browser.
                             Buttons to send each message will appear here.
                         </small>
-                        <small id="textMessageInstructionsWithLink" hidden>
+                        <small id="text-message-instructions-with-link" hidden>
                             You can enable 2-click texting by adding message templates in the settings.
-                            <a id="openOptionsPage" href="#" class="alert-link">Click here</a> to open
+                            <a id="open-options-page" href="#" class="alert-link">Click here</a> to open
                             TurboVPB's
                             settings on your computer.
                         </small>
@@ -95,8 +95,8 @@
             </div>
             <div class="mt-4 mb-5">
                 <div class="custom-control custom-switch text-muted">
-                    <input class="custom-control-input" type="checkbox" id="requireLongPressMode">
-                    <label class="custom-control-label" for="requireLongPressMode">
+                    <input class="custom-control-input" type="checkbox" id="require-long-press-mode">
+                    <label class="custom-control-label" for="require-long-press-mode">
                         Long-press to call (for Google Voice)
                     </label>
                 </div>
@@ -111,10 +111,10 @@
                 <path fill-rule="evenodd"
                     d="M7.646 4.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V14.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3z" />
             </svg>
-            <span id="snackbarMessage"></span>
+            <span id="snackbar-message"></span>
         </div>
 
-        <div id="sessionEnded" class="row p-1" hidden>
+        <div id="session-ended" class="row p-1" hidden>
             <div class="col"></div>
             <div class="col-md">
                 <div class="alert alert-primary">
