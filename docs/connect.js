@@ -223,11 +223,11 @@ function start() {
             .addEventListener('click', (e) => {
                 if (window.localStorage.getItem('require-long-press-mode')) {
                     e.preventDefault()
-                    const label = e.target.innerText
+                    const label = document.getElementById('phone-number').innerText
                     e.target.classList.replace('btn-primary', 'btn-warning')
-                    e.target.innerText = 'Long-Press to Call'
+                    document.getElementById('phone-number').innerText = 'Long-Press to Call'
                     setTimeout(() => {
-                        e.target.innerText = label
+                        document.getElementById('phone-number').innerText = label
                         e.target.classList.replace('btn-warning', 'btn-primary')
                     }, 800)
                 } else {
@@ -472,10 +472,10 @@ function createTextMessageLinks(firstName, phoneNumber) {
                 // TODO figure out if there's a better option than this
                 if (navigator.clipboard) {
                     await navigator.clipboard.writeText(messageBody)
-                    a.innerText = 'Message Copied to Clipboard'
+                    span.innerText = 'Message Copied to Clipboard'
                     a.classList.replace('btn-outline-secondary', 'btn-outline-success')
                     setTimeout(() => {
-                        a.innerText = `Send ${label}`
+                        span.innerText = `Send ${label}`
                         a.classList.replace('btn-outline-success', 'btn-outline-secondary')
                     }, 800)
                 }
