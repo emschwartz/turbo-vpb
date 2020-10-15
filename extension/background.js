@@ -50,6 +50,12 @@ browser.permissions.getAll()
                 await enableOrigin(BLUEVOTE_ORIGIN)
             } else if (STARTTHEVAN_REGEX.test(origin)) {
                 await enableOrigin(STARTTHEVAN_ORIGIN)
+            } else {
+                try {
+                    await enableOrigin(origin)
+                } catch (err) {
+                    console.error(`Error enabling origin: ${origin}`, err)
+                }
             }
         }
     })
@@ -240,13 +246,11 @@ function sendMessage(tabId, message) {
 function getContentScripts(origin) {
     if (OPENVPB_REGEX.test(origin)) {
         originSpecificJs = { file: 'openvpb.js' }
-    } else if (EVERYACTION_REGEX.test(origin) || VOTEBUILDER_REGEX.test(origin) || STARTTHEVAN_REGEX.test(origin)) {
-        originSpecificJs = { file: 'everyaction.js' }
     } else if (BLUEVOTE_REGEX.test(origin)) {
         originSpecificJs = { file: 'bluevote.js' }
     } else {
-        console.error(`unknown origin ${origin}`)
-        return
+        // All other possibilities are instances of VAN
+        originSpecificJs = { file: 'everyaction.js' }
     }
     return [
         { file: 'dependencies/browser-polyfill.js' },

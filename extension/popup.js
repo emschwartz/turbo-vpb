@@ -16,7 +16,6 @@ let shouldShowQrCode = false
 let siteName
 let origin
 let activeTabId
-let regex
 let firstRender = true
 
 onOpen().catch(console.error)
@@ -69,21 +68,18 @@ async function onOpen() {
                 canEnable = true
                 siteName = 'OpenVPB'
                 origin = OPENVPB_ORIGIN
-                regex = OPENVPB_REGEX
                 isEnabled = permissions.origins.some((o) => OPENVPB_REGEX.test(o))
                 shouldShowQrCode = /VirtualPhoneBank\/.+/i.test(activeTab.url)
             } else if (VOTEBUILDER_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'VoteBuilder'
                 origin = VOTEBUILDER_ORIGIN
-                regex = VOTEBUILDER_REGEX
                 isEnabled = permissions.origins.some((o) => VOTEBUILDER_REGEX.test(o))
                 shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
             } else if (BLUEVOTE_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'BlueVote'
                 origin = BLUEVOTE_ORIGIN
-                regex = BLUEVOTE_REGEX
                 isEnabled = permissions.origins.some((o) => BLUEVOTE_REGEX.test(o))
                 shouldShowQrCode = true
             } else if (EVERYACTION_REGEX.test(activeTab.url)) {
@@ -91,15 +87,20 @@ async function onOpen() {
                 canEnable = true
                 siteName = 'VAN'
                 origin = EVERYACTION_ORIGIN
-                regex = EVERYACTION_REGEX
                 isEnabled = permissions.origins.some((o) => EVERYACTION_REGEX.test(o))
                 shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
             } else if (STARTTHEVAN_REGEX.test(activeTab.url)) {
                 canEnable = true
                 siteName = 'StartTheVAN'
                 origin = STARTTHEVAN_ORIGIN
-                regex = STARTTHEVAN_REGEX
                 isEnabled = permissions.origins.some((o) => STARTTHEVAN_REGEX.test(o))
+                shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
+            } else if (await siteIsVanWithCustomDomain(activeTabId)) {
+                canEnable = true
+                siteName = 'This Site'
+                const url = new URL(activeTab.url)
+                origin = `${url.protocol}//${url.host}/ContactDetailScript*`
+                isEnabled = permissions.origins.includes(origin)
                 shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
             }
         }
@@ -156,7 +157,7 @@ function resetStatusLook() {
     document.getElementById('iconPause').setAttribute('hidden', true)
 
     if (isEnabled) {
-        document.getElementById('statusText').innerText = `Enabled on ${siteName}`
+        document.getElementById('statusText').innerText = `Enabled On ${siteName}`
         document.getElementById('iconEnabled').removeAttribute('hidden')
         document.getElementById('iconDisabled').setAttribute('hidden', true)
 
@@ -226,14 +227,11 @@ async function toggleOnSite() {
             }
 
         } else {
+            console.log('disabling origin:', origin)
             await backgroundPage.disableOrigin(origin)
 
-            const { origins } = await browser.permissions.getAll()
-            const originsToRemove = origins.filter((origin) => regex.test(origin))
-            console.log('disabling origin:', originsToRemove)
-
             const wasRemoved = await browser.permissions.remove({
-                origins: originsToRemove
+                origins: [origin]
             })
             console.log(`permission was ${wasRemoved ? '' : 'not '}removed`)
 
@@ -247,7 +245,7 @@ async function toggleOnSite() {
 }
 
 async function showQrCode() {
-    if (!isEnabled) {
+    if (!isEnabled || !shouldShowQrCode) {
         return
     }
     try {
@@ -258,4 +256,11 @@ async function showQrCode() {
     } catch (err) {
         console.error(err)
     }
+}
+
+// Use the presence of specific HTML elements to determine if the site is a VAN instance
+async function siteIsVanWithCustomDomain(tabId) {
+    return browser.tabs.executeScript(tabId, {
+        code: `(document.querySelector('.van-header') || document.querySelector('.van-inner')) !== null`
+    })
 }

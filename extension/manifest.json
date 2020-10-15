@@ -15,7 +15,7 @@
         "https://phonebank.bluevote.com/*"
     ],
     "optional_permissions": [
-        "https://www.startthevan.com/ContactDetailScript*"
+        "<all_urls>"
     ],
     "icons": {
         "48": "icons/phone-outgoing-48.png",
