@@ -32,8 +32,7 @@ class PeerManager {
 
     async reconnect(err, immediate) {
         if (this.active === false) {
-            console.log('not reconnecting because the peer manager is off')
-            return
+            throw new Error('The PeerManager was already stopped, not reconnecting')
         }
 
         if (this.isConnecting) {
@@ -165,6 +164,11 @@ class PeerManager {
     }
 
     async sendMessage(message) {
+        if (this.active === false) {
+            // TODO maybe it's better to throw an error here?
+            console.error('Not sending message because PeerManager has already been stopped')
+            return
+        }
         console.log('sending message', message)
         if (this.connection && this.connection.open) {
             this.connection.send(message)
