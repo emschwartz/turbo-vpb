@@ -63,10 +63,10 @@ function getContactDetails() {
                 gridElements[0].appendChild(container)
             }
         }
+    }
 
-        if (!window.sessionStorage.getItem('turboVpbResultCodes')) {
-            getResultCodes()
-        }
+    if (!window.sessionStorage.getItem('turboVpbResultCodes')) {
+        getResultCodes()
     }
 
     // Find phone number

@@ -53,10 +53,10 @@ function getContactDetails() {
                 sidebarContainer.appendChild(container)
             }
         }
+    }
 
-        if (!window.sessionStorage.getItem('turboVpbResultCodes')) {
-            getResultCodes()
-        }
+    if (!window.sessionStorage.getItem('turboVpbResultCodes')) {
+        getResultCodes()
     }
 
     // Find phone number
