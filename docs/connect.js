@@ -458,8 +458,16 @@ function createTextMessageLinks(firstName, phoneNumber) {
         a.role = 'button'
         a.target = "_blank"
         const messageBody = message
-            .replace(/\[(?:their|thier|there) name\]/i, firstName)
-            .replace(/\[your name\]/i, yourName)
+            .replace(/\[(?:their|thier|there) name\]/ig, firstName)
+            .replace(/\[your name\]/ig, yourName)
+
+        // Report it if the message still has bracketed text ([...]) in it
+        // after the substitution is applied
+        if (/\[.*\]/g.test(messageBody)) {
+            console.warn('Message still has brackets in it: ', JSON.stringify(messageBody))
+            Sentry.captureMessage('Text message body still has brackets in it: ' + JSON.stringify(message))
+        }
+
         a.href = `sms://${phoneNumber};?&body=${encodeURIComponent(messageBody)}`
         if (result) {
             a.innerHTML = TEXT_MESSAGE_MARK_TEXTED_ICON
