@@ -13,15 +13,15 @@
         "https://*.everyaction.com/ContactDetailScript*",
         "https://www.votebuilder.com/ContactDetailScript*",
         "https://phonebank.bluevote.com/*",
-        "*://*.turbovpb.com/*",
+        "*://*.turbovpb.com/*"
     ],
     "optional_permissions": [
         "<all_urls>"
     ],
     "icons": {
-        "48": "icons/phone-outgoing-48.png",
-        "96": "icons/phone-outgoing-96.png",
-        "128": "icons/phone-outgoing-128.png"
+        "48": "icons/phone-outgoing-blue-48.png",
+        "96": "icons/phone-outgoing-blue-96.png",
+        "128": "icons/phone-outgoing-blue-128.png"
     },
     "background": {
         "scripts": [

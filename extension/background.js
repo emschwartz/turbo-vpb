@@ -253,9 +253,7 @@ function sendMessage(tabId, message) {
 async function injectShareScript() {
     console.log('Registering share integration content script')
     await browser.contentScripts.register({
-        matches: [
-            TURBOVPB_SHARE_ORIGIN,
-        ],
+        matches: [TURBOVPB_SHARE_ORIGIN],
         js: [
             { file: 'dependencies/browser-polyfill.js' },
             { file: 'dependencies/tingle.js' },
