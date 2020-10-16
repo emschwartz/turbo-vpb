@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="dependencies/bootstrap.min.css">
+    <title>TurboVPB | Turbocharge Your Phone Banking in &lt;2 Minutes</title>
+    <meta property="og:site_name" content="TurboVPB | Turbocharge Your Phone Banking in &lt;2 Minutes" />
+    <meta property="og:title" content="TurboVPB | Turbocharge Your Phone Banking in &lt;2 Minutes" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://turbovpb.com" />
+    <meta property="og:description"
+        content="Free browser extension that speeds up phone banking with OpenVPB, VAN, and BlueVote. Call and text with just 2 clicks!" />
+    <meta property="og:video"
+        content="https://www.youtube.com/watch?v=B3QotZgtmF4&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&index=1" />
+    <meta property="og:image" content="https://turbovpb.com/images/phone-outgoing-blue-500.png" />
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+</head>
+
+<template id="message-template-template">
+    <div class="card text-left my-3 mx-0">
+        <div class="card-body">
+
+            <h4 slot="message-label" class="card-title pl-1"></h4>
+            <p slot="message-body" class="card-text rounded bg-light p-3"></p>
+
+            <div class="form-group form-check">
+                <input type="checkbox" class="form-check-input" slot="send-texted-result" disabled />
+                <label class="form-check-label">Select <code>Texted</code> in OpenVPB and load next contact after
+                    sending?
+                </label>
+            </div>
+        </div>
+    </div>
+</template>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="https://turbovpb.com">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill" fill="currentColor"
+                xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd"
+                    d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
+            </svg> TurboVPB
+        </a>
+    </nav>
+
+    <div class="container container-sm mt-3 mb-5">
+        <div class="row mb-2">
+            <div class="col"></div>
+            <div class="col-md-10 text-center">
+                <h1 class="my-4 display-3">Import TurboVPB Settings</h1>
+                <p class="lead">Click the button at the bottom of the page to import the settings below</p>
+            </div>
+            <div class="col"></div>
+        </div>
+
+        <div id="version-gt-0-8-message" class="row mb-2 text-center">
+            <div class="col"></div>
+            <div class="col-md-8">
+                <div class="alert alert-info">
+                    <h4 class="alert-heading">
+                        TurboVPB Version >= 0.8.0 Required
+                    </h4>
+
+                    <p>You first need to install or update TurboVPB. To install the extension, click here:</p>
+
+                    <a class="btn btn-primary btn-lg my-2 mx-auto" id="install-chrome"
+                        href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh?hl=en-US"
+                        target="_blank">
+                        <img src="images/chrome-logo.png" width="40px" class="mr-2"> Get TurboVPB for Chrome
+                    </a>
+                    <a class="btn btn-primary btn-lg my-2 mx-auto" id="install-firefox"
+                        href="https://addons.mozilla.org/en-US/firefox/addon/turbovpb/" hidden>
+                        <img src="images/firefox-logo.png" width="40px" class="mr-2">
+                        Get TurboVPB for Firefox
+                    </a>
+                    <script>
+                        if (/firefox/i.test(navigator.userAgent)) {
+                            document.getElementById('install-chrome').setAttribute('hidden', 'true')
+                            document.getElementById('install-firefox').removeAttribute('hidden')
+                        }
+                    </script>
+                </div>
+            </div>
+            <div class="col"></div>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col"></div>
+            <div class="col-md-8 text-center">
+                <h2 class="my-3">Text Message Templates</h2>
+                <div id="message-template-container" class="my-3"></div>
+
+                <button class="btn btn-primary btn-lg px-5 pt-3 pb-2 m-3" disabled>
+                    <h3>
+                        <svg width="1em" height="1em" class="mr-1" viewBox="0 0 16 16"
+                            class="bi bi-cloud-arrow-down-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd"
+                                d="M8 2a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 6.095 0 7.555 0 9.318 0 11.366 1.708 13 3.781 13h8.906C14.502 13 16 11.57 16 9.773c0-1.636-1.242-2.969-2.834-3.194C12.923 3.999 10.69 2 8 2zm2.354 6.854l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 9.293V5.5a.5.5 0 0 1 1 0v3.793l1.146-1.147a.5.5 0 0 1 .708.708z" />
+                        </svg>
+
+                        Import Settings
+                    </h3>
+                </button>
+            </div>
+            <div class="col"></div>
+        </div>
+
+    </div>
+
+    <script>
+        class MessageTemplate extends HTMLElement {
+            constructor(label, message, result) {
+                super()
+                const template = document.getElementById('message-template-template').content
+                this.appendChild(template.cloneNode(true));
+
+                if (label) {
+                    this.querySelector(`[slot='message-label']`).innerText = label
+                }
+                if (message) {
+                    this.querySelector(`[slot='message-body']`).innerText = message
+                }
+                if (result && result.toLowerCase() === 'texted') {
+                    this.querySelector(`[slot='send-texted-result']`).checked = true
+                }
+            }
+        }
+        window.customElements.define('message-template', MessageTemplate)
+
+        const search = (new URL(window.location.href)).searchParams
+        let messageTemplates = []
+        if (search.get('messageTemplates')) {
+            try {
+                messageTemplates = JSON.parse(search.get('messageTemplates'))
+                console.log('parsed message templates', messageTemplates)
+            } catch (err) {
+                console.error('Error parsing messageTemplates')
+            }
+        }
+
+        const container = document.getElementById('message-template-container')
+        for (let { label, message, result } of messageTemplates) {
+            console.log(label, message)
+            if (label && message) {
+                console.log('Parsed message template', label, message)
+                const elem = new MessageTemplate(label, message, result)
+                container.appendChild(elem)
+            }
+        }
+    </script>
+</body>
+
+</html>
