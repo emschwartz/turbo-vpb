@@ -9,6 +9,7 @@ const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
 const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
+const TURBOVPB_SHARE_ORIGIN = 'https://turbovpb.com/share*'
 
 const peers = {}
 const unregisterContentScripts = {}
@@ -39,8 +40,15 @@ browser.storage.local.get(['sessionRecords', 'totalCalls', 'totalTexts'])
 // Load content scripts for enabled domains
 browser.permissions.getAll()
     .then(async ({ origins = [] }) => {
+        try {
+            await injectShareScript()
+        } catch (err) {
+            console.error('Error injecting share script', err)
+        }
         for (let origin of origins) {
-            if (OPENVPB_REGEX.test(origin)) {
+            if (origin.includes('turbovpb') || origin.includes('localhost')) {
+                // Handled above
+            } else if (OPENVPB_REGEX.test(origin)) {
                 await enableOrigin(OPENVPB_ORIGIN)
             } else if (EVERYACTION_REGEX.test(origin)) {
                 await enableOrigin(EVERYACTION_ORIGIN)
@@ -242,6 +250,20 @@ function sendMessage(tabId, message) {
     peers[tabId].peer.sendMessage(message)
 }
 
+async function injectShareScript() {
+    console.log('Registering share integration content script')
+    await browser.contentScripts.register({
+        matches: [
+            TURBOVPB_SHARE_ORIGIN,
+        ],
+        js: [
+            { file: 'dependencies/browser-polyfill.js' },
+            { file: 'dependencies/tingle.js' },
+            { file: 'share-integration.js' },
+        ],
+        css: [{ file: 'dependencies/tingle.css' }]
+    })
+}
 
 function getContentScripts(origin) {
     if (OPENVPB_REGEX.test(origin)) {

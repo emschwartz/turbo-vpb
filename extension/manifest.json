@@ -12,7 +12,8 @@
         "https://www.openvpb.com/VirtualPhoneBank*",
         "https://*.everyaction.com/ContactDetailScript*",
         "https://www.votebuilder.com/ContactDetailScript*",
-        "https://phonebank.bluevote.com/*"
+        "https://phonebank.bluevote.com/*",
+        "*://*.turbovpb.com/*",
     ],
     "optional_permissions": [
         "<all_urls>"

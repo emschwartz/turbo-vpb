@@ -37,14 +37,14 @@
 </head>
 
 <template id="message-template-template">
-    <div class="card text-left my-3 mx-0">
+    <div class="card text-left my-3 mx-0" name="message-template">
         <div class="card-body">
 
-            <h4 slot="message-label" class="card-title pl-1"></h4>
-            <p slot="message-body" class="card-text rounded bg-light p-3"></p>
+            <h4 name="message-label" class="card-title pl-1"></h4>
+            <p name="message-body" class="card-text rounded bg-light p-3"></p>
 
             <div class="form-group form-check mb-0">
-                <input type="checkbox" class="form-check-input" slot="send-texted-result" disabled />
+                <input type="checkbox" class="form-check-input" name="send-texted-result" disabled />
                 <label class="form-check-label">Select <code>Texted</code> result code and load next contact after
                     sending?
                 </label>
@@ -90,7 +90,7 @@
                         <img src="images/chrome-logo.png" width="40px" class="mr-2"> Get TurboVPB for Chrome
                     </a>
                     <a class="btn btn-primary btn-lg my-2 mx-auto" id="install-firefox"
-                        href="https://addons.mozilla.org/en-US/firefox/addon/turbovpb/" hidden>
+                        href="https://addons.mozilla.org/en-US/firefox/addon/turbovpb/" target="_blank" hidden>
                         <img src="images/firefox-logo.png" width="40px" class="mr-2">
                         Get TurboVPB for Firefox
                     </a>
@@ -111,7 +111,7 @@
                 <h2 class="my-3">Text Message Templates</h2>
                 <div id="message-template-container" class="my-3"></div>
 
-                <button class="btn btn-primary btn-lg px-5 pt-3 pb-2 m-3" disabled>
+                <button id="import-settings" class="btn btn-primary btn-lg px-5 pt-3 pb-2 m-3" disabled>
                     <h3>
                         <svg width="1em" height="1em" class="mr-1" viewBox="0 0 16 16"
                             class="bi bi-cloud-arrow-down-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -138,10 +138,10 @@
                 this.appendChild(template.cloneNode(true));
 
                 if (label) {
-                    this.querySelector(`[slot='message-label']`).innerText = label
+                    this.querySelector(`[name='message-label']`).innerText = label
                 }
                 if (message) {
-                    const bodyContainer = this.querySelector(`[slot='message-body']`)
+                    const bodyContainer = this.querySelector(`[name='message-body']`)
                     const parts = message.split(THEIR_NAME_REGEX)
                         .map((s) => s.split(YOUR_NAME_REGEX))
                         .flat()
@@ -158,7 +158,7 @@
                     }
                 }
                 if (result && result.toLowerCase() === 'texted') {
-                    this.querySelector(`[slot='send-texted-result']`).checked = true
+                    this.querySelector(`[name='send-texted-result']`).checked = true
                 }
             }
         }
@@ -169,7 +169,6 @@
         if (search.get('messageTemplates')) {
             try {
                 messageTemplates = JSON.parse(search.get('messageTemplates'))
-                console.log('parsed message templates', messageTemplates)
             } catch (err) {
                 console.error('Error parsing messageTemplates')
             }
@@ -177,9 +176,7 @@
 
         const container = document.getElementById('message-template-container')
         for (let { label, message, result } of messageTemplates) {
-            console.log(label, message)
             if (label && message) {
-                console.log('Parsed message template', label, message)
                 const elem = new MessageTemplate(label, message, result)
                 container.appendChild(elem)
             }
