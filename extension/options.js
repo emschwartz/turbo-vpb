@@ -54,6 +54,12 @@ function addMessageTemplate(template) {
         event.preventDefault()
         document.getElementById(id).remove()
         saveSettings()
+        if (messageContainer.childElementCount === 0) {
+            addMessageTemplate({
+                label: '',
+                message: ''
+            })
+        }
     })
     messageContainer.appendChild(messageTemplateNode)
 }
