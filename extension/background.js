@@ -256,7 +256,7 @@ function getContentScripts(origin) {
         { file: 'dependencies/browser-polyfill.js' },
         { file: 'dependencies/tingle.js' },
         { file: 'dependencies/kjua.js' },
-        { file: 'content.js' },
+        { file: 'vpb-common.js' },
         originSpecificJs
     ]
 }
