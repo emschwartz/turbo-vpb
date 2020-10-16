@@ -12,6 +12,8 @@ const SAVED_ICON = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi 
   <path fill-rule="evenodd" d="M10.354 6.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7 8.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
 </svg>`
 
+const YOUR_NAME_REGEX = /([\[\(\{\<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}\>]+)/ig
+
 
 const versionWarning = document.getElementById('version-gt-0-8-message')
 if (versionWarning) {
@@ -22,29 +24,57 @@ const importButton = document.getElementById('import-settings')
 if (!importButton) {
     throw new Error('Import settings button does not exist')
 }
-importButton.removeAttribute('disabled')
-importButton.addEventListener('click', async () => {
+
+start().catch(console.error)
+
+async function start() {
     const { messageTemplates } = parseSettings()
-    const { messageTemplates: previousTemplates = [], yourName } = await browser.storage.local.get(['messageTemplates', 'yourName'])
+    let { messageTemplates: previousTemplates = [], yourName } = await browser.storage.local.get(['messageTemplates', 'yourName'])
+    const includesYourNameReplacement = messageTemplates.some((t) => YOUR_NAME_REGEX.test(t.message || ''))
 
-    let shouldSave = false
-    if (previousTemplates.length > 0) {
-        shouldSave = await showConfirmationDialog(previousTemplates)
-    } else {
-        shouldSave = true
-    }
-
-    if (shouldSave) {
-        await browser.storage.local.get({
-            messageTemplates
-        })
-
+    const alreadyUsingTheseTemplates = messageTemplates.every((template) => {
+        return previousTemplates.some((prevTemplate) => template.label === prevTemplate.label && template.message === prevTemplate.message)
+    })
+    if (alreadyUsingTheseTemplates) {
+        console.log('Already using these templates')
+        importButton.innerHTML = `<h3>${SAVED_ICON} &nbsp; Already Using These Settings</h3>`
         importButton.classList.replace('btn-primary', 'btn-success')
-        importButton.innerHTML = `<h3>${SAVED_ICON} &nbsp; Settings Saved</h3>`
-        importButton.setAttribute('disabled', 'true')
+        return
     }
-    // TODO make sure their name is filled out
-})
+
+    importButton.removeAttribute('disabled')
+    importButton.addEventListener('click', async () => {
+        // Ensure they have configured their name if the message templates include the
+        // [Your Name] automatic text replacement
+        if (includesYourNameReplacement && !yourName) {
+            yourName = await showNameRequiredDialog()
+            console.log('name is:', yourName)
+            if (yourName) {
+                await browser.storage.local.set({ yourName })
+            } else {
+                return
+            }
+        }
+
+        let shouldSave = false
+        if (previousTemplates.length > 0) {
+            shouldSave = await showConfirmationDialog(previousTemplates)
+        } else {
+            shouldSave = true
+        }
+
+        if (shouldSave) {
+            console.log('Saving settings')
+            await browser.storage.local.set({
+                messageTemplates
+            })
+
+            importButton.classList.replace('btn-primary', 'btn-success')
+            importButton.innerHTML = `<h3>${SAVED_ICON} &nbsp; Settings Saved</h3>`
+            importButton.setAttribute('disabled', 'true')
+        }
+    })
+}
 
 function parseSettings() {
     const templateElements = document.getElementsByName('message-template')
@@ -78,6 +108,73 @@ function parseSettings() {
     return { messageTemplates }
 }
 
+async function showNameRequiredDialog() {
+    console.log('showing name required dialog')
+    return new Promise((resolve, reject) => {
+        let firstName
+        try {
+            const modal = new tingle.modal({
+                footer: true,
+                closeMethods: ['overlay', 'button', 'escape'],
+                closeLabel: 'Close',
+                onClose: () => resolve(firstName)
+            })
+
+            modal.setContent(`
+            <h3 class="alert-heading">Enter Your First Name</h3>
+            <p class="lead">TurboVPB will automatically replace <code>[Your Name]</code><br>from the message templates with your actual name.</p>
+
+            <input type="text" id="first-name-input" class="p-2 form-control form-control-lg text-center" placeholder="First Name"/>
+            `)
+            const saveNameButton = document.querySelector('.save-name-btn')
+            if (saveNameButton) {
+                saveNameButton.setAttribute('disabled', 'true')
+            }
+
+            const nameInput = document.getElementById('first-name-input')
+            nameInput.addEventListener('input', validateName)
+
+            function validateName() {
+                const nameInput = document.getElementById('first-name-input')
+                if (nameInput) {
+                    firstName = nameInput.value
+                    if (firstName) {
+                        nameInput.classList.add('is-valid')
+                        nameInput.classList.remove('is-invalid')
+
+                        const saveNameButton = document.querySelector('.save-name-btn')
+                        if (saveNameButton) {
+                            saveNameButton.removeAttribute('disabled')
+                        }
+                        return true
+                    } else {
+                        nameInput.classList.add('is-invalid')
+                        nameInput.classList.remove('is-valid')
+
+                        const saveNameButton = document.querySelector('.save-name-btn')
+                        if (saveNameButton) {
+                            saveNameButton.setAttribute('disabled', 'true')
+                        }
+                        return false
+                    }
+                }
+            }
+            modal.addFooterBtn('Save', 'btn btn-primary m-2 tingle-btn--pull-right save-name-btn', () => {
+                if (!validateName()) {
+                    console.log('Name invalid')
+                    return
+                }
+                modal.close()
+                resolve(firstName)
+            })
+            modal.open()
+        } catch (err) {
+            reject(err)
+        }
+    })
+
+}
+
 async function showConfirmationDialog(previousTemplates) {
     console.log('showing confirmation dialog')
     return new Promise((resolve, reject) => {
@@ -88,28 +185,27 @@ async function showConfirmationDialog(previousTemplates) {
                 closeLabel: 'Cancel',
                 onClose: () => resolve(false)
             })
-
             modal.setContent(`
             <h3 class="alert-heading">Overwrite Current Settings?</h3>
             <p class="lead">You have ${previousTemplates.length} Text Message Template${previousTemplates.length > 1 ? 's' : ''} configured.<br>Do you want to overwrite your current settings?</p>
 
-            <p class="lead mb-0">You can click below to export your current settings<br>and save the link to use them again later.</p>`)
+            <p class="lead mb-0">Click here to export your current settings<br>and save the link to use them again later:</p>
+            <a href=${createShareUrl(previousTemplates)} target="_blank" class="btn btn-success btn-lg btn-block py-3 mt-3"><b>${UPLOAD_ICON} &nbsp; Export Current Settings</b></a>`)
             modal.addFooterBtn('Cancel', 'btn btn-secondary m-2', () => {
                 resolve(false)
             })
-            modal.addFooterBtn(`${DOWNLOAD_ICON} Overwrite Settings`, 'overwrite-settings-btn btn btn-warning my-2 mr-2 ml-auto', () => {
+            modal.addFooterBtn(`${DOWNLOAD_ICON} Overwrite Settings`, 'overwrite-settings-btn btn btn-primary m-2 tingle-btn--pull-right', () => {
                 console.log('Overwrite settings')
                 resolve(true)
                 modal.close()
             })
-            modal.addFooterBtn(`${UPLOAD_ICON} &nbsp; Export Current Settings`, 'export-settings-btn btn btn-success my-2 mr-2 ml-auto', () => {
-                window.open(createShareUrl(previousTemplates), '_blank')
-                const overwriteButton = document.querySelector('.overwrite-settings-btn')
-                if (overwriteButton) {
-                    overwriteButton.classList.replace('btn-warning', 'btn-success')
-                }
-                document.querySelector('.export-settings-btn').remove()
-            })
+            const overwriteSettingsButton = document.querySelector('.overwrite-settings-btn')
+            if (overwriteSettingsButton) {
+                overwriteSettingsButton.setAttribute('disabled', 'true')
+                setTimeout(() => {
+                    overwriteSettingsButton.removeAttribute('disabled')
+                }, 3000)
+            }
             modal.open()
         } catch (err) {
             reject(err)
