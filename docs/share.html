@@ -129,6 +129,8 @@
     </div>
 
     <script>
+        const THEIR_NAME_REGEX = /([\[\(\{\<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}\>]+)/ig
+        const YOUR_NAME_REGEX = /([\[\(\{\<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}\>]+)/ig
         class MessageTemplate extends HTMLElement {
             constructor(label, message, result) {
                 super()
@@ -139,7 +141,21 @@
                     this.querySelector(`[slot='message-label']`).innerText = label
                 }
                 if (message) {
-                    this.querySelector(`[slot='message-body']`).innerText = message
+                    const bodyContainer = this.querySelector(`[slot='message-body']`)
+                    const parts = message.split(THEIR_NAME_REGEX)
+                        .map((s) => s.split(YOUR_NAME_REGEX))
+                        .flat()
+                    for (let part of parts) {
+                        let elem
+                        if (THEIR_NAME_REGEX.test(part) || YOUR_NAME_REGEX.test(part)) {
+                            elem = document.createElement('code')
+                        } else {
+                            elem = document.createElement('span')
+                        }
+                        elem.innerText = part
+
+                        bodyContainer.appendChild(elem)
+                    }
                 }
                 if (result && result.toLowerCase() === 'texted') {
                     this.querySelector(`[slot='send-texted-result']`).checked = true
