@@ -21,7 +21,9 @@ if (versionWarning) {
 }
 
 const importButton = document.getElementById('import-settings')
-if (!importButton) {
+if (importButton) {
+    importButton.removeAttribute('hidden')
+} else {
     throw new Error('Import settings button does not exist')
 }
 
