@@ -147,7 +147,9 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
         await browser.storage.local.set({ statsStartDate: (new Date()).toISOString() })
     }
 
-    browser.browserAction.openPopup()
+    if (typeof browser.browserAction.openPopup === 'function') {
+        browser.browserAction.openPopup()
+    }
 })
 
 async function createPeer(tabId) {
