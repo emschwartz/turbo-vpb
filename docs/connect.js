@@ -556,6 +556,7 @@ function displayError(err) {
         Session: ${sessionId}
         Extension Version: ${extensionVersion}
         Desktop Browser: ${extensionUserAgent}
+        Domain: ${domain}
         Mobile Browser: ${navigator.userAgent}`)
         a.href = `mailto:evan@turbovpb.com?subject=${encodeURIComponent('Problem with TurboVPB')}&body=${emailBody}`
         warningText2.appendChild(a)
