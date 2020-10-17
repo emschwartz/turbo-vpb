@@ -229,7 +229,6 @@ async function sendDetails() {
         await browser.runtime.sendMessage({
             type: 'contact',
             data: {
-                domain: window.location.host,
                 messageTemplates,
                 yourName,
                 contact: {

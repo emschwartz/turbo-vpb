@@ -167,7 +167,12 @@ async function createPeer(tabId) {
     const connectionSecret = peer.getConnectionSecret()
     const version = browser.runtime.getManifest().version
     const userAgent = encodeURIComponent(navigator.userAgent)
-    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}&userAgent=${userAgent}#${connectionSecret}`
+    const tabUrl = await browser.tabs.get(tabId).url
+    let domain = ''
+    if (tabUrl) {
+        domain = (new URL(tabUrl)).host
+    }
+    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}${domain ? '&domain=' + encodeURIComponent(domain) : ''}&userAgent=${userAgent}#${connectionSecret}`
 
     let connectionAttempt = 0
     peers[tabId] = {
