@@ -245,9 +245,6 @@ async function toggleOnSite() {
 }
 
 async function showQrCode() {
-    if (!isEnabled || !shouldShowQrCode) {
-        return
-    }
     try {
         await browser.tabs.sendMessage(activeTabId, {
             type: 'showQrCode'
@@ -260,7 +257,8 @@ async function showQrCode() {
 
 // Use the presence of specific HTML elements to determine if the site is a VAN instance
 async function siteIsVanWithCustomDomain(tabId) {
-    return browser.tabs.executeScript(tabId, {
+    const result = await browser.tabs.executeScript(tabId, {
         code: `(document.querySelector('.van-header') || document.querySelector('.van-inner')) !== null`
     })
+    return Array.isArray(result) && result[0] === true
 }
