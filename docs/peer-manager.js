@@ -34,7 +34,8 @@ class PeerManager {
 
     async reconnect(err, immediate) {
         if (this.active === false) {
-            throw new Error('The PeerManager was already stopped, not reconnecting')
+            console.warn('The PeerManager was already stopped, not reconnecting')
+            return
         }
 
         if (this.isConnecting) {
