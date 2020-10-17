@@ -49,9 +49,13 @@ browser.permissions.getAll()
             console.error('Error injecting share script', err)
         }
         for (let origin of origins) {
-            if (origin.includes('turbovpb') || origin.includes('localhost')) {
-                // Handled above
-            } else if (OPENVPB_REGEX.test(origin)) {
+            if (origin.includes('turbovpb')
+                || origin.includes('localhost')
+                || !origin.startsWith('http')) {
+                continue
+            }
+
+            if (OPENVPB_REGEX.test(origin)) {
                 await enableOrigin(OPENVPB_ORIGIN)
             } else if (EVERYACTION_REGEX.test(origin)) {
                 await enableOrigin(EVERYACTION_ORIGIN)

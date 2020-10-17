@@ -10,8 +10,8 @@ const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
 
-let isEnabled = false
 let canEnable = false
+let isEnabled = false
 let shouldShowQrCode = false
 let siteName
 let origin
