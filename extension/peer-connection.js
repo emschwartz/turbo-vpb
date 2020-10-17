@@ -1,3 +1,5 @@
+const RECONNECT_TIMEOUT = 3000
+
 let iceServers = [{
     "url": "stun:stun.l.google.com:19302",
     "urls": "stun:stun.l.google.com:19302"
@@ -28,10 +30,41 @@ class PeerConnection {
     }
 
     async connect() {
-        if (!this.peer && !this.connecting) {
-            this.connecting = true
-            await this._createPeer()
-            this.connecting = false
+        if (this.connecting) {
+            return
+        }
+        this.connecting = true
+        await this._createPeer()
+        this.connecting = false
+    }
+
+    async reconnect() {
+        if (!this.peer) {
+            return this.connect()
+        }
+
+        if (this.peer.disconnected === false) {
+            console.log('peer already connected')
+            return
+        } else {
+            // Try reconnecting
+            const reconnected = await new Promise((resolve) => {
+                this.peer.once('open', () => resolve(true))
+                this.peer.once('close', () => resolve(false))
+                this.peer.once('error', () => resolve(false))
+                this.peer.once('disconnected', () => resolve(false))
+
+                setTimeout(() => resolve(false), RECONNECT_TIMEOUT)
+
+                this.peer.reconnect()
+            })
+            if (reconnected) {
+                console.log('reconnected existing peer')
+                return
+            } else {
+                console.warn('unable to reconnect peer, destroying and creating a new one')
+                this.peer.destroy()
+            }
         }
     }
 

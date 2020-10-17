@@ -1,3 +1,6 @@
+const FINAL_ERRORS = ['browser-incompatible', 'invalid-id', 'invalid-key', 'ssl-unavailable', 'unavailable-id']
+const MAX_RECONNECT_ATTEMPTS = 3
+
 const OPENVPB_REGEX = /https\:\/\/(www\.)?openvpb\.com/i
 const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
 const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i
@@ -162,16 +165,29 @@ async function createPeer(tabId) {
     const userAgent = encodeURIComponent(navigator.userAgent)
     const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}&userAgent=${userAgent}#${connectionSecret}`
 
+    let connectionAttempt = 0
     peers[tabId] = {
         peer,
         url,
         sessionId
     }
-    peer.onerror = (err) => {
+    peer.onerror = async (err) => {
         console.log(`error from peer for tab ${tabId}`, err)
-        destroyPeer(tabId)
+        await browser.tabs.sendMessage(tabId, {
+            type: 'peerError'
+        })
+
+        if (!err || !FINAL_ERRORS.includes(err.type)) {
+            connectionAttempt += 1
+            if (connectionAttempt++ > MAX_RECONNECT_ATTEMPTS) {
+                console.error('exceeded max number of reconnection attempts')
+                return
+            }
+            await peer.reconnect()
+        }
     }
     peer.onconnect = async () => {
+        connectionAttempt = 0
         try {
             await browser.tabs.sendMessage(tabId, {
                 type: 'peerConnected'

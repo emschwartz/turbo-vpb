@@ -4,6 +4,7 @@ console.log("Content script loaded")
 // because OpenVPB overrides the default Bootstrap colors
 const SUCCESS_COLOR = '#28a745'
 const WARNING_COLOR = '#ffc107'
+const ERROR_COLOR = '#dc3545'
 
 let modal
 let isConnected = false
@@ -56,6 +57,13 @@ browser.runtime.onMessage.addListener((message) => {
         for (let connectionStatus of badges) {
             connectionStatus.innerText = 'Not Connected'
             connectionStatus.style = `color: #000; background-color: ${WARNING_COLOR}`
+        }
+    } else if (message.type === 'peerError') {
+        isConnected = false
+        const badges = document.getElementsByClassName('turboVpbConnectionStatus')
+        for (let connectionStatus of badges) {
+            connectionStatus.innerText = 'Error. Close Tab & Re-Open.'
+            connectionStatus.style = `color: #000; background-color: ${ERROR_COLOR}`
         }
     } else if (message.type === 'showQrCode') {
         console.log('showing qr code')
