@@ -215,25 +215,24 @@ function start() {
 
         // Estimate call duration
         // Start the timer either on click or on the touchstart event
-        document.getElementById('phone-number-link')
-            .addEventListener('click', (e) => {
-                if (window.localStorage.getItem('require-long-press-mode')) {
-                    e.preventDefault()
-                    const label = document.getElementById('phone-number').innerText
-                    e.target.classList.replace('btn-primary', 'btn-warning')
-                    document.getElementById('phone-number').innerText = 'Long-Press to Call'
-                    setTimeout(() => {
-                        document.getElementById('phone-number').innerText = label
-                        e.target.classList.replace('btn-warning', 'btn-primary')
-                    }, 800)
-                } else {
-                    lastCallStartTime = Date.now()
-                }
-            })
-        document.getElementById('phone-number-link')
-            .addEventListener('touchstart', () => {
+        const callButton = document.getElementById('phone-number-link')
+        callButton.addEventListener('click', (e) => {
+            if (window.localStorage.getItem('requireLongPressMode')) {
+                e.preventDefault()
+                const label = callButton.innerHTML
+                callButton.classList.replace('btn-primary', 'btn-warning')
+                callButton.innerText = 'Long-Press to Call'
+                setTimeout(() => {
+                    callButton.innerHTML = label
+                    callButton.classList.replace('btn-warning', 'btn-primary')
+                }, 800)
+            } else {
                 lastCallStartTime = Date.now()
-            })
+            }
+        })
+        callButton.addEventListener('touchstart', () => {
+            lastCallStartTime = Date.now()
+        })
 
         // Require long-press mode setting
         if (window.localStorage.getItem('requireLongPressMode')) {
