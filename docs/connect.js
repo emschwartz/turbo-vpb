@@ -60,6 +60,7 @@ const searchParams = (new URL(window.location.href)).searchParams
 const sessionId = searchParams.get('session') || ''
 const extensionVersion = searchParams.get('version') || '<0.6.3'
 const extensionUserAgent = searchParams.get('userAgent') || ''
+const domain = searchParams.get('domain') || ''
 const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
 
@@ -130,6 +131,7 @@ if (Sentry) {
         })
         scope.setTag('extension_version', extensionVersion)
         scope.setTag('extension_useragent', extensionUserAgent)
+        scope.setTag('domain', domain)
         scope.setTag('debug_mode', debugMode)
     })
 } else {
