@@ -80,11 +80,14 @@ if (localStorage.getItem('resultCodes')) {
 let startTime = Date.now()
 let sessionTimeInterval
 let sessionComplete = false
-let lastCallStartTime
 let callNumber
 
 let peerManager
 let connectTimer
+
+let lastCallStartTime
+let lastCallDuration = 0
+let lastCallResult
 let pendingSaveMessage
 
 // Analytics
@@ -257,10 +260,9 @@ function start() {
                 pendingSaveMessage = null
             }
 
-            let duration
             if (lastCallStartTime) {
-                duration = Date.now() - lastCallStartTime
-                console.log(`last call duration was approximately ${duration}ms`)
+                lastCallDuration = Date.now() - lastCallStartTime
+                console.log(`last call duration was approximately ${lastCallDuration}ms`)
             }
 
             if (peerManager && !peerManager.isStopped()) {
@@ -273,27 +275,11 @@ function start() {
                         type: 'callRecord',
                         timestamp: lastCallStartTime,
                         callNumber,
-                        duration
+                        duration: lastCallDuration
                     })
                 }
             }
             lastCallStartTime = null
-
-            try {
-                // TODO we might miss the last call if they never return to the page
-                await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json; charset=UTF-8'
-                    },
-                    body: JSON.stringify({
-                        duration
-                        // TODO add call result
-                    })
-                }, 3)
-            } catch (err) {
-                console.error('Error saving call stats', err)
-            }
         })
     }
 }
@@ -338,10 +324,18 @@ function handleData(data) {
         if (!matches) {
             return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
         }
-        phoneNumber = matches.join('')
-        if (phoneNumber.length === 10) {
-            phoneNumber = '1' + phoneNumber
+        let newPhoneNumber = matches.join('')
+        if (newPhoneNumber.length === 10) {
+            newPhoneNumber = '1' + newPhoneNumber
         }
+
+        // New contact
+        if (newPhoneNumber !== phoneNumber) {
+            // Make sure the last call stats were saved
+            saveCallStats()
+        }
+
+        phoneNumber = newPhoneNumber
         firstName = data.contact.firstName
 
         document.getElementById('contact-details').hidden = false
@@ -417,10 +411,11 @@ function handleData(data) {
             span.innerText = result
             button.appendChild(span)
 
-            button.addEventListener('click', async (e) => {
+            button.addEventListener('click', async () => {
                 console.log(`Sending call result: ${result}`)
                 resultCodes[result] += 1
                 localStorage.setItem('resultCodes', JSON.stringify(resultCodes))
+                lastCallResult = result
 
                 await peerManager.sendMessage({
                     type: 'callResult',
@@ -430,6 +425,8 @@ function handleData(data) {
                 })
                 setLoading()
                 showSaveMessage(result)
+
+                await saveCallStats()
             })
 
             callResultLinks.appendChild(button)
@@ -479,12 +476,7 @@ function createTextMessageLinks(firstName, phoneNumber) {
         a.addEventListener('click', async (e) => {
             if (window.localStorage.getItem('requireLongPressMode')) {
                 console.log('long press mode enabled, ignoring click')
-                try {
-                    e.preventDefault()
-                }
-                catch (err) {
-                    console.error('error preventing click on text message button', err.message)
-                }
+                e.preventDefault()
                 // Copy the message body to the clipboard instead
                 // TODO figure out if there's a better option than this
                 if (navigator.clipboard) {
@@ -496,25 +488,21 @@ function createTextMessageLinks(firstName, phoneNumber) {
                         a.classList.replace('btn-outline-success', 'btn-outline-secondary')
                     }, 800)
                 }
-            } else {
-                if (result) {
-                    console.log(`sending call result: ${result}`)
-                    await peerManager.sendMessage({
-                        type: 'callResult',
-                        result,
-                        callNumber,
-                        timestamp: (new Date()).toISOString()
-                    })
-                    setLoading()
-                    pendingSaveMessage = result
-                    try {
-                        await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
-                            method: 'POST'
-                        }, 3)
-                    } catch (err) {
-                        console.error('Error saving text stats', err)
-                    }
-                }
+            }
+
+            if (result) {
+                console.log(`sending call result: ${result}`)
+                await peerManager.sendMessage({
+                    type: 'callResult',
+                    result,
+                    callNumber,
+                    timestamp: (new Date()).toISOString()
+                })
+                setLoading()
+                lastCallResult = result
+                pendingSaveMessage = result
+
+                await saveCallStats()
             }
         })
         textMessageLinks.appendChild(a)
@@ -670,6 +658,51 @@ function showSaveMessage(result) {
     setTimeout(() => {
         document.getElementById('snackbar').classList.remove('show')
     }, 2500)
+}
+
+// This is called either when:
+// 1. A text message button is clicked
+// 2. A result code button is clicked
+// 3. A new contact is loaded
+async function saveCallStats() {
+    if (!lastCallDuration && !lastCallResult) {
+        // This means the last call was already saved
+        return
+    }
+
+    console.log(`Saving call result. Duration: ${lastCallDuration}ms, result: ${lastCallResult}`)
+
+    try {
+        // TODO we might miss the last call if they never return to the page
+
+        const requests = [
+            fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8'
+                },
+                body: JSON.stringify({
+                    duration: lastCallDuration,
+                    result: lastCallResult
+                })
+            }, 3)
+        ]
+
+        if (lastCallResult.toLowerCase() === 'texted') {
+            requests.push(fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+                method: 'POST'
+            }, 3))
+        }
+
+        await Promise.all(requests)
+
+    } catch (err) {
+        console.error('Error saving call stats', err)
+    }
+
+    lastCallDuration = 0
+    lastCallResult = null
+    lastCallStartTime = null
 }
 
 async function fetchRetry(url, params, times) {
