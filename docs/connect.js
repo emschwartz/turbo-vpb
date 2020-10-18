@@ -712,7 +712,7 @@ async function saveCallStats() {
             }, 3)
         ]
 
-        if (lastCallResult.toLowerCase() === 'texted') {
+        if (lastCallResult && lastCallResult.toLowerCase() === 'texted') {
             requests.push(fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
                 method: 'POST'
             }, 3))
