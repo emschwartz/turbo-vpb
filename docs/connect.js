@@ -576,9 +576,15 @@ function displayError(err) {
     // Clear the contact details
     document.getElementById('contact-details').hidden = true
     document.getElementById('statistics').hidden = true
-    document.getElementById('name').innerText = ''
-    document.getElementById('phone-number-link').href = ''
-    document.getElementById('phone-number').innerText = ''
+    if (document.getElementById('name')) {
+        document.getElementById('name').innerText = ''
+    }
+    if (document.getElementById('phone-number-link')) {
+        document.getElementById('phone-number-link').href = ''
+    }
+    if (document.getElementById('phone-number')) {
+        document.getElementById('phone-number').innerText = ''
+    }
 }
 
 function markSessionComplete() {
