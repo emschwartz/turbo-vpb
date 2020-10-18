@@ -64,15 +64,32 @@ const domain = searchParams.get('domain') || ''
 const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
 
+// Fallback in case localStorage is unavailable
+let storage
+if (window.localStorage) {
+    console.log('Using localStorage')
+    storage = window.localStorage
+} else if (window.sessionStorage) {
+    console.log('Using sessionStorage')
+    storage = window.sessionStorage
+} else {
+    console.log('Using in-memory storage')
+    const memoryStore = {}
+    storage = {
+        setItem: (key, value) => memoryStore[key] = value,
+        getItem: (key) => memoryStore[key]
+    }
+}
+
 let messageTemplates = []
 let phoneNumber
 let firstName
 let yourName = ''
 // resultCode -> number of times used
 let resultCodes = {}
-if (localStorage.getItem('resultCodes')) {
+if (storage.getItem('resultCodes')) {
     try {
-        resultCodes = JSON.parse(localStorage.getItem('resultCodes'))
+        resultCodes = JSON.parse(storage.getItem('resultCodes'))
     } catch (err) {
         console.error('Result codes is corrupted', err)
     }
@@ -222,7 +239,7 @@ function start() {
         // Start the timer either on click or on the touchstart event
         const callButton = document.getElementById('phone-number-link')
         callButton.addEventListener('click', (e) => {
-            if (window.localStorage.getItem('requireLongPressMode')) {
+            if (storage.getItem('requireLongPressMode')) {
                 e.preventDefault()
                 const longPressButton = document.getElementById('long-press-to-call')
                 if (!longPressButton) {
@@ -245,15 +262,15 @@ function start() {
         })
 
         // Require long-press mode setting
-        if (window.localStorage.getItem('requireLongPressMode')) {
+        if (storage.getItem('requireLongPressMode')) {
             document.getElementById('require-long-press-mode').checked = true
         }
         document.getElementById('require-long-press-mode')
             .addEventListener('change', (e) => {
                 if (e.target.checked) {
-                    window.localStorage.setItem('requireLongPressMode', 'true')
+                    storage.setItem('requireLongPressMode', 'true')
                 } else {
-                    window.localStorage.removeItem('requireLongPressMode')
+                    storage.removeItem('requireLongPressMode')
                 }
             })
 
@@ -421,7 +438,7 @@ function handleData(data) {
             button.addEventListener('click', async () => {
                 console.log(`Sending call result: ${result}`)
                 resultCodes[result] += 1
-                localStorage.setItem('resultCodes', JSON.stringify(resultCodes))
+                storage.setItem('resultCodes', JSON.stringify(resultCodes))
                 lastCallResult = result
 
                 await peerManager.sendMessage({
@@ -474,7 +491,7 @@ function createTextMessageLinks(firstName, phoneNumber) {
         span.innerText = label
         a.appendChild(span)
         a.addEventListener('click', async (e) => {
-            if (window.localStorage.getItem('requireLongPressMode')) {
+            if (storage.getItem('requireLongPressMode')) {
                 console.log('long press mode enabled, ignoring click')
                 e.preventDefault()
                 // Copy the message body to the clipboard instead
