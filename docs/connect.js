@@ -491,12 +491,15 @@ function createTextMessageLinks(firstName, phoneNumber) {
         span.innerText = label
         a.appendChild(span)
         a.addEventListener('click', async (e) => {
+            lastCallResult = result
+            pendingSaveMessage = result
+
             if (storage.getItem('requireLongPressMode')) {
                 console.log('long press mode enabled, ignoring click')
                 e.preventDefault()
                 // Copy the message body to the clipboard instead
                 // TODO figure out if there's a better option than this
-                if (navigator.clipboard) {
+                if (navigator && navigator.clipboard) {
                     await navigator.clipboard.writeText(messageBody)
                     span.innerText = 'Message Copied to Clipboard'
                     a.classList.replace('btn-outline-secondary', 'btn-outline-success')
@@ -504,10 +507,16 @@ function createTextMessageLinks(firstName, phoneNumber) {
                         span.innerText = `Send ${label}`
                         a.classList.replace('btn-outline-success', 'btn-outline-secondary')
                     }, 800)
+                } else {
+                    console.warn('Clipboard is not available')
+                    span.innerText = 'Cannot Copy to Clipboard :('
+                    a.classList.replace('btn-outline-secondary', 'btn-outline-danger')
+                    setTimeout(() => {
+                        span.innerText = `Send ${label}`
+                        a.classList.replace('btn-outline-danger', 'btn-outline-secondary')
+                    }, 800)
                 }
-            }
-
-            if (result) {
+            } else if (result) {
                 console.log(`sending call result: ${result}`)
                 await peerManager.sendMessage({
                     type: 'callResult',
@@ -516,8 +525,6 @@ function createTextMessageLinks(firstName, phoneNumber) {
                     timestamp: (new Date()).toISOString()
                 })
                 setLoading()
-                lastCallResult = result
-                pendingSaveMessage = result
 
                 await saveCallStats()
             }
