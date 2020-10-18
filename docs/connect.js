@@ -224,13 +224,18 @@ function start() {
         callButton.addEventListener('click', (e) => {
             if (window.localStorage.getItem('requireLongPressMode')) {
                 e.preventDefault()
-                const label = callButton.innerHTML
-                callButton.classList.replace('btn-primary', 'btn-warning')
-                callButton.innerText = 'Long-Press to Call'
+                const longPressButton = document.getElementById('long-press-to-call')
+                if (!longPressButton) {
+                    console.error('cannot find long-press-to-call button')
+                    return
+                }
+                callButton.setAttribute('hidden', 'true')
+                longPressButton.removeAttribute('hidden')
                 setTimeout(() => {
-                    callButton.innerHTML = label
-                    callButton.classList.replace('btn-warning', 'btn-primary')
+                    callButton.removeAttribute('hidden')
+                    longPressButton.setAttribute('hidden', 'true')
                 }, 800)
+
             } else {
                 lastCallStartTime = Date.now()
             }
