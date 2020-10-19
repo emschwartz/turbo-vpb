@@ -55,6 +55,10 @@ const CALL_RESULT_ICONS = {
     Texted: TEXT_MESSAGE_MARK_TEXTED_ICON,
 }
 
+const THEIR_NAME_REGEX = /[\[\(\{\<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}\>]+/ig
+const YOUR_NAME_REGEX = /[\[\(\{\<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}\>]+/ig
+const ADDITIONAL_FIELDS_REGEX = /[\[\(\{\<]+([\w\s]+)[\]\)\}\>]+/g
+
 const debugMode = window.location.href.includes('debug')
 const searchParams = (new URL(window.location.href)).searchParams
 const sessionId = searchParams.get('session') || ''
@@ -84,6 +88,7 @@ if (window.localStorage) {
 let messageTemplates = []
 let phoneNumber
 let firstName
+let additionalFields
 let yourName = ''
 // resultCode -> number of times used
 let resultCodes = {}
@@ -329,7 +334,7 @@ function handleData(data) {
 
         // If we only received new message templates, recreate the links with the old contact details
         if (!data.contact) {
-            createTextMessageLinks(firstName, phoneNumber)
+            createTextMessageLinks(firstName, phoneNumber, additionalFields)
         }
     }
 
@@ -361,6 +366,15 @@ function handleData(data) {
 
         phoneNumber = newPhoneNumber
         firstName = data.contact.firstName
+        if (data.contact.additionalFields && typeof data.contact.additionalFields === 'object') {
+            const details = {}
+            for (let key in data.contact.additionalFields) {
+                details[key.toLowerCase()] = data.contact.additionalFields[key]
+            }
+            additionalFields = details
+        } else {
+            additionalFields = null
+        }
 
         document.getElementById('contact-details').hidden = false
         document.getElementById('statistics').hidden = false
@@ -370,7 +384,7 @@ function handleData(data) {
         document.getElementById('phone-number-link').href = "tel:" + phoneNumber
         document.getElementById('phone-number').innerText = data.contact.phoneNumber
 
-        createTextMessageLinks(firstName, phoneNumber)
+        createTextMessageLinks(firstName, phoneNumber, additionalFields)
 
         // Scroll to contact card
         if (!isScrolledIntoView(document.getElementById('name'))) {
@@ -458,7 +472,7 @@ function handleData(data) {
     }
 }
 
-function createTextMessageLinks(firstName, phoneNumber) {
+function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
     const textMessageLinks = document.getElementById('text-message-links')
     while (textMessageLinks.firstChild) {
         textMessageLinks.removeChild(textMessageLinks.firstChild)
@@ -476,9 +490,20 @@ function createTextMessageLinks(firstName, phoneNumber) {
         a.className = "btn btn-outline-secondary btn-block p-3 my-3"
         a.role = 'button'
         a.target = "_blank"
-        const messageBody = message
-            .replace(/[\[\(\{\<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}\>]+/ig, firstName)
-            .replace(/[\[\(\{\<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}\>]+/ig, yourName)
+        let messageBody = message
+            .replace(THEIR_NAME_REGEX, firstName)
+            .replace(YOUR_NAME_REGEX, yourName)
+
+        if (additionalFields) {
+            let matches
+            while ((matches = ADDITIONAL_FIELDS_REGEX.exec(messageBody))) {
+                const keyWithBrackets = matches[0]
+                const key = matches[1]
+                if (typeof key === 'string' && additionalFields[key.toLowerCase()]) {
+                    messageBody = messageBody.replace(keyWithBrackets, additionalFields[key.toLowerCase()])
+                }
+            }
+        }
 
         a.href = `sms://${phoneNumber};?&body=${encodeURIComponent(messageBody)}`
         if (result) {

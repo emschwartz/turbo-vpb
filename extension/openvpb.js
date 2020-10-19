@@ -83,6 +83,22 @@ function getContactDetails() {
 
     const contactName = (document.getElementById('contactName') || {}).innerText
 
+    const additionalFields = {}
+    const detailsSidebar = document.getElementById('openvpb-target-details') || document.querySelector('.openvpb-sidebar-fields')
+    if (detailsSidebar && detailsSidebar.querySelector('dl')) {
+        const dl = detailsSidebar.querySelector('dl')
+        const pairs = dl.querySelectorAll('dt, dd')
+        let key
+        for (let i = 0; i < pairs.length; i++) {
+            if (!key && pairs[i].tagName === 'DT') {
+                key = pairs[i].innerText
+            } else if (key && pairs[i].tagName === 'DD') {
+                additionalFields[key] = pairs[i].innerText
+                key = null
+            }
+        }
+    }
+
     // Figure out if this is a new contact
     if (contactName && currentPhoneNumber && isNewContact(currentPhoneNumber)) {
         couldntReachContact = false
@@ -116,7 +132,8 @@ function getContactDetails() {
 
         handleContact(
             contactName,
-            currentPhoneNumber
+            currentPhoneNumber,
+            additionalFields
         )
     }
 }

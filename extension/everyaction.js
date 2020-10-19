@@ -78,6 +78,17 @@ function getContactDetails() {
         && document.querySelector('.person-phone-panel').firstElementChild.innerText.replace(/ [–-] \d+(?:\s+\w)?/, ''))
         || null
 
+    const additionalFields = {}
+    if (document.getElementById('spanTableAdditionalInfo')) {
+        for (const inputUnit of document.getElementById('spanTableAdditionalInfo').querySelectorAll('.input-unit').values()) {
+            const label = inputUnit.querySelector('label, .input-label')
+            const value = inputUnit.querySelector('.form-control, div')
+            if (label && value) {
+                additionalFields[label.innerText] = value.innerText
+            }
+        }
+    }
+
     // Figure out if this is a new contact
     if (contactName && currentPhoneNumber && isNewContact(currentPhoneNumber)) {
         couldntReachContact = false
@@ -112,7 +123,8 @@ function getContactDetails() {
 
         handleContact(
             contactName,
-            currentPhoneNumber
+            currentPhoneNumber,
+            additionalFields
         )
     }
 }

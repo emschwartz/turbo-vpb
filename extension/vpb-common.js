@@ -198,13 +198,17 @@ function isNewContact(phone) {
     return !window.sessionStorage.getItem('turboVpbPhoneNumber') || window.sessionStorage.getItem('turboVpbPhoneNumber') !== phone
 }
 
-async function handleContact(fullName, phone) {
-    console.log('got new contact', fullName, phone)
+async function handleContact(fullName, phone, additionalFields) {
+    console.log('got new contact', fullName, phone, additionalFields)
 
     window.sessionStorage.setItem('turboVpbPhoneNumber', phone)
     window.sessionStorage.setItem('turboVpbFirstName', fullName.split(' ')[0])
     window.sessionStorage.setItem('turboVpbLastName', fullName.split(' ').slice(1).join(' '))
     window.sessionStorage.setItem('turboVpbLastContactLoadTime', Date.now())
+
+    if (additionalFields) {
+        window.sessionStorage.setItem('turboVpbAdditionalFields', JSON.stringify(additionalFields))
+    }
 
     await sendDetails()
 }
@@ -235,6 +239,7 @@ async function sendDetails() {
                     phoneNumber: window.sessionStorage.getItem('turboVpbPhoneNumber'),
                     firstName: window.sessionStorage.getItem('turboVpbFirstName'),
                     lastName: window.sessionStorage.getItem('turboVpbLastName'),
+                    additionalFields: window.sessionStorage.getItem('turboVpbAdditionalFields') ? JSON.parse(window.sessionStorage.getItem('turboVpbAdditionalFields')) : undefined
                 },
                 stats: {
                     calls: parseInt(window.sessionStorage.getItem('turboVpbCalls')),
