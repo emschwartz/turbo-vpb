@@ -342,6 +342,14 @@ function handleData(data) {
         callNumber = data.callNumber
     }
 
+    if (data.lastCallResult) {
+        if (!lastCallResult) {
+            lastCallResult = data.lastCallResult
+        } else if (lastCallResult && lastCallResult !== data.lastCallResult) {
+            Sentry.captureMessage(`Last call result from extension (${data.lastCallResult}) does not match the one we sent (${lastCallResult})`)
+        }
+    }
+
     if (data.contact) {
         if (!data.contact.phoneNumber || !data.contact.firstName) {
             return displayError(new Error(`Got invalid contact details from extension: ${JSON.stringify(data.contact)}`))

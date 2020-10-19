@@ -248,7 +248,8 @@ async function sendDetails() {
                     startTime: parseInt(window.sessionStorage.getItem('turboVpbStartTime'))
                 },
                 callNumber: parseInt(window.sessionStorage.getItem('turboVpbCalls')),
-                resultCodes: JSON.parse(window.sessionStorage.getItem('turboVpbResultCodes') || '[]')
+                resultCodes: JSON.parse(window.sessionStorage.getItem('turboVpbResultCodes') || '[]'),
+                lastCallResult: window.sessionStorage.getItem('turboVpbLastCallResult')
             }
         })
         console.log('sent contact')
@@ -258,6 +259,7 @@ async function sendDetails() {
 }
 
 async function saveCall(result) {
+    window.sessionStorage.setItem('turboVpbLastCallResult', result)
     if (result === 'Contacted') {
         console.log('logged successful call')
         window.sessionStorage.setItem('turboVpbSuccessfulCalls', parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls') || 0) + 1)
