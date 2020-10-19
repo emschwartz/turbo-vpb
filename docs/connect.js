@@ -409,6 +409,11 @@ function handleData(data) {
             // TODO maybe update this as the duration is being updated (every second)
             document.getElementById('num-calls').innerText = `${data.stats.calls} Call${data.stats.calls > 1 ? 's' : ''}`
             document.getElementById('avg-call-time').innerText = msToTimeString((Date.now() - startTime) / data.stats.calls)
+
+            if (data.stats.calls % 10 === 0 && typeof confetti === 'object') {
+                const numConfettiPieces = Math.min(150, Math.max(30, data.stats.calls * 2))
+                confetti.start(1500, numConfettiPieces)
+            }
         }
         if (data.stats.successfulCalls) {
             document.getElementById('successful-calls').innerText = data.stats.successfulCalls
