@@ -422,7 +422,7 @@ function handleData(data) {
 
     const initialMessage = document.getElementById('initial-message')
     if (initialMessage) {
-        if (data.callNumber === 0 || data.stats.calls === 0) {
+        if (data.callNumber === 0 || (data.stats && data.stats.calls === 0)) {
             initialMessage.removeAttribute('hidden')
         } else {
             initialMessage.setAttribute('hidden', 'true')
