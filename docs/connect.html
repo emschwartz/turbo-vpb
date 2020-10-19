@@ -49,6 +49,23 @@
     </nav>
 
     <div class="container-sm p-4" id="main-container">
+        <div id="initial-message" class="alert alert-primary text-center mb-4" hidden>
+            <span id="days-left"></span> Election Day! Thank you for the important work you're doing.
+            <script>
+                const electionDay = new Date('Nov 3, 2020')
+                const today = new Date()
+                const daysLeft = Math.ceil((electionDay - today) / 86400000)
+                const elem = document.getElementById('days-left')
+                if (daysLeft > 0) {
+                    elem.innerText = `${daysLeft} days until`
+                } else if (daysLeft === 0) {
+                    elem.innerText = 'Today is'
+                } else {
+                    document.getElementById('initial-message').remove()
+                }
+            </script>
+        </div>
+
         <div id="warning-container" hidden>
             <div class="alert alert-danger">
                 <h4 class="alert-heading" id="warning-heading">
