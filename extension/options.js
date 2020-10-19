@@ -1,4 +1,5 @@
 console.log('options script loaded')
+const SUBSTITUTION_REGEX = /([\[\(\{\<]+[\w\s]+[\]\)\}\>])+/g
 
 const messageContainer = document.getElementById('messages')
 const messageTemplateHtml = document.getElementById('message-template')
@@ -69,6 +70,7 @@ function saveSettings() {
     console.log('saving settings')
     const messageTemplates = []
     const elements = document.getElementsByClassName('message-template')
+    let includesTextReplacement = false
     for (let i = 0; i < elements.length; i++) {
         const elem = elements[i]
         const message = elem.querySelector('.message-template-message').value
@@ -82,6 +84,16 @@ function saveSettings() {
                 message,
                 result: elem.querySelector('.message-template-result-texted').checked ? 'Texted' : null
             })
+
+            includesTextReplacement = includesTextReplacement || SUBSTITUTION_REGEX.test(message)
+        }
+    }
+
+    if (messageTemplates.length > 0) {
+        if (includesTextReplacement) {
+            document.getElementById('text-replacement-warning').setAttribute('hidden', 'true')
+        } else {
+            document.getElementById('text-replacement-warning').removeAttribute('hidden')
         }
     }
 
