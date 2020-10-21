@@ -1,4 +1,5 @@
 console.log('Loading PeerManager')
+const FINAL_ERRORS = ['browser-incompatible', 'invalid-id', 'invalid-key', 'ssl-unavailable', 'unavailable-id']
 
 const DEFAULT_ICE_SERVERS = [{
     "url": "stun:stun.l.google.com:19302",
@@ -36,6 +37,11 @@ class PeerManager {
         if (this.active === false) {
             console.warn('The PeerManager was already stopped, not reconnecting')
             return
+        }
+
+        if (err && err.type && FINAL_ERRORS.includes(err.type)) {
+            console.warn('Not retrying final error:', err.type)
+            return this.onError(err)
         }
 
         if (this.isConnecting) {
