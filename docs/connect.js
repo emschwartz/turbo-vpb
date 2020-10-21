@@ -167,12 +167,6 @@ if (Sentry) {
         scope.setTag('domain', domain)
         scope.setTag('debug_mode', debugMode)
     })
-    loadContactSpan = Sentry.startTransaction({
-        name: `${PeerManager.mode}.loadFirstContact`,
-        tags: {
-            connection_mode: PeerManager.mode
-        }
-    })
 } else {
     console.error('Could not load Sentry')
 }
@@ -220,6 +214,14 @@ async function start() {
             remotePeerId,
             encryptionKey
         })
+        if (Sentry) {
+            loadContactSpan = Sentry.startTransaction({
+                name: `${PeerManager.mode}.loadFirstContact`,
+                tags: {
+                    connection_mode: PeerManager.mode
+                }
+            })
+        }
         peerManager.onconnect = () => {
             setStatus('Connected', 'success')
             const warningContainer = document.getElementById('warning-container')
