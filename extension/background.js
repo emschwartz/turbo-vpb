@@ -169,7 +169,7 @@ async function createPeer(tabId) {
     const connectionSecret = await peer.getConnectionSecret()
     const version = browser.runtime.getManifest().version
     const userAgent = encodeURIComponent(navigator.userAgent)
-    const tabUrl = await browser.tabs.get(tabId).url
+    const tabUrl = (await browser.tabs.get(tabId)).url
     let domain = ''
     if (tabUrl) {
         domain = (new URL(tabUrl)).host
