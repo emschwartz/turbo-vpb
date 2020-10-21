@@ -216,9 +216,9 @@ async function start() {
         })
         if (Sentry) {
             loadContactSpan = Sentry.startTransaction({
-                name: `${PeerManager.mode}.loadFirstContact`,
+                name: `${peerManager.mode}.loadFirstContact`,
                 tags: {
-                    connection_mode: PeerManager.mode
+                    connection_mode: peerManager.mode
                 }
             })
         }
@@ -532,9 +532,9 @@ function handleData(data) {
 
                 if (Sentry) {
                     loadContactSpan = Sentry.startTransaction({
-                        name: `${PeerManager.mode}.loadNextContact`,
+                        name: `${peerManager.mode}.loadNextContact`,
                         tags: {
-                            connection_mode: PeerManager.mode
+                            connection_mode: peerManager.mode
                         }
                     })
                 }
