@@ -299,9 +299,12 @@ class PeerManager {
             }
             this.ws.onclose = () => {
                 console.log('websocket closed')
-                if (this.mode === WEBSOCKET_MODE && typeof ReconnectingWebSocket !== 'function') {
-                    // Only error if it's not going to reconnect
-                    this.onerror(new Error('WebSocket closed'))
+                if (this.mode === WEBSOCKET_MODE) {
+                    if (typeof ReconnectingWebSocket === 'function') {
+                        this.onreconnecting('Server')
+                    } else {
+                        this.onerror(new Error('WebSocket closed'))
+                    }
                 }
                 reject(new Error('Websocket closed before it was opened'))
             }
