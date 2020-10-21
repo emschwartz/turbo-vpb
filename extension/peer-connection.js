@@ -7,6 +7,10 @@ let iceServers = [{
     "url": "stun:global.stun.twilio.com:3478?transport=udp",
     "urls": "stun:global.stun.twilio.com:3478?transport=udp"
 }]
+const PUBLISH_URL_BASE = 'https://pubsub.turbovpb.com/c/'
+const SUBSCRIBE_URL_BASE = 'wss://pubsub.turbovpb.com/c/'
+const WEBRTC_MODE = 'webrtc'
+const WEBSOCKET_MODE = 'websocket'
 
 class PeerConnection {
     constructor() {
@@ -27,6 +31,9 @@ class PeerConnection {
         this.ondisconnect = () => { }
         this.onerror = () => { }
         this.onmessage = () => { }
+
+        this.mode = WEBRTC_MODE
+        this.ws = null
     }
 
     async connect() {
@@ -35,11 +42,12 @@ class PeerConnection {
         }
         this.connecting = true
         await this._createPeer()
+        await this._connectPubSub()
         this.connecting = false
     }
 
     async reconnect() {
-        if (!this.peer) {
+        if (!this.peer && !this.ws) {
             return this.connect()
         }
 
@@ -77,30 +85,64 @@ class PeerConnection {
         return this.sessionId
     }
 
-    destroy() {
-        this.peer.destroy()
+    async destroy() {
+        console.log('destroying peer connection')
+        if (this.peer) {
+            this.peer.onerror = () => { }
+            this.peer.onclose = () => { }
+            this.peer.destroy()
+        }
+        if (this.ws) {
+            this.ws.onerror = () => { }
+            this.ws.onclose = () => { }
+            this.ws.close()
+        }
+
+        try {
+            return Promise.all([
+                fetch(`${PUBLISH_URL_BASE}${this.sessionId}/exentsion`, { method: 'DELETE' }),
+                fetch(`${PUBLISH_URL_BASE}${this.sessionId}/browser`, { method: 'DELETE' })
+            ])
+        } catch (err) {
+            console.error('error deleting channels', err)
+        }
     }
 
-    sendMessage(message) {
-        const connectedPeers = this._getOpenConnections()
-        console.log(`sending message to ${connectedPeers.length} peer(s)`)
-        if (connectedPeers.length === 0) {
-            console.log('not sending message because there is no open connection for peer', this.peerId)
-            return
-        }
-        for (let conn of connectedPeers) {
-            if (conn.open) {
-                conn.send(message)
-            } else {
-                conn.once('open', () => {
+    async sendMessage(message) {
+        if (this.mode === WEBRTC_MODE) {
+            const connectedPeers = this._getOpenConnections()
+            console.log(`sending message to ${connectedPeers.length} peer(s)`)
+            if (connectedPeers.length === 0) {
+                console.log('not sending message because there is no open connection for peer', this.peerId)
+                return
+            }
+            for (let conn of connectedPeers) {
+                if (conn.open) {
                     conn.send(message)
+                } else {
+                    conn.once('open', () => {
+                        conn.send(message)
+                    })
+                }
+            }
+        } else {
+            if (this.isConnected()) {
+                this.ws.send(JSON.stringify(message))
+            } else {
+                await fetch(`${PUBLISH_URL_BASE}${this.sessionId}/extension`, {
+                    method: 'POST',
+                    body: JSON.stringify(message)
                 })
             }
         }
     }
 
     isConnected() {
-        return this._getOpenConnections().length > 0
+        if (this.mode === WEBRTC_MODE) {
+            return this._getOpenConnections().length > 0
+        } else {
+            return this.ws && this.ws.readyState === WebSocket.OPEN
+        }
     }
 
     _getOpenConnections() {
@@ -153,6 +195,10 @@ class PeerConnection {
                 console.log(`peer ${this.peerId} connection ${connIndex} state: ${state}`)
                 // TODO if the state is disconnected, should we let the content script know it's disconnected?
                 if (this.isConnected()) {
+                    if (this.mode !== WEBRTC_MODE) {
+                        console.log('switching to webrtc mode')
+                        this.mode = WEBRTC_MODE
+                    }
                     this.onconnect()
                 } else {
                     this.ondisconnect()
@@ -169,6 +215,64 @@ class PeerConnection {
             } else {
                 console.warn(`Peer connection for peerId ${peerId} serialization should be json but it is: ${conn.serialization}`)
                 this.onerror(new Error(`Peer using unexpected serialization format: ${conn.serialization}`))
+            }
+        })
+    }
+
+    async _connectPubSub() {
+        if (this.ws) {
+            if (this.ws.readyState === WebSocket.OPEN) {
+                console.log('websocket already connected')
+                return
+            }
+            this.ws.onclose = () => { }
+            this.ws.onerror = () => { }
+            this.ws.onopen = () => { }
+            this.ws.onmessage = () => { }
+            this.ws.close()
+        }
+
+        return new Promise((resolve, reject) => {
+            const url = `${SUBSCRIBE_URL_BASE}${this.sessionId}/extension`
+            console.log('connecting to:', url)
+            this.ws = new WebSocket(url)
+            const startTime = Date.now()
+            this.ws.onopen = () => {
+                console.log(`websocket open (took ${Date.now() - startTime}ms)`)
+                if (this.mode === WEBSOCKET_MODE) {
+                    this.onconnect()
+                }
+                resolve()
+            }
+            this.ws.onclose = () => {
+                console.log('websocket closed')
+                if (this.mode === WEBSOCKET_MODE) {
+                    this.ondisconnect()
+                }
+                reject(new Error('Websocket closed before it was opened'))
+            }
+            this.ws.onerror = ({ message }) => {
+                const err = new Error(`WebSocket Error: ${message}`)
+                if (this.mode === WEBSOCKET_MODE) {
+                    this.onerror(err)
+                } else {
+                    console.error('websocket error:', err)
+                }
+                reject(error)
+            }
+            this.ws.onmessage = ({ data }) => {
+                // The mobile site will determine which mode to use
+                if (this.mode !== WEBSOCKET_MODE) {
+                    console.log('switching to websocket mode')
+                    this.mode = WEBSOCKET_MODE
+                    this.onconnect()
+                }
+                try {
+                    const message = JSON.parse(data)
+                    this.onmessage(message)
+                } catch (err) {
+                    console.error('got invalid message from pubsub', err)
+                }
             }
         })
     }

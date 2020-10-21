@@ -12,25 +12,34 @@ const RECONNECT_BACKOFF = 10
 const RECONNECT_DELAY_START = 25
 const MAX_RECONNECT_ATTEMPTS = 3
 
+const PUBLISH_URL_BASE = 'https://pubsub.turbovpb.com/c/'
+const SUBSCRIBE_URL_BASE = 'wss://pubsub.turbovpb.com/c/'
+const WEBRTC_MODE = 'webrtc'
+const WEBSOCKET_MODE = 'websocket'
+
 class PeerManager {
-    constructor({ debugMode, remotePeerId }) {
+    constructor({ debugMode, remotePeerId, sessionId }) {
         this.debugMode = debugMode
         this.remotePeerId = remotePeerId
+        this.sessionId = sessionId
         this.iceServers = null
 
         this.active = false
         this.peer = null
         this.connection = null
 
-        this.onData = () => { }
-        this.onConnect = () => { }
-        this.onError = () => { }
-        this.onReconnecting = () => { }
+        this.onmessage = () => { }
+        this.onconnect = () => { }
+        this.onerror = () => { }
+        this.onreconnecting = () => { }
 
         this.isConnecting = false
         this.reconnectDelay = RECONNECT_DELAY_START
         this.reconnectAttempts = 0
         this.reconnectResolves = []
+
+        this.mode = WEBRTC_MODE
+        this.ws = null
     }
 
     async reconnect(err, immediate) {
@@ -39,9 +48,13 @@ class PeerManager {
             return
         }
 
+        if (this.mode === WEBSOCKET_MODE) {
+            return this._connectPubSub()
+        }
+
         if (err && err.type && FINAL_ERRORS.includes(err.type)) {
             console.warn('Not retrying final error:', err.type)
-            return this.onError(err)
+            return this.onerror(err)
         }
 
         if (this.isConnecting) {
@@ -54,7 +67,9 @@ class PeerManager {
 
         if (++this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
             console.error('exceeded max number of reconnect attempts')
-            return this.onError(err || new Error('Exceeded maximum number of reconnect attempts'))
+            console.log('switching to websocket mode')
+            this.mode = WEBSOCKET_MODE
+            return this.connect()
         }
 
         if (!immediate) {
@@ -76,20 +91,26 @@ class PeerManager {
         this.isConnecting = true
         console.log('connecting')
 
+        if (this.mode === WEBSOCKET_MODE) {
+            await this._connectPubSub()
+            this.isConnecting = false
+            return
+        }
+
         if (!this.iceServers) {
             this.iceServers = await getIceServers()
         }
 
         try {
-            await this.checkPeerConnected()
-            await this.checkConnectionOpen()
+            await this._checkPeerConnected()
+            await this._checkConnectionOpen()
         } catch (err) {
             this.isConnecting = false
             return this.reconnect(err)
         }
 
         this.isConnecting = false
-        await this.onConnect()
+        await this.onconnect()
 
         // Resolve all of the reconnect calls that were
         // called while we were already reconnecting
@@ -99,7 +120,44 @@ class PeerManager {
         }
     }
 
-    async checkPeerConnected() {
+    async sendMessage(message) {
+        if (this.active === false) {
+            // TODO maybe it's better to throw an error here?
+            console.error('Not sending message because PeerManager has already been stopped')
+            return
+        }
+        console.log('sending message', message)
+
+        if (this.mode === WEBRTC_MODE) {
+            if (this.connection && this.connection.open) {
+                this.connection.send(message)
+            } else {
+                console.log('trying to send message but connection is not open, reconnecting first')
+                await this.reconnect()
+                this.connection.send(message)
+            }
+        } else {
+            await this._connectPubSub()
+            this.ws.send(JSON.stringify(message))
+        }
+    }
+
+    stop() {
+        console.log('stopping peer manager')
+        this.active = false
+        if (this.peer) {
+            this.peer.destroy()
+        }
+        if (this.ws) {
+            this.ws.close()
+        }
+    }
+
+    isStopped() {
+        return !this.active
+    }
+
+    async _checkPeerConnected() {
         if (this.peer) {
             if (!this.peer.destroyed && !this.peer.disconnected) {
                 console.log('peer is still connected')
@@ -110,7 +168,7 @@ class PeerManager {
         }
 
         console.log('creating new peer')
-        await this.onReconnecting('Server')
+        await this.onreconnecting('Server')
 
         const startTime = Date.now()
         this.peer = await createPeer({
@@ -120,24 +178,24 @@ class PeerManager {
         console.log(`peer connected to server (took ${Date.now() - startTime}ms)`)
 
         this.peer.on('error', async (err) => {
-            this.closeConnection()
+            this._closeConnection()
             return this.reconnect(err)
         })
         this.peer.on('disconnect', async () => {
-            this.closeConnection()
-            await this.onReconnecting()
+            this._closeConnection()
+            await this.onreconnecting()
             return this.reconnect()
         })
     }
 
-    closeConnection() {
+    _closeConnection() {
         if (this.connection) {
             this.connection.close()
             this.connection = null
         }
     }
 
-    async checkConnectionOpen() {
+    async _checkConnectionOpen() {
         if (this.connection) {
             if (this.connection.open) {
                 console.log('connection still open')
@@ -148,7 +206,7 @@ class PeerManager {
         }
 
         console.log('connecting to ', remotePeerId)
-        await this.onReconnecting('Extension')
+        await this.onreconnecting('Extension')
 
         const startTime = Date.now()
         this.connection = await createConnection({
@@ -159,11 +217,11 @@ class PeerManager {
 
         this.connection.on('data', (data) => {
             console.log('got data', data)
-            this.onData(data)
+            this.onmessage(data)
         })
         this.connection.on('close', async () => {
             this.connection = null
-            await this.onReconnecting()
+            await this.onreconnecting()
             return this.reconnect()
         })
         this.connection.on('error', async (err) => {
@@ -172,32 +230,61 @@ class PeerManager {
         })
     }
 
-    async sendMessage(message) {
-        if (this.active === false) {
-            // TODO maybe it's better to throw an error here?
-            console.error('Not sending message because PeerManager has already been stopped')
-            return
+    async _connectPubSub() {
+        if (this.ws) {
+            if (this.ws.readyState === WebSocket.OPEN) {
+                console.log('websocket already connected')
+                return
+            }
+            this.ws.onclose = () => { }
+            this.ws.onerror = () => { }
+            this.ws.onopen = () => { }
+            this.ws.onmessage = () => { }
+            this.ws.close()
         }
-        console.log('sending message', message)
-        if (this.connection && this.connection.open) {
-            this.connection.send(message)
-        } else {
-            console.log('trying to send message but connection is not open, reconnecting first')
-            await this.reconnect()
-            this.connection.send(message)
-        }
-    }
 
-    stop() {
-        console.log('stopping peer manager')
-        this.active = false
-        if (this.peer) {
-            this.peer.destroy()
-        }
-    }
-
-    isStopped() {
-        return !this.active
+        return new Promise((resolve, reject) => {
+            const url = `${SUBSCRIBE_URL_BASE}${this.sessionId}/browser`
+            console.log('connecting to:', url)
+            this.ws = new WebSocket(url)
+            this.ws.onopen = () => {
+                console.log('websocket open')
+                if (this.mode === WEBSOCKET_MODE) {
+                    this.onconnect()
+                }
+                this.sendMessage({ type: 'connect' })
+                resolve()
+            }
+            this.ws.onclose = () => {
+                console.log('websocket closed')
+                if (this.mode === WEBSOCKET_MODE) {
+                    // TODO reconnect
+                    this.onerror(new Error('WebSocket closed'))
+                }
+                reject(new Error('Websocket closed before it was opened'))
+            }
+            this.ws.onerror = ({ message }) => {
+                const err = new Error(`WebSocket Error: ${message}`)
+                if (this.mode === WEBSOCKET_MODE) {
+                    this.onerror(err)
+                } else {
+                    console.error('websocket error:', err)
+                }
+                reject(error)
+            }
+            this.ws.onmessage = ({ data }) => {
+                if (this.mode !== WEBSOCKET_MODE) {
+                    console.warn('got websocket message when not in websocket mode', data)
+                    return
+                }
+                try {
+                    const message = JSON.parse(data)
+                    this.onmessage(message)
+                } catch (err) {
+                    console.error('got invalid message from pubsub', err)
+                }
+            }
+        })
     }
 }
 
