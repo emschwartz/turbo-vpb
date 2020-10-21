@@ -765,9 +765,11 @@ function showSaveMessage(result) {
 // 2. A result code button is clicked
 // 3. A new contact is loaded
 async function saveCallStats() {
-    if (!lastCallDuration && !lastCallResult) {
-        // This means the last call was already saved
-        return
+    if (!lastCallDuration) {
+        if (!lastCallResult || lastCallResult.toLowerCase() !== 'texted') {
+            // This means the last call was already saved
+            return
+        }
     }
 
     console.log(`Saving call result. Duration: ${lastCallDuration}ms, result: ${lastCallResult}`)
@@ -775,18 +777,23 @@ async function saveCallStats() {
     try {
         // TODO we might miss the last call if they never return to the page
 
-        const requests = [
+        const requests = []
+
+        if (lastCallDuration) {
+            const body = {
+                duration: lastCallDuration,
+            }
+            if (lastCallResult) {
+                body.lastCallResult = lastCallResult
+            }
             fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json; charset=UTF-8'
                 },
-                body: JSON.stringify({
-                    duration: lastCallDuration,
-                    result: lastCallResult
-                })
+                body: JSON.stringify(body)
             }, 3)
-        ]
+        }
 
         if (lastCallResult && lastCallResult.toLowerCase() === 'texted') {
             requests.push(fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
