@@ -312,7 +312,7 @@ class PeerManager {
             this.ws.onopen = () => {
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
                 if (this.mode === WEBSOCKET_MODE) {
-                    this.onconnect()
+                    this.onreconnecting('Extension')
                 }
                 this.sendMessage({ type: 'connect' })
                 resolve()
@@ -346,6 +346,7 @@ class PeerManager {
                 }
                 try {
                     const message = await decrypt(this.encryptionKey, data)
+                    this.onconnect()
                     this.onmessage(message)
                 } catch (err) {
                     console.error('got invalid message from pubsub', err)
