@@ -315,6 +315,12 @@ async function start() {
             })
 
         document.addEventListener('visibilitychange', async () => {
+            if (Sentry && typeof Sentry.configureScope === 'function') {
+                Sentry.configureScope((scope) => {
+                    scope.setTag('visibility_state', document.visibilityState)
+                })
+            }
+
             if (document.visibilityState !== 'visible') {
                 return
             }
