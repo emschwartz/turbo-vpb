@@ -167,7 +167,12 @@ if (Sentry) {
         scope.setTag('domain', domain)
         scope.setTag('debug_mode', debugMode)
     })
-    loadContactSpan = Sentry.startTransaction({ name: 'loadFirstContact' })
+    loadContactSpan = Sentry.startTransaction({
+        name: `${PeerManager.mode}.loadFirstContact`,
+        tags: {
+            connection_mode: PeerManager.mode
+        }
+    })
 } else {
     console.error('Could not load Sentry')
 }
@@ -524,7 +529,12 @@ function handleData(data) {
                 lastCallResult = result
 
                 if (Sentry) {
-                    loadContactSpan = Sentry.startTransaction({ name: 'loadNextContact' })
+                    loadContactSpan = Sentry.startTransaction({
+                        name: `${PeerManager.mode}.loadNextContact`,
+                        tags: {
+                            connection_mode: PeerManager.mode
+                        }
+                    })
                 }
                 await peerManager.sendMessage({
                     type: 'callResult',
@@ -615,7 +625,12 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
             } else if (result) {
                 console.log(`sending call result: ${result}`)
                 if (Sentry) {
-                    loadContactSpan = Sentry.startTransaction({ name: 'loadNextContact' })
+                    loadContactSpan = Sentry.startTransaction({
+                        name: `${PeerManager.mode}.loadNextContact`,
+                        tags: {
+                            connection_mode: PeerManager.mode
+                        }
+                    })
                 }
                 await peerManager.sendMessage({
                     type: 'callResult',

@@ -133,7 +133,10 @@ class PeerManager {
         let span
         if (Sentry && typeof Sentry.startTransaction === 'function') {
             span = Sentry.startTransaction({
-                name: `PeerManager.connect.${this.mode}`
+                name: `${this.mode}.connect`,
+                tags: {
+                    connection_mode: this.mode
+                }
             })
             Sentry.configureScope((scope) => scope.setSpan(span))
         }
