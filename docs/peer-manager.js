@@ -313,11 +313,13 @@ class PeerManager {
             const url = `${SUBSCRIBE_URL_BASE}${this.remotePeerId}/browser`
             console.log('connecting to:', url)
             const startTime = Date.now()
+            let openTime
             if (typeof ReconnectingWebSocket === 'function') {
+                console.log('Using ReconnectingWebSocket')
                 this.ws = new ReconnectingWebSocket(url, [], {
                     minReconnectDelay: RECONNECT_BACKOFF,
                     maxRetries: MAX_RECONNECT_ATTEMPTS,
-                    debug: this.debugMode
+                    debug: true
                 })
             } else {
                 console.warn('ReconnectingWebSocket not found, using normal WebSocket')
@@ -326,6 +328,7 @@ class PeerManager {
             this.ws.binaryType = 'arraybuffer'
 
             this.ws.onopen = () => {
+                openTime = Date.now()
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
                 if (this.mode === WEBSOCKET_MODE) {
                     this.onreconnecting('Extension')
@@ -334,7 +337,11 @@ class PeerManager {
                 resolve()
             }
             this.ws.onclose = () => {
-                console.log('websocket closed')
+                if (openTime) {
+                    console.log(`websocket closed (after ${Date.now() - openTime}ms)`)
+                } else {
+                    console.log('websocket closed')
+                }
                 if (this.mode === WEBSOCKET_MODE) {
                     if (typeof ReconnectingWebSocket === 'function') {
                         this.onreconnecting('Server')
@@ -344,14 +351,18 @@ class PeerManager {
                 }
                 reject(new Error('Websocket closed before it was opened'))
             }
-            this.ws.onerror = ({ error, message }) => {
+            this.ws.onerror = (event) => {
+                const { error, message } = event
                 if (!error) {
                     error = new Error(`WebSocket Error: ${message}`)
                 }
+                if (openTime) {
+                    console.error(`websocket error (after ${Date.now() - openTime}ms)`, event)
+                } else {
+                    console.error('websocket error', event)
+                }
                 if (this.mode === WEBSOCKET_MODE) {
                     this.onerror(error)
-                } else {
-                    console.error('websocket error:', error)
                 }
                 reject(error)
             }
