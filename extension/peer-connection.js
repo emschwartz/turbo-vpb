@@ -39,8 +39,7 @@ class PeerConnection {
         this.onerror = () => { }
         this.onmessage = () => { }
 
-        // this.mode = WEBRTC_MODE
-        this.mode = WEBSOCKET_MODE
+        this.mode = WEBRTC_MODE
         this.ws = null
     }
 
