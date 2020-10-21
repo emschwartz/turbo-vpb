@@ -247,15 +247,17 @@ async function start() {
         peerManager.onerror = (err) => {
             displayError(err)
 
-            if (err) {
-                if (err.type) {
-                    Sentry.captureException(err, {
-                        tags: {
-                            error_type: err.type
-                        }
-                    })
-                } else {
-                    Sentry.captureException(err)
+            if (document.visibilityState !== 'hidden') {
+                if (err) {
+                    if (err.type) {
+                        Sentry.captureException(err, {
+                            tags: {
+                                error_type: err.type
+                            }
+                        })
+                    } else {
+                        Sentry.captureException(err)
+                    }
                 }
             }
         }
