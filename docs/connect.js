@@ -153,7 +153,9 @@ if (Sentry) {
             } else {
                 return breadcrumb
             }
-        }
+        },
+        integrations: [new Sentry.Integrations.BrowserTracing()],
+        tracesSampleRate: 0.2
     });
     Sentry.configureScope(function (scope) {
         scope.setUser({

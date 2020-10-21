@@ -129,24 +129,40 @@ class PeerManager {
 
         console.log(`connecting (mode: ${this.mode})`)
 
+        // Use Sentry tracing to measure performance
+        let span
+        if (Sentry && typeof Sentry.startTransaction === 'function') {
+            span = Sentry.startTransaction({
+                name: 'PeerManager.connect',
+                tags: {
+                    connection_mode: this.mode
+                }
+            })
+            Sentry.configureScope((scope) => scope.setSpan(span))
+        }
+
         if (this.mode === WEBRTC_MODE) {
             if (!this.iceServers) {
-                this.iceServers = await getIceServers()
+                this.iceServers = await wrapWithTracingSpan(span, 'getIceServers', () => getIceServers())
             }
 
             try {
-                await this._checkPeerConnected()
-                await this._checkConnectionOpen()
+                await wrapWithTracingSpan(span, 'checkPeerConnected', () => this._checkPeerConnected())
+                await wrapWithTracingSpan(span, 'checkConnectionOpen', () => this._checkConnectionOpen())
             } catch (err) {
                 this.isConnecting = false
-                return this.reconnect(err)
+                return wrapWithTracingSpan(span, 'reconnect', () => this.reconnect(err))
             }
 
             this.isConnecting = false
             await this.onconnect()
         } else {
-            await this._connectPubSub()
+            await wrapWithTracingSpan(span, 'connectPubSub', () => this._connectPubSub())
             this.isConnecting = false
+        }
+
+        if (span) {
+            span.finish()
         }
 
         // Resolve all of the reconnect calls that were
@@ -468,4 +484,22 @@ function decodeBase64Url(base64) {
     }
 
     return arraybuffer
+}
+
+async function wrapWithTracingSpan(span, spanName, promise) {
+    if (!span) {
+        if (typeof promise === 'function') {
+            return (promise)()
+        } else {
+            return promise
+        }
+    }
+
+    const child = span.startChild({ op: spanName })
+    if (typeof promise === 'function') {
+        await (promise)()
+    } else {
+        await promise
+    }
+    child.finish()
 }
