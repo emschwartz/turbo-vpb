@@ -201,6 +201,10 @@ function start() {
         })
         peerManager.onconnect = () => {
             setStatus('Connected', 'success')
+            const warningContainer = document.getElementById('warning-container')
+            if (warningContainer) {
+                warningContainer.setAttribute('hidden', 'true')
+            }
 
             // Update session time
             if (!sessionTimeInterval) {

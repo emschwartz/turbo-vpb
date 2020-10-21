@@ -89,28 +89,27 @@ class PeerManager {
     async connect() {
         this.active = true
         this.isConnecting = true
-        console.log('connecting')
+        console.log(`connecting (mode: ${this.mode})`)
 
-        if (this.mode === WEBSOCKET_MODE) {
+        if (this.mode === WEBRTC_MODE) {
+            if (!this.iceServers) {
+                this.iceServers = await getIceServers()
+            }
+
+            try {
+                await this._checkPeerConnected()
+                await this._checkConnectionOpen()
+            } catch (err) {
+                this.isConnecting = false
+                return this.reconnect(err)
+            }
+
+            this.isConnecting = false
+            await this.onconnect()
+        } else {
             await this._connectPubSub()
             this.isConnecting = false
-            return
         }
-
-        if (!this.iceServers) {
-            this.iceServers = await getIceServers()
-        }
-
-        try {
-            await this._checkPeerConnected()
-            await this._checkConnectionOpen()
-        } catch (err) {
-            this.isConnecting = false
-            return this.reconnect(err)
-        }
-
-        this.isConnecting = false
-        await this.onconnect()
 
         // Resolve all of the reconnect calls that were
         // called while we were already reconnecting
@@ -240,15 +239,29 @@ class PeerManager {
             this.ws.onerror = () => { }
             this.ws.onopen = () => { }
             this.ws.onmessage = () => { }
-            this.ws.close()
+            if (typeof this.ws.reconnect === 'function') {
+                return this.ws.reconnect()
+            } else {
+                this.ws.close()
+            }
         }
 
         return new Promise((resolve, reject) => {
             const url = `${SUBSCRIBE_URL_BASE}${this.sessionId}/browser`
             console.log('connecting to:', url)
-            this.ws = new WebSocket(url)
+            const startTime = Date.now()
+            if (typeof ReconnectingWebSocket === 'function') {
+                this.ws = new ReconnectingWebSocket(url, [], {
+                    minReconnectDelay: RECONNECT_BACKOFF,
+                    maxRetries: MAX_RECONNECT_ATTEMPTS,
+                    debug: this.debugMode
+                })
+            } else {
+                console.warn('ReconnectingWebSocket not found, using normal WebSocket')
+                this.ws = new WebSocket(url)
+            }
             this.ws.onopen = () => {
-                console.log('websocket open')
+                console.log(`websocket open (took ${Date.now() - startTime}ms)`)
                 if (this.mode === WEBSOCKET_MODE) {
                     this.onconnect()
                 }
@@ -257,18 +270,20 @@ class PeerManager {
             }
             this.ws.onclose = () => {
                 console.log('websocket closed')
-                if (this.mode === WEBSOCKET_MODE) {
-                    // TODO reconnect
+                if (this.mode === WEBSOCKET_MODE && typeof ReconnectingWebSocket !== 'function') {
+                    // Only error if it's not going to reconnect
                     this.onerror(new Error('WebSocket closed'))
                 }
                 reject(new Error('Websocket closed before it was opened'))
             }
-            this.ws.onerror = ({ message }) => {
-                const err = new Error(`WebSocket Error: ${message}`)
+            this.ws.onerror = ({ error, message }) => {
+                if (!error) {
+                    error = new Error(`WebSocket Error: ${message}`)
+                }
                 if (this.mode === WEBSOCKET_MODE) {
-                    this.onerror(err)
+                    this.onerror(error)
                 } else {
-                    console.error('websocket error:', err)
+                    console.error('websocket error:', error)
                 }
                 reject(error)
             }

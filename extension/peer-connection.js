@@ -32,7 +32,8 @@ class PeerConnection {
         this.onerror = () => { }
         this.onmessage = () => { }
 
-        this.mode = WEBRTC_MODE
+        // this.mode = WEBRTC_MODE
+        this.mode = WEBSOCKET_MODE
         this.ws = null
     }
 
@@ -235,7 +236,7 @@ class PeerConnection {
         return new Promise((resolve, reject) => {
             const url = `${SUBSCRIBE_URL_BASE}${this.sessionId}/extension`
             console.log('connecting to:', url)
-            this.ws = new WebSocket(url)
+            this.ws = new ReconnectingWebSocket(url)
             const startTime = Date.now()
             this.ws.onopen = () => {
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
@@ -251,12 +252,14 @@ class PeerConnection {
                 }
                 reject(new Error('Websocket closed before it was opened'))
             }
-            this.ws.onerror = ({ message }) => {
-                const err = new Error(`WebSocket Error: ${message}`)
+            this.ws.onerror = ({ error, message }) => {
+                if (!error) {
+                    error = new Error(`WebSocket Error: ${message}`)
+                }
                 if (this.mode === WEBSOCKET_MODE) {
-                    this.onerror(err)
+                    this.onerror(error)
                 } else {
-                    console.error('websocket error:', err)
+                    console.error('websocket error:', error)
                 }
                 reject(error)
             }
