@@ -64,6 +64,7 @@ class PeerConnection {
             } else {
                 console.warn('unable to reconnect peer, destroying and creating a new one')
                 this.peer.destroy()
+                this.peer.connect()
             }
         }
     }
