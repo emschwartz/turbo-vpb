@@ -257,9 +257,6 @@ class PeerConnection {
             const startTime = Date.now()
             this.ws.onopen = () => {
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
-                if (this.mode === WEBSOCKET_MODE) {
-                    this.onconnect()
-                }
                 resolve()
             }
             this.ws.onclose = () => {
@@ -285,10 +282,10 @@ class PeerConnection {
                 if (this.mode !== WEBSOCKET_MODE) {
                     console.log('switching to websocket mode')
                     this.mode = WEBSOCKET_MODE
-                    this.onconnect()
                 }
                 try {
                     const message = await decrypt(this.encryptionKey, data)
+                    this.onconnect()
                     this.onmessage(message)
                 } catch (err) {
                     console.error('got invalid message from pubsub', err)
