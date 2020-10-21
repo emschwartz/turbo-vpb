@@ -156,7 +156,7 @@ if (Sentry) {
             }
         },
         integrations: [new Sentry.Integrations.BrowserTracing()],
-        tracesSampleRate: 0.2,
+        tracesSampleRate: 0.1,
     });
     Sentry.configureScope(function (scope) {
         scope.setUser({
