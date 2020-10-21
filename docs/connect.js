@@ -73,13 +73,18 @@ const encryptionKey = window.location.hash.slice(1)
 
 // Fallback in case localStorage is unavailable
 let storage
-if (window.localStorage) {
-    console.log('Using localStorage')
-    storage = window.localStorage
-} else if (window.sessionStorage) {
-    console.log('Using sessionStorage')
-    storage = window.sessionStorage
-} else {
+try {
+    if (window.localStorage) {
+        console.log('Using localStorage')
+        storage = window.localStorage
+    } else if (window.sessionStorage) {
+        console.log('Using sessionStorage')
+        storage = window.sessionStorage
+    }
+} catch (err) {
+    console.warn('Error accessing local / window storage', err)
+}
+if (!storage) {
     console.log('Using in-memory storage')
     const memoryStore = {}
     storage = {
