@@ -112,9 +112,21 @@ class PeerManager {
         this.reconnectAttempts = 0
     }
 
-    async connect() {
+    async connect(websocketMode = false) {
         this.active = true
         this.isConnecting = true
+
+        // TODO maybe try racing both modes
+        if (websocketMode) {
+            if (!this.encryptionKey) {
+                throw new Error('Cannot use WebSocket mode because the browser\'s cryptography API is unavailable')
+            }
+            this.mode = WEBSOCKET_MODE
+            this.peer.onerror = () => { }
+            this.peer.onclose = () => { }
+            this.peer.destroy()
+        }
+
         console.log(`connecting (mode: ${this.mode})`)
 
         if (this.mode === WEBRTC_MODE) {
@@ -172,15 +184,23 @@ class PeerManager {
         console.log('stopping peer manager')
         this.active = false
         if (this.peer) {
+            this.peer.onerror = () => { }
+            this.peer.onclose = () => { }
             this.peer.destroy()
         }
         if (this.ws) {
+            this.ws.onerror = () => { }
+            this.ws.onclose = () => { }
             this.ws.close()
         }
     }
 
     isStopped() {
         return !this.active
+    }
+
+    isWebSocketMode() {
+        return this.mode === WEBSOCKET_MODE
     }
 
     async _checkPeerConnected() {
