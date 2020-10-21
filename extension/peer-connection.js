@@ -66,7 +66,7 @@ class PeerConnection {
         if (this.peer.disconnected === false) {
             console.log('peer already connected')
             return
-        } else {
+        } else if (!this.peer.destroyed) {
             // Try reconnecting
             const reconnected = await new Promise((resolve) => {
                 this.peer.once('open', () => resolve(true))
@@ -76,7 +76,11 @@ class PeerConnection {
 
                 setTimeout(() => resolve(false), RECONNECT_TIMEOUT)
 
-                this.peer.reconnect()
+                try {
+                    this.peer.reconnect()
+                } catch (err) {
+                    resolve(false)
+                }
             })
             if (reconnected) {
                 console.log('reconnected existing peer')
@@ -84,9 +88,9 @@ class PeerConnection {
             } else {
                 console.warn('unable to reconnect peer, destroying and creating a new one')
                 this.peer.destroy()
-                this.peer.connect()
             }
         }
+        this.peer.connect()
     }
 
     async getConnectionSecret() {
