@@ -143,6 +143,11 @@ try {
 let loadContactSpan
 if (Sentry) {
     console.log('Re-initializing Sentry')
+
+    const integrations = []
+    if (Sentry.Integrations && typeof Sentry.Integrations.BrowserTracing === 'function') {
+        integrations.push(new Sentry.Integrations.BrowserTracing())
+    }
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
         release: extensionVersion,
@@ -155,7 +160,7 @@ if (Sentry) {
                 return breadcrumb
             }
         },
-        integrations: [new Sentry.Integrations.BrowserTracing()],
+        integrations,
         tracesSampleRate: 0.01,
     });
     Sentry.configureScope(function (scope) {
@@ -164,7 +169,9 @@ if (Sentry) {
         })
         scope.setTag('extension_version', extensionVersion)
         scope.setTag('extension_useragent', extensionUserAgent)
-        scope.setTag('domain', domain)
+        if (domain) {
+            scope.setTag('domain', domain)
+        }
         scope.setTag('debug_mode', debugMode)
     })
 } else {
@@ -214,7 +221,7 @@ async function start() {
             remotePeerId,
             encryptionKey
         })
-        if (Sentry) {
+        if (Sentry && typeof Sentry.startTransaction === 'function') {
             loadContactSpan = Sentry.startTransaction({
                 name: `${peerManager.mode}.loadFirstContact`,
                 tags: {
@@ -536,7 +543,7 @@ function handleData(data) {
                 storage.setItem('resultCodes', JSON.stringify(resultCodes))
                 lastCallResult = result
 
-                if (Sentry) {
+                if (Sentry && typeof Sentry.startTransaction === 'function') {
                     loadContactSpan = Sentry.startTransaction({
                         name: `${peerManager.mode}.loadNextContact`,
                         tags: {
@@ -632,7 +639,7 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
                 }
             } else if (result) {
                 console.log(`sending call result: ${result}`)
-                if (Sentry) {
+                if (Sentry && typeof Sentry.startTransaction === 'function') {
                     loadContactSpan = Sentry.startTransaction({
                         name: `${PeerManager.mode}.loadNextContact`,
                         tags: {
