@@ -12,8 +12,15 @@ const SUBSCRIBE_URL_BASE = 'wss://pubsub.turbovpb.com/c/'
 const WEBRTC_MODE = 'webrtc'
 const WEBSOCKET_MODE = 'websocket'
 
+const ENCRYPTION_KEY_LENGTH = 256
+const ENCRYPTION_IV_BYTE_LENGTH = 12
+const ENCRYPTION_ALGORITHM = 'AES-GCM'
+const BASE64_URL_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+
 class PeerConnection {
-    constructor() {
+    constructor(encryptionKey) {
+        this.encryptionKey = encryptionKey
+
         // Create Peer ID
         const array = new Uint8Array(16)
         crypto.getRandomValues(array)
@@ -35,6 +42,11 @@ class PeerConnection {
         // this.mode = WEBRTC_MODE
         this.mode = WEBSOCKET_MODE
         this.ws = null
+    }
+
+    static async create() {
+        const encryptionKey = await generateKey()
+        return new PeerConnection(encryptionKey)
     }
 
     async connect() {
@@ -78,8 +90,9 @@ class PeerConnection {
         }
     }
 
-    getConnectionSecret() {
-        return this.peerId
+    async getConnectionSecret() {
+        const exported = await exportKey(this.encryptionKey)
+        return `${this.peerId}&${exported}`
     }
 
     getSessionId() {
@@ -127,12 +140,16 @@ class PeerConnection {
                 }
             }
         } else {
+            const encrypted = await encrypt(this.encryptionKey, message)
             if (this.isConnected()) {
-                this.ws.send(JSON.stringify(message))
+                this.ws.send(encrypted)
             } else {
                 await fetch(`${PUBLISH_URL_BASE}${this.sessionId}/extension`, {
                     method: 'POST',
-                    body: JSON.stringify(message)
+                    headers: {
+                        'Content-Type': 'application/octet-stream'
+                    },
+                    body: encrypted
                 })
             }
         }
@@ -234,9 +251,10 @@ class PeerConnection {
         }
 
         return new Promise((resolve, reject) => {
-            const url = `${SUBSCRIBE_URL_BASE}${this.sessionId}/extension`
+            const url = `${SUBSCRIBE_URL_BASE}${this.peerId}/extension`
             console.log('connecting to:', url)
             this.ws = new ReconnectingWebSocket(url)
+            this.ws.binaryType = 'arraybuffer'
             const startTime = Date.now()
             this.ws.onopen = () => {
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
@@ -263,7 +281,7 @@ class PeerConnection {
                 }
                 reject(error)
             }
-            this.ws.onmessage = ({ data }) => {
+            this.ws.onmessage = async ({ data }) => {
                 // The mobile site will determine which mode to use
                 if (this.mode !== WEBSOCKET_MODE) {
                     console.log('switching to websocket mode')
@@ -271,7 +289,7 @@ class PeerConnection {
                     this.onconnect()
                 }
                 try {
-                    const message = JSON.parse(data)
+                    const message = await decrypt(this.encryptionKey, data)
                     this.onmessage(message)
                 } catch (err) {
                     console.error('got invalid message from pubsub', err)
@@ -279,4 +297,69 @@ class PeerConnection {
             }
         })
     }
+}
+
+async function generateKey() {
+    if (!crypto || !crypto.subtle) {
+        throw new Error(`SubtleCrypto API is required to generate key`)
+    }
+
+    return crypto.subtle.generateKey({
+        name: ENCRYPTION_ALGORITHM,
+        length: ENCRYPTION_KEY_LENGTH
+    }, true, ['encrypt', 'decrypt'])
+}
+
+async function exportKey(key) {
+    const buffer = await crypto.subtle.exportKey('raw', key)
+    return encodeBase64Url(buffer)
+}
+
+async function encrypt(encryptionKey, message) {
+    if (typeof message === 'object') {
+        message = JSON.stringify(message)
+    }
+    const buffer = (new TextEncoder()).encode(message)
+    const iv = crypto.getRandomValues(new Uint8Array(ENCRYPTION_IV_BYTE_LENGTH))
+    const ciphertext = new Uint8Array(await crypto.subtle.encrypt({
+        name: 'AES-GCM',
+        iv
+    }, encryptionKey, buffer))
+    const payload = new Uint8Array(ciphertext.byteLength + ENCRYPTION_IV_BYTE_LENGTH)
+    payload.set(ciphertext, 0)
+    payload.set(iv, ciphertext.byteLength)
+    return payload
+}
+
+async function decrypt(encryptionKey, arrayBuffer) {
+    const payload = new Uint8Array(arrayBuffer)
+    const ciphertext = payload.slice(0, 0 - ENCRYPTION_IV_BYTE_LENGTH)
+    const iv = payload.slice(0 - ENCRYPTION_IV_BYTE_LENGTH)
+    const plaintext = await crypto.subtle.decrypt({
+        name: 'AES-GCM',
+        iv
+    }, encryptionKey, ciphertext)
+    const string = (new TextDecoder()).decode(plaintext)
+    return JSON.parse(string)
+}
+
+// Based on https://github.com/herrjemand/Base64URL-ArrayBuffer/blob/master/lib/base64url-arraybuffer.js
+function encodeBase64Url(arraybuffer) {
+    const bytes = new Uint8Array(arraybuffer)
+    let base64 = ''
+
+    for (let i = 0; i < bytes.length; i += 3) {
+        base64 += BASE64_URL_CHARACTERS[bytes[i] >> 2]
+        base64 += BASE64_URL_CHARACTERS[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)]
+        base64 += BASE64_URL_CHARACTERS[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)]
+        base64 += BASE64_URL_CHARACTERS[bytes[i + 2] & 63]
+    }
+
+    if ((bytes.length % 3) === 2) {
+        base64 = base64.substring(0, base64.length - 1)
+    } else if (bytes.length % 3 === 1) {
+        base64 = base64.substring(0, base64.length - 2)
+    }
+
+    return base64
 }

@@ -17,11 +17,19 @@ const SUBSCRIBE_URL_BASE = 'wss://pubsub.turbovpb.com/c/'
 const WEBRTC_MODE = 'webrtc'
 const WEBSOCKET_MODE = 'websocket'
 
+const ENCRYPTION_KEY_LENGTH = 256
+const ENCRYPTION_IV_BYTE_LENGTH = 12
+const ENCRYPTION_ALGORITHM = 'AES-GCM'
+const BASE64_URL_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+const BASE64_URL_LOOKUP = new Uint8Array(256);
+for (let i = 0; i < BASE64_URL_CHARACTERS.length; i++) {
+    BASE64_URL_LOOKUP[BASE64_URL_CHARACTERS.charCodeAt(i)] = i;
+}
+
 class PeerManager {
-    constructor({ debugMode, remotePeerId, sessionId }) {
+    constructor({ debugMode, remotePeerId, encryptionKey }) {
         this.debugMode = debugMode
         this.remotePeerId = remotePeerId
-        this.sessionId = sessionId
         this.iceServers = null
 
         this.active = false
@@ -38,8 +46,22 @@ class PeerManager {
         this.reconnectAttempts = 0
         this.reconnectResolves = []
 
+        this.encryptionKey = encryptionKey
         this.mode = WEBRTC_MODE
+        // this.mode = encryptionKey ? WEBSOCKET_MODE : WEBRTC_MODE
         this.ws = null
+    }
+
+    static async from(opts) {
+        if (opts.encryptionKey) {
+            try {
+                opts.encryptionKey = await importKey(opts.encryptionKey)
+            } catch (err) {
+                console.error('Error importing key. WebSocket mode is disabled.', err)
+                opts.encryptionKey = null
+            }
+            return new PeerManager(opts)
+        }
     }
 
     async reconnect(err, immediate) {
@@ -67,9 +89,13 @@ class PeerManager {
 
         if (++this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
             console.error('exceeded max number of reconnect attempts')
-            console.log('switching to websocket mode')
-            this.mode = WEBSOCKET_MODE
-            return this.connect()
+            if (this.encryptionKey) {
+                console.log('switching to websocket mode')
+                this.mode = WEBSOCKET_MODE
+                return this.connect()
+            } else {
+                return this.onerror(new Error('Exceeded maximum number of reconnection attempts'))
+            }
         }
 
         if (!immediate) {
@@ -137,7 +163,8 @@ class PeerManager {
             }
         } else {
             await this._connectPubSub()
-            this.ws.send(JSON.stringify(message))
+            const encrypted = await encrypt(this.encryptionKey, message)
+            this.ws.send(encrypted)
         }
     }
 
@@ -247,7 +274,7 @@ class PeerManager {
         }
 
         return new Promise((resolve, reject) => {
-            const url = `${SUBSCRIBE_URL_BASE}${this.sessionId}/browser`
+            const url = `${SUBSCRIBE_URL_BASE}${this.remotePeerId}/browser`
             console.log('connecting to:', url)
             const startTime = Date.now()
             if (typeof ReconnectingWebSocket === 'function') {
@@ -260,6 +287,8 @@ class PeerManager {
                 console.warn('ReconnectingWebSocket not found, using normal WebSocket')
                 this.ws = new WebSocket(url)
             }
+            this.ws.binaryType = 'arraybuffer'
+
             this.ws.onopen = () => {
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
                 if (this.mode === WEBSOCKET_MODE) {
@@ -287,13 +316,13 @@ class PeerManager {
                 }
                 reject(error)
             }
-            this.ws.onmessage = ({ data }) => {
+            this.ws.onmessage = async ({ data }) => {
                 if (this.mode !== WEBSOCKET_MODE) {
                     console.warn('got websocket message when not in websocket mode', data)
                     return
                 }
                 try {
-                    const message = JSON.parse(data)
+                    const message = await decrypt(this.encryptionKey, data)
                     this.onmessage(message)
                 } catch (err) {
                     console.error('got invalid message from pubsub', err)
@@ -353,4 +382,66 @@ async function createConnection({ peer, remotePeerId }) {
 
         setTimeout(() => reject(new Error('Connection timed out while trying to connect to extension')), 10000)
     })
+}
+
+async function importKey(base64) {
+    if (!crypto || !crypto.subtle || typeof crypto.subtle.importKey !== 'function') {
+        throw new Error('SubtleCrypto API is not supported')
+    }
+    const buffer = decodeBase64Url(base64)
+    return crypto.subtle.importKey('raw', buffer, {
+        name: ENCRYPTION_ALGORITHM
+    }, true, ['encrypt', 'decrypt'])
+}
+
+async function encrypt(encryptionKey, message) {
+    if (typeof message === 'object') {
+        message = JSON.stringify(message)
+    }
+    const buffer = (new TextEncoder()).encode(message)
+    const iv = crypto.getRandomValues(new Uint8Array(ENCRYPTION_IV_BYTE_LENGTH))
+    const ciphertext = new Uint8Array(await crypto.subtle.encrypt({
+        name: 'AES-GCM',
+        iv
+    }, encryptionKey, buffer))
+    const payload = new Uint8Array(ciphertext.byteLength + ENCRYPTION_IV_BYTE_LENGTH)
+    payload.set(ciphertext, 0)
+    payload.set(iv, ciphertext.byteLength)
+    return payload
+}
+
+async function decrypt(encryptionKey, arrayBuffer) {
+    const payload = new Uint8Array(arrayBuffer)
+    const ciphertext = payload.slice(0, 0 - ENCRYPTION_IV_BYTE_LENGTH)
+    const iv = payload.slice(0 - ENCRYPTION_IV_BYTE_LENGTH)
+    const plaintext = await crypto.subtle.decrypt({
+        name: 'AES-GCM',
+        iv
+    }, encryptionKey, ciphertext)
+    const string = (new TextDecoder()).decode(plaintext)
+    return JSON.parse(string)
+}
+
+// Based on https://github.com/herrjemand/Base64URL-ArrayBuffer/blob/master/lib/base64url-arraybuffer.js
+function decodeBase64Url(base64) {
+    base64 = base64.replace(/[=]+$/, '')
+
+    let bufferLength = base64.length * 0.75
+    const arraybuffer = new ArrayBuffer(bufferLength)
+    const bytes = new Uint8Array(arraybuffer)
+
+    let p = 0
+    let encoded1, encoded2, encoded3, encoded4
+    for (let i = 0; i < base64.length; i += 4) {
+        encoded1 = BASE64_URL_LOOKUP[base64.charCodeAt(i)]
+        encoded2 = BASE64_URL_LOOKUP[base64.charCodeAt(i + 1)]
+        encoded3 = BASE64_URL_LOOKUP[base64.charCodeAt(i + 2)]
+        encoded4 = BASE64_URL_LOOKUP[base64.charCodeAt(i + 3)]
+
+        bytes[p++] = (encoded1 << 2) | (encoded2 >> 4)
+        bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2)
+        bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63)
+    }
+
+    return arraybuffer
 }

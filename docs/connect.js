@@ -67,6 +67,9 @@ const extensionUserAgent = searchParams.get('userAgent') || ''
 const domain = searchParams.get('domain') || ''
 const remotePeerId = window.location.hash.slice(1)
     .replace(/&.*/, '')
+const encryptionKey = window.location.hash.slice(1)
+    .replace(/[^&]*&/, '')
+    .replace('&debug', '')
 
 // Fallback in case localStorage is unavailable
 let storage
@@ -165,9 +168,12 @@ document.addEventListener('readystatechange', () => {
 })
 
 restartConnectionTimeout()
-start()
+start().catch((err) => {
+    displayError(err)
+    Sentry.captureException(err)
+})
 
-function start() {
+async function start() {
     if (/^0\.7\./.test(extensionVersion)) {
         document.getElementById('text-message-instructions-text-only').setAttribute('hidden', 'true')
         document.getElementById('text-message-instructions-with-link').removeAttribute('hidden')
@@ -194,10 +200,11 @@ function start() {
         document.getElementById('warning-container').removeAttribute('hidden')
     } else {
         // Create PeerManager and set up event handlers
-        peerManager = new PeerManager({
+
+        peerManager = await PeerManager.from({
             debugMode,
             remotePeerId,
-            sessionId
+            encryptionKey
         })
         peerManager.onconnect = () => {
             setStatus('Connected', 'success')

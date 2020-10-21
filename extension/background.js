@@ -164,9 +164,9 @@ async function createPeer(tabId) {
         }
     }
 
-    const peer = new PeerConnection()
+    const peer = await PeerConnection.create()
     const sessionId = peer.getSessionId()
-    const connectionSecret = peer.getConnectionSecret()
+    const connectionSecret = await peer.getConnectionSecret()
     const version = browser.runtime.getManifest().version
     const userAgent = encodeURIComponent(navigator.userAgent)
     const tabUrl = await browser.tabs.get(tabId).url
