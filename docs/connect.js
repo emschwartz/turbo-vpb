@@ -144,10 +144,6 @@ let loadContactSpan
 if (Sentry) {
     console.log('Re-initializing Sentry')
 
-    const integrations = []
-    if (Sentry.Integrations && typeof Sentry.Integrations.BrowserTracing === 'function') {
-        integrations.push(new Sentry.Integrations.BrowserTracing())
-    }
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
         release: extensionVersion,
@@ -160,7 +156,6 @@ if (Sentry) {
                 return breadcrumb
             }
         },
-        integrations,
         tracesSampleRate: 0.01,
     });
     Sentry.configureScope(function (scope) {
