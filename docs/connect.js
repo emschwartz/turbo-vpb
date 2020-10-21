@@ -376,13 +376,14 @@ function handleData(data) {
         callNumber = data.callNumber
     }
 
-    if (data.lastCallResult) {
-        if (!lastCallResult) {
-            lastCallResult = data.lastCallResult
-        } else if (lastCallResult && lastCallResult !== data.lastCallResult) {
-            Sentry.captureMessage(`Last call result from extension (${data.lastCallResult}) does not match the one we sent (${lastCallResult})`)
-        }
-    }
+    // TODO handle call result from extension (and make sure it's saving the correct one)
+    // if (data.lastCallResult) {
+    //     if (!lastCallResult) {
+    //         lastCallResult = data.lastCallResult
+    //     } else if (lastCallResult && lastCallResult !== data.lastCallResult) {
+    //         Sentry.captureMessage(`Last call result from extension (${data.lastCallResult}) does not match the one we sent (${lastCallResult})`)
+    //     }
+    // }
 
     if (data.contact) {
         if (!data.contact.phoneNumber || !data.contact.firstName) {
