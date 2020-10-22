@@ -70,6 +70,8 @@ const remotePeerId = window.location.hash.slice(1)
 const encryptionKey = window.location.hash.slice(1)
     .replace(/[^&]*&/, '')
     .replace('&debug', '')
+const commitHash = document.querySelector('meta[name="commit-hash"]')
+const release = commitHash && commitHash.content
 
 // Fallback in case localStorage is unavailable
 let storage
@@ -143,9 +145,6 @@ try {
 let loadContactSpan
 if (Sentry) {
     console.log('Re-initializing Sentry')
-
-    const commitHash = document.querySelector('meta[name="commit-hash"]')
-    const release = commitHash && commitHash.content
 
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
@@ -709,6 +708,7 @@ function displayError(err) {
 
         Error: ${err.type} ${err.message}
         Session: ${sessionId}
+        Release: ${release}
         Extension Version: ${extensionVersion}
         Desktop Browser: ${extensionUserAgent}
         Domain: ${domain}
