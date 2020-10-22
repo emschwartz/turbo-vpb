@@ -47,7 +47,7 @@ class PeerManager {
         this.reconnectResolves = []
 
         this.encryptionKey = encryptionKey
-        this.mode = WEBRTC_MODE
+        this.mode = WEBSOCKET_MODE
         // this.mode = encryptionKey ? WEBSOCKET_MODE : WEBRTC_MODE
         this.ws = null
     }
@@ -368,9 +368,19 @@ class PeerManager {
                 reject(new Error('Websocket closed before it was opened'))
             }
             this.ws.onerror = (event) => {
-                const { error, message } = event
-                if (!error) {
-                    error = new Error(`WebSocket Error: ${message}`)
+                let err
+                if (event instanceof Error) {
+                    err = event
+                } else if (typeof event === 'object') {
+                    if (event.error) {
+                        err = event.error
+                    } else if (event.message) {
+                        err = new Error(`WebSocket Error: ${event.message}`)
+                    } else {
+                        err = new Error('Websocket Error')
+                    }
+                } else {
+                    err = new Error('Websocket Error')
                 }
                 if (openTime) {
                     console.error(`websocket error (after ${Date.now() - openTime}ms)`, event)
@@ -378,9 +388,9 @@ class PeerManager {
                     console.error('websocket error', event)
                 }
                 if (this.mode === WEBSOCKET_MODE) {
-                    this.onerror(error)
+                    this.onerror(err)
                 }
-                reject(error)
+                reject(err)
             }
             this.ws.onmessage = async ({ data }) => {
                 if (this.mode !== WEBSOCKET_MODE) {
