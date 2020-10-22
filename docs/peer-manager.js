@@ -240,10 +240,18 @@ class PeerManager {
         console.log(`peer connected to server (took ${Date.now() - startTime}ms)`)
 
         this.peer.on('error', async (err) => {
+            if (this.mode === WEBSOCKET_MODE) {
+                console.log('peer error', err)
+                return
+            }
             this._closeConnection()
             return this.reconnect(err)
         })
         this.peer.on('disconnect', async () => {
+            if (this.mode === WEBSOCKET_MODE) {
+                console.log('peer disconnected')
+                return
+            }
             this._closeConnection()
             await this.onreconnecting()
             return this.reconnect()
@@ -282,11 +290,19 @@ class PeerManager {
             this.onmessage(data)
         })
         this.connection.on('close', async () => {
+            if (this.mode === WEBSOCKET_MODE) {
+                console.log('peer connection closed')
+                return
+            }
             this.connection = null
             await this.onreconnecting()
             return this.reconnect()
         })
         this.connection.on('error', async (err) => {
+            if (this.mode === WEBSOCKET_MODE) {
+                console.log('peer connection error', err)
+                return
+            }
             this.connection = null
             return this.reconnect()
         })
