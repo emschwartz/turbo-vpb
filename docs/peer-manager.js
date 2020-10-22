@@ -314,13 +314,14 @@ class PeerManager {
                 console.log('websocket already connected')
                 return
             }
-            this.ws.onclose = () => { }
-            this.ws.onerror = () => { }
-            this.ws.onopen = () => { }
-            this.ws.onmessage = () => { }
             if (typeof this.ws.reconnect === 'function') {
+                console.log('trying to reconnect websocket')
                 return this.ws.reconnect()
             } else {
+                this.ws.onclose = () => { }
+                this.ws.onerror = () => { }
+                this.ws.onopen = () => { }
+                this.ws.onmessage = () => { }
                 this.ws.close()
             }
         }
