@@ -47,8 +47,7 @@ class PeerManager {
         this.reconnectResolves = []
 
         this.encryptionKey = encryptionKey
-        this.mode = WEBSOCKET_MODE
-        // this.mode = encryptionKey ? WEBSOCKET_MODE : WEBRTC_MODE
+        this.mode = WEBRTC_MODE
         this.ws = null
     }
 
@@ -70,10 +69,6 @@ class PeerManager {
             return
         }
 
-        if (this.mode === WEBSOCKET_MODE) {
-            return this._connectPubSub()
-        }
-
         if (err && err.type && FINAL_ERRORS.includes(err.type)) {
             console.warn('Not retrying final error:', err.type)
             return this.onerror(err)
@@ -86,6 +81,8 @@ class PeerManager {
             })
         }
         this.isConnecting = true
+
+        console.log('PeerManager reconnecting')
 
         if (++this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
             console.error('exceeded max number of reconnect attempts')
@@ -314,16 +311,17 @@ class PeerManager {
                 console.log('websocket already connected')
                 return
             }
-            if (typeof this.ws.reconnect === 'function') {
-                console.log('trying to reconnect websocket')
-                return this.ws.reconnect()
-            } else {
-                this.ws.onclose = () => { }
-                this.ws.onerror = () => { }
-                this.ws.onopen = () => { }
-                this.ws.onmessage = () => { }
-                this.ws.close()
+            if (this.mode === WEBSOCKET_MODE) {
+                this.onreconnecting('Server')
             }
+            // Note: we don't use the ws.reconnect method
+            // because it seems slower than just creating the ws again
+            console.log('closing old websocket and creating a new one')
+            this.ws.onclose = () => { }
+            this.ws.onerror = () => { }
+            this.ws.onopen = () => { }
+            this.ws.onmessage = () => { }
+            this.ws.close()
         }
 
         return new Promise((resolve, reject) => {

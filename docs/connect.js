@@ -346,6 +346,9 @@ async function start() {
             }
 
             if (peerManager && !peerManager.isStopped()) {
+                // Wait in case other event handlers will be fired after this one
+                await new Promise((resolve) => setTimeout(resolve, 10))
+
                 // Make sure we're still connected
                 await peerManager.reconnect(null, true)
 
