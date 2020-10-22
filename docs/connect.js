@@ -709,6 +709,7 @@ function displayError(err) {
         Error: ${err.type} ${err.message}
         Session: ${sessionId}
         Release: ${release}
+        Connection Mode: ${peerManager && peerManager.mode}
         Extension Version: ${extensionVersion}
         Desktop Browser: ${extensionUserAgent}
         Domain: ${domain}
