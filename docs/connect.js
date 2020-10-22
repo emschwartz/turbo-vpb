@@ -144,9 +144,12 @@ let loadContactSpan
 if (Sentry) {
     console.log('Re-initializing Sentry')
 
+    const commitHash = document.querySelector('meta[name="commit-hash"]')
+    const release = commitHash && commitHash.content
+
     Sentry.init({
         dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315',
-        release: extensionVersion,
+        release,
         beforeBreadcrumb: (breadcrumb) => {
             if ((breadcrumb.category === 'xhr' || breadcrumb.category === 'fetch') &&
                 breadcrumb.data &&
