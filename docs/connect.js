@@ -647,9 +647,9 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
                 console.log(`sending call result: ${result}`)
                 if (Sentry && typeof Sentry.startTransaction === 'function') {
                     loadContactSpan = Sentry.startTransaction({
-                        name: `${PeerManager.mode}.loadNextContact`,
+                        name: `${peerManager.mode}.loadNextContact`,
                         tags: {
-                            connection_mode: PeerManager.mode
+                            connection_mode: peerManager.mode
                         }
                     })
                 }
