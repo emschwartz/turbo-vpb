@@ -1,4 +1,6 @@
 web-ext-artifacts
 *.pem
 extension.zip
+docs/_site
+docs/.jekyll-cache
 

@@ -1,268 +1,225 @@
-<!doctype html>
-<html lang="en">
+---
+layout: default
+---
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="dependencies/bootstrap.min.css">
-    <title>TurboVPB | Turbocharge Your Phone Banking in &lt;2 Minutes</title>
-    <meta property="og:site_name" content="TurboVPB | Turbocharge Your Phone Banking in &lt;2 Minutes" />
-    <meta property="og:title" content="TurboVPB | Turbocharge Your Phone Banking in &lt;2 Minutes" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://turbovpb.com" />
-    <meta property="og:description"
-        content="Free browser extension that speeds up phone banking with OpenVPB, VAN, and BlueVote. Call and text with just 2 clicks!" />
-    <meta property="og:video"
-        content="https://www.youtube.com/watch?v=B3QotZgtmF4&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&index=1" />
-    <meta property="og:image" content="https://turbovpb.com/images/phone-outgoing-blue-500.png" />
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="https://turbovpb.com">
+        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill" fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd"
+                d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
+        </svg> TurboVPB
+    </a>
 
-    <!-- Favicons -->
-    <link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
-    <link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
-    <link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
-    <link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
-    <link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
-    <link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
-    <link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/android-icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/manifest.json">
-    <meta name="msapplication-TileColor" content="#ffffff">
-    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
-    <meta name="theme-color" content="#ffffff">
-
-    <style>
-        .video-container {
-            position: relative;
-            padding-bottom: 56.25%;
-            padding-top: 30px;
-            height: 0;
-            overflow: hidden;
-        }
-
-        .video-container iframe,
-        .video-container object,
-        .video-container embed {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        h3,
-        h6 {
-            text-align: left;
-        }
-    </style>
-</head>
-
-<body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand" href="https://turbovpb.com">
-            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill" fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd"
-                    d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
-            </svg> TurboVPB
+    <div class="navbar-text ml-auto mr-2">
+        <a href="https://github.com/emschwartz/turbo-vpb" target="_blank" title="Source Code">
+            <img src="images/GitHub-Mark-64px.png" style="width: 1.2em; height: 1.2em">
         </a>
-
-        <div class="navbar-text ml-auto mr-2">
-            <a href="https://github.com/emschwartz/turbo-vpb" target="_blank" title="Source Code">
-                <img src="images/GitHub-Mark-64px.png" style="width: 1.2em; height: 1.2em">
-            </a>
-        </div>
-
-    </nav>
-
-    <div class="jumbotron jumbotron-fluid pb-4">
-        <div class="container text-center">
-            <h2 class="display-4 mb-3">
-                <span class="d-lg-block d-sm-inline">Turbocharge Your Phone Banking</span>
-                <span class="d-lg-block d-sm-inline">in &lt;2 Minutes</span>
-            </h2>
-            <div class="row my-3">
-                <div class="col"></div>
-                <div class="col-md-8 lead">
-                    <p>
-                        <span class="d-lg-inline-block">
-                            TurboVPB is a free browser extension that speeds up
-                            calling and texting with
-                        </span>
-                        <span class="d-lg-inline-block">
-                            EveryAction's OpenVPB, VAN,
-                            DNC VoteBuilder,
-                            and BlueVote.
-                        </span>
-                    </p>
-                    <p>
-                        <span class="d-lg-inline-block">
-                            Skip typing in phone numbers by hand. TurboVPB automatically sends
-                        </span>
-                        <span class="d-lg-inline-block">
-                            contacts' details to your phone so you can call and text with just 2 clicks.
-                        </span>
-                    </p>
-                </div>
-                <div class="col"></div>
-            </div>
-            <a class="btn btn-primary btn-lg my-2 mr-2" id="install-firefox"
-                href="https://addons.mozilla.org/en-US/firefox/addon/turbovpb/">
-                <img src="images/firefox-logo.png" width="40px" class="mr-2">
-                Get TurboVPB for Firefox
-            </a>
-            <a class="btn btn-primary btn-lg my-2 mr-2" id="install-chrome"
-                href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh?hl=en-US">
-                <img src="images/chrome-logo.png" width="40px" class="mr-2"> Get TurboVPB for Chrome
-            </a>
-            <p class="lead text-center my-4">Ready to use in &lt;2 minutes &dash; no account or phone app needed.</p>
-        </div>
     </div>
-    <div class="container text-justify">
-        <div class="row mb-2">
-            <div class="col"></div>
-            <div class="col-md-6">
-                <h3 class="text-center">Speed Up Your Calls in &lt;2 Minutes</h3>
-            </div>
-            <div class="col"></div>
-        </div>
-        <div class="row mb-4">
-            <div class="col-md"></div text-justify>
-            <div class="col-md-6 text-center">
-                <div class="video-container">
-                    <iframe
-                        src="https://www.youtube-nocookie.com/embed/?listType=playlist&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&start=1"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen></iframe>
-                </div>
-            </div>
-            <div class="col-md"></div>
-        </div>
-        <div class="row">
-            <div class="col-md"></div>
-            <div class="col-md-6">
-                <h3>TurboVPB Features</h3>
-                <ol>
-                    <li><b><a href="https://www.youtube.com/watch?v=B3QotZgtmF4&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&index=1"
-                                target="_blank">More Calls, Less Hassle</a></b> - Enable organizers and
-                        volunteers to call without typing in phone numbers by hand.</li>
-                    <li><b><a href="https://www.youtube.com/watch?v=TjR4veiOdvo&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&index=2"
-                                target="_blank">Fast Setup</a></b> - Install and start calling in under 2 minutes.
-                    <li>
-                        <b><a href="https://www.youtube.com/watch?v=VXVqJ8py4FQ&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&index=3"
-                                target="_blank">2-Click Texting</a></b> - Easily follow-up with contacts
-                        that do not answer the phone, or send links or more information after successful calls.
-                    </li>
-                </ol>
-            </div>
-            <div class="col-md"></div>
-        </div>
-        <div class="row">
-            <div class="col-md"></div>
-            <div class="col-md-6">
-                <h3>Calling from Google Voice</h3>
-                <p>
-                    Calls with TurboVPB will use your phone number unless you use <a
-                        href="https://voice.google.com">Google Voice</a>
-                    or another similar calling app.
-                </p>
 
-                <p>Once you
-                    have the Google Voice app installed on your phone:
-                </p>
-                <ul>
-                    <li>On iOS: long-press the call button and select "Voice" from the menu to place the call with
-                        Google Voice.</li>
-                    <li>On Android: follow the same step as for iOS, or (temporarily) set Google Voice as your default
-                        phone and messaging app.</li>
-                </ul>
+</nav>
+
+<style>
+    .video-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        padding-top: 30px;
+        height: 0;
+        overflow: hidden;
+    }
+
+    .video-container iframe,
+    .video-container object,
+    .video-container embed {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    h3,
+    h6 {
+        text-align: left;
+    }
+</style>
+
+<div class="jumbotron jumbotron-fluid pb-4">
+    <div class="container text-center">
+        <h2 class="display-4 mb-3">
+            <span class="d-lg-block d-sm-inline">Turbocharge Your Phone Banking</span>
+            <span class="d-lg-block d-sm-inline">in &lt;2 Minutes</span>
+        </h2>
+        <div class="row my-3">
+            <div class="col"></div>
+            <div class="col-md-8 lead">
                 <p>
-                    You can also use the "Long-press to call" switch on the mobile page to ensure that you'll
-                    only call or text by long-pressing to open Google Voice.
-                </p>
-            </div>
-            <div class="col-md"></div>
-        </div>
-        <div class="row">
-            <div class="col-md"></div>
-            <div class="col-md-6">
-                <h3 class="mb-3">Frequently Asked Questions</h3>
-                <div>
-                    <h6>Do you collect or store contact details?</h6>
-                    <p>
-                        No. Contact details are not collected or stored on
-                        any server.
-                        TurboVPB sends the details directly from your computer to your phone using a peer-to-peer
-                        communications technology called <a href="https://webrtc.org">WebRTC</a>.
-                        For more details on how TurboVPB works, see the source code repository: <a
-                            href="https://github.com/emschwartz/turbo-vpb" target="_blank">emschwartz/turbo-vpb</a>.
-                    </p>
-                </div>
-                <div>
-                    <h6>Does EveryAction support the use of TurboVPB?</h6>
-                    <p>Not officially, but they mention TurboVPB in the
-                        <a href="https://everyaction.readme.io/docs/other-solutions#turbovpb">"Officially
-                            Unsupported"</a>
-                        features section of their documentation.
-                    </p>
-                </div>
-                <div>
-                    <h6>How is this different from <a href="https://blog.ngpvan.com/intro-vpb-connect">VPB Connect</a>?
-                    </h6>
-                    <p>
-                        TurboVPB is a free extension that speeds up calling primarily from the caller's own phone
-                        number.
-                        It also makes it easy to text contacts after calling them.
-                    </p>
-                    <p>
-                        VPB Connect is a paid service from EveryAction that lets you call from phone numbers provided by
-                        VAN. You may want to consider using VPB Connect if you work with a campaign that needs to
-                        call from campaign numbers and is open to paying by the minute for calls.
-                    </p>
-                </div>
-                <div>
-                    <h6>Is there a catch?</h6>
-                    <p>Nope! I built this after getting tired of typing in phone numbers by hand while
-                        contacting volunteers for the Sunrise Movement and calling voters with SwingLeft.
-                        I hope it will help make phone banking a little more efficient for other organizations,
-                        campaigns, or individual volunteers.
-                    </p>
-                </div>
-            </div>
-            <div class="col-md"></div>
-        </div>
-        <div class="row">
-            <div class="col-md"></div>
-            <div class="col-md-6">
-                <h3>Get In Touch</h3>
-                <p>
-                    Want to talk about how your campaign or organization can use TurboVPB? Have feedback on the
-                    experience or ideas for how it could be improved?
+                    <span class="d-lg-inline-block">
+                        TurboVPB is a free browser extension that speeds up
+                        calling and texting with
+                    </span>
+                    <span class="d-lg-inline-block">
+                        EveryAction's OpenVPB, VAN,
+                        DNC VoteBuilder,
+                        and BlueVote.
+                    </span>
                 </p>
                 <p>
-                    Send me an email at: evan [at] turbovpb [dot] com
+                    <span class="d-lg-inline-block">
+                        Skip typing in phone numbers by hand. TurboVPB automatically sends
+                    </span>
+                    <span class="d-lg-inline-block">
+                        contacts' details to your phone so you can call and text with just 2 clicks.
+                    </span>
                 </p>
             </div>
-            <div class="col-md"></div>
+            <div class="col"></div>
         </div>
+        <a class="btn btn-primary btn-lg my-2 mr-2" id="install-firefox"
+            href="https://addons.mozilla.org/en-US/firefox/addon/turbovpb/">
+            <img src="images/firefox-logo.png" width="40px" class="mr-2">
+            Get TurboVPB for Firefox
+        </a>
+        <a class="btn btn-primary btn-lg my-2 mr-2" id="install-chrome"
+            href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh?hl=en-US">
+            <img src="images/chrome-logo.png" width="40px" class="mr-2"> Get TurboVPB for Chrome
+        </a>
+        <p class="lead text-center my-4">Ready to use in &lt;2 minutes &dash; no account or phone app needed.</p>
     </div>
-    <footer class="footer mt-auto py-5 text-center">
+</div>
+<div class="container text-justify">
+    <div class="row mb-2">
+        <div class="col"></div>
+        <div class="col-md-6">
+            <h3 class="text-center">Speed Up Your Calls in &lt;2 Minutes</h3>
+        </div>
+        <div class="col"></div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-md"></div text-justify>
+        <div class="col-md-6 text-center">
+            <div class="video-container">
+                <iframe
+                    src="https://www.youtube-nocookie.com/embed/?listType=playlist&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&start=1"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+            </div>
+        </div>
+        <div class="col-md"></div>
+    </div>
+    <div class="row">
+        <div class="col-md"></div>
+        <div class="col-md-6">
+            <h3>TurboVPB Features</h3>
+            <ol>
+                <li><b><a href="https://www.youtube.com/watch?v=B3QotZgtmF4&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&index=1"
+                            target="_blank">More Calls, Less Hassle</a></b> - Enable organizers and
+                    volunteers to call without typing in phone numbers by hand.</li>
+                <li><b><a href="https://www.youtube.com/watch?v=TjR4veiOdvo&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&index=2"
+                            target="_blank">Fast Setup</a></b> - Install and start calling in under 2 minutes.
+                <li>
+                    <b><a href="https://www.youtube.com/watch?v=VXVqJ8py4FQ&list=PLj6LKfMQzQFo9Lfqpb9W_tHD463qJF8IX&index=3"
+                            target="_blank">2-Click Texting</a></b> - Easily follow-up with contacts
+                    that do not answer the phone, or send links or more information after successful calls.
+                </li>
+            </ol>
+        </div>
+        <div class="col-md"></div>
+    </div>
+    <div class="row">
+        <div class="col-md"></div>
+        <div class="col-md-6">
+            <h3>Calling from Google Voice</h3>
+            <p>
+                Calls with TurboVPB will use your phone number unless you use <a href="https://voice.google.com">Google
+                    Voice</a>
+                or another similar calling app.
+            </p>
 
-        <span class="text-muted mx-auto px-auto">Created for the <a href="https://sunrisemovement.org">Sunrise
-                Movement</a> by <a href="https://github.com/emschwartz">Evan
-                Schwartz</a></span>
-    </footer>
-    <script src="dependencies/sentry-5.27.0-with-tracing.min.js"></script>
-    <script>
-        Sentry.init({ dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315' });
-    </script>
-    <script async src="dependencies/ackee-tracker.min.js" data-ackee-server="https://analytics.turbovpb.com"
-        data-ackee-domain-id="d72e1472-0d7f-4ed6-976b-cc6dff65bc1d" data-ackee-opts='{ "detailed": true }'></script>
-</body>
+            <p>Once you
+                have the Google Voice app installed on your phone:
+            </p>
+            <ul>
+                <li>On iOS: long-press the call button and select "Voice" from the menu to place the call with
+                    Google Voice.</li>
+                <li>On Android: follow the same step as for iOS, or (temporarily) set Google Voice as your default
+                    phone and messaging app.</li>
+            </ul>
+            <p>
+                You can also use the "Long-press to call" switch on the mobile page to ensure that you'll
+                only call or text by long-pressing to open Google Voice.
+            </p>
+        </div>
+        <div class="col-md"></div>
+    </div>
+    <div class="row">
+        <div class="col-md"></div>
+        <div class="col-md-6">
+            <h3 class="mb-3">Frequently Asked Questions</h3>
+            <div>
+                <h6>Do you collect or store contact details?</h6>
+                <p>
+                    No. Contact details are not collected or stored on
+                    any server.
+                    TurboVPB sends the details directly from your computer to your phone using a peer-to-peer
+                    communications technology called <a href="https://webrtc.org">WebRTC</a>.
+                    For more details on how TurboVPB works, see the source code repository: <a
+                        href="https://github.com/emschwartz/turbo-vpb" target="_blank">emschwartz/turbo-vpb</a>.
+                </p>
+            </div>
+            <div>
+                <h6>Does EveryAction support the use of TurboVPB?</h6>
+                <p>Not officially, but they mention TurboVPB in the
+                    <a href="https://everyaction.readme.io/docs/other-solutions#turbovpb">"Officially
+                        Unsupported"</a>
+                    features section of their documentation.
+                </p>
+            </div>
+            <div>
+                <h6>How is this different from <a href="https://blog.ngpvan.com/intro-vpb-connect">VPB Connect</a>?
+                </h6>
+                <p>
+                    TurboVPB is a free extension that speeds up calling primarily from the caller's own phone
+                    number.
+                    It also makes it easy to text contacts after calling them.
+                </p>
+                <p>
+                    VPB Connect is a paid service from EveryAction that lets you call from phone numbers provided by
+                    VAN. You may want to consider using VPB Connect if you work with a campaign that needs to
+                    call from campaign numbers and is open to paying by the minute for calls.
+                </p>
+            </div>
+            <div>
+                <h6>Is there a catch?</h6>
+                <p>Nope! I built this after getting tired of typing in phone numbers by hand while
+                    contacting volunteers for the Sunrise Movement and calling voters with SwingLeft.
+                    I hope it will help make phone banking a little more efficient for other organizations,
+                    campaigns, or individual volunteers.
+                </p>
+            </div>
+        </div>
+        <div class="col-md"></div>
+    </div>
+    <div class="row">
+        <div class="col-md"></div>
+        <div class="col-md-6">
+            <h3>Get In Touch</h3>
+            <p>
+                Want to talk about how your campaign or organization can use TurboVPB? Have feedback on the
+                experience or ideas for how it could be improved?
+            </p>
+            <p>
+                Send me an email at: evan [at] turbovpb [dot] com
+            </p>
+        </div>
+        <div class="col-md"></div>
+    </div>
+</div>
 
-</html>
+<script src="dependencies/sentry-5.27.0-with-tracing.min.js"></script>
+<script>
+    Sentry.init({ dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315' });
+</script>
+<script async src="dependencies/ackee-tracker.min.js" data-ackee-server="https://analytics.turbovpb.com"
+    data-ackee-domain-id="d72e1472-0d7f-4ed6-976b-cc6dff65bc1d" data-ackee-opts='{ "detailed": true }'></script>
