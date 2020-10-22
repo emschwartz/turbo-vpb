@@ -226,6 +226,8 @@ async function start() {
         }
         peerManager.onconnect = () => {
             setStatus('Connected', 'success')
+            clearTimeout(connectTimer)
+
             const warningContainer = document.getElementById('warning-container')
             if (warningContainer) {
                 warningContainer.setAttribute('hidden', 'true')
