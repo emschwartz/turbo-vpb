@@ -254,7 +254,11 @@ async function start() {
 
             setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
             setLoading()
-            restartConnectionTimeout()
+
+            // Don't start timer if it started reconnecting because the page is hidden
+            if (document.visibilityState !== 'hidden') {
+                restartConnectionTimeout()
+            }
 
             document.getElementById('warning-container').hidden = true
             document.getElementById('contact-details').hidden = true
