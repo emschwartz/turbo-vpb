@@ -126,42 +126,46 @@ class PeerManager {
             this.peer.destroy()
         }
 
-        console.log(`connecting (mode: ${this.mode})`)
-
-        // Use Sentry tracing to measure performance
-        let span
-        if (Sentry && typeof Sentry.startTransaction === 'function') {
-            span = Sentry.startTransaction({
-                name: `${this.mode}.connect`,
-                tags: {
-                    connection_mode: this.mode
-                }
-            })
-            Sentry.configureScope((scope) => scope.setSpan(span))
-        }
-
-        if (this.mode === WEBRTC_MODE) {
-            if (!this.iceServers) {
-                this.iceServers = await wrapWithTracingSpan(span, 'getIceServers', () => getIceServers())
-            }
-
-            try {
-                await wrapWithTracingSpan(span, 'checkPeerConnected', () => this._checkPeerConnected())
-                await wrapWithTracingSpan(span, 'checkConnectionOpen', () => this._checkConnectionOpen())
-            } catch (err) {
-                this.isConnecting = false
-                return wrapWithTracingSpan(span, 'reconnect', () => this.reconnect(err))
-            }
-
-            this.isConnecting = false
-            await this.onconnect()
+        if (this.isConnected()) {
+            console.log('already connected')
         } else {
-            await wrapWithTracingSpan(span, 'connectPubSub', () => this._connectPubSub())
-            this.isConnecting = false
-        }
+            console.log(`connecting (mode: ${this.mode})`)
 
-        if (span) {
-            span.finish()
+            // Use Sentry tracing to measure performance
+            let span
+            if (Sentry && typeof Sentry.startTransaction === 'function') {
+                span = Sentry.startTransaction({
+                    name: `${this.mode}.connect`,
+                    tags: {
+                        connection_mode: this.mode
+                    }
+                })
+                Sentry.configureScope((scope) => scope.setSpan(span))
+            }
+
+            if (this.mode === WEBRTC_MODE) {
+                if (!this.iceServers) {
+                    this.iceServers = await wrapWithTracingSpan(span, 'getIceServers', () => getIceServers())
+                }
+
+                try {
+                    await wrapWithTracingSpan(span, 'checkPeerConnected', () => this._checkPeerConnected())
+                    await wrapWithTracingSpan(span, 'checkConnectionOpen', () => this._checkConnectionOpen())
+                } catch (err) {
+                    this.isConnecting = false
+                    return wrapWithTracingSpan(span, 'reconnect', () => this.reconnect(err))
+                }
+
+                this.isConnecting = false
+                await this.onconnect()
+            } else {
+                await wrapWithTracingSpan(span, 'connectPubSub', () => this._connectPubSub())
+                this.isConnecting = false
+            }
+
+            if (span) {
+                span.finish()
+            }
         }
 
         // Resolve all of the reconnect calls that were
@@ -207,6 +211,16 @@ class PeerManager {
             this.ws.onerror = () => { }
             this.ws.onclose = () => { }
             this.ws.close()
+        }
+    }
+
+    isConnected() {
+        if (this.mode === WEBRTC_MODE) {
+            return this.active
+                && !!this.peer && !this.peer.disconnected && !this.peer.destroyed
+                && !!this.connection && this.connection.open
+        } else {
+            return !!this.ws && this.ws.readyState === WebSocket.OPEN
         }
     }
 
