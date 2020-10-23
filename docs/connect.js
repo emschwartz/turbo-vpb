@@ -1,3 +1,5 @@
+'use strict'
+
 console.log('Loading connect.js')
 const CONNECT_TIMEOUT = 30000
 

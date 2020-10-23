@@ -1,3 +1,5 @@
+'use strict'
+
 console.log('Loading PeerManager')
 const FINAL_ERRORS = ['browser-incompatible', 'invalid-id', 'invalid-key', 'ssl-unavailable', 'unavailable-id']
 
