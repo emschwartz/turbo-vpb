@@ -818,8 +818,12 @@ function setLoading() {
 }
 
 function setLoadingFinished() {
-    document.getElementById('loading').setAttribute('hidden', 'true')
-    document.getElementById('contact-details').removeAttribute('hidden')
+    if (document.getElementById('loading')) {
+        document.getElementById('loading').setAttribute('hidden', 'true')
+    }
+    if (document.getElementById('contact-details')) {
+        document.getElementById('contact-details').removeAttribute('hidden')
+    }
 }
 
 function showSaveMessage(result) {
