@@ -343,7 +343,7 @@ class PeerManager {
         return new Promise((resolve, reject) => {
             const url = `${SUBSCRIBE_URL_BASE}${this.remotePeerId}/browser`
             console.log('connecting to:', url)
-            const startTime = Date.now()
+            let startTime = Date.now()
             let openTime
             if (typeof ReconnectingWebSocket === 'function') {
                 console.log('Using ReconnectingWebSocket')
@@ -367,17 +367,19 @@ class PeerManager {
                 this.sendMessage({ type: 'connect' })
                 resolve()
             }
-            this.ws.onclose = () => {
+            this.ws.onclose = (event) => {
+                const reason = event ? event.reason : ''
                 if (openTime) {
-                    console.log(`websocket closed (after ${Date.now() - openTime}ms)`)
+                    console.log(`websocket closed (after ${Date.now() - openTime}ms). reason: ${reason}`)
                 } else {
-                    console.log('websocket closed')
+                    console.log(`websocket closed. reason: ${reason}`)
                 }
+                startTime = Date.now()
                 if (this.mode === WEBSOCKET_MODE) {
                     if (typeof ReconnectingWebSocket === 'function') {
                         this.onreconnecting('Server')
                     } else {
-                        this.onerror(new Error('WebSocket closed'))
+                        this.onerror(new Error(`WebSocket closed (reason: ${reason || 'unknown'})`))
                     }
                 }
                 reject(new Error('Websocket closed before it was opened'))
