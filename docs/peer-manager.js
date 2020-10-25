@@ -12,7 +12,7 @@ const DEFAULT_ICE_SERVERS = [{
 }]
 const RECONNECT_BACKOFF = 10
 const RECONNECT_DELAY_START = 25
-const MAX_RECONNECT_ATTEMPTS = 3
+const MAX_RECONNECT_ATTEMPTS = 2
 
 const PUBLISH_URL_BASE = 'https://pubsub.turbovpb.com/c/'
 const SUBSCRIBE_URL_BASE = 'wss://pubsub.turbovpb.com/c/'
