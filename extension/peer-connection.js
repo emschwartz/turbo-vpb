@@ -115,16 +115,11 @@ class PeerConnection {
             this.ws.close()
         }
 
-        // TODO delete channels
-        // waiting for https://github.com/slact/nchan/issues/587
-        // try {
-        //     return Promise.all([
-        //         fetch(`${PUBLISH_URL_BASE}${this.sessionId}/exentsion`, { method: 'DELETE' }),
-        //         fetch(`${PUBLISH_URL_BASE}${this.sessionId}/browser`, { method: 'DELETE' })
-        //     ])
-        // } catch (err) {
-        //     console.error('error deleting channels', err)
-        // }
+        try {
+            await fetch(`${PUBLISH_URL_BASE}${this.sessionId}`, { method: 'DELETE' })
+        } catch (err) {
+            console.error('error deleting channels', err)
+        }
     }
 
     async sendMessage(message) {
