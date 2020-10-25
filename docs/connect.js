@@ -269,6 +269,7 @@ async function start() {
         }
         peerManager.onerror = (err) => {
             displayError(err)
+            console.error('peer error', err)
 
             if (document.visibilityState !== 'hidden') {
                 if (err) {
@@ -327,6 +328,7 @@ async function start() {
             })
 
         document.addEventListener('visibilitychange', async () => {
+            console.log('visibility state:', document.visibilityState)
             if (Sentry && typeof Sentry.configureScope === 'function') {
                 Sentry.configureScope((scope) => {
                     scope.setTag('visibility_state', document.visibilityState)
