@@ -184,11 +184,27 @@ document.addEventListener('readystatechange', () => {
 })
 
 restartConnectionTimeout()
-start().catch((err) => {
-    displayError(err)
-    console.log('reporting start error to Sentry')
-    Sentry.captureException(err)
-})
+if (document.readyState !== 'loading') {
+    start().catch((err) => {
+        displayError(err)
+        console.log('reporting start error to Sentry')
+        Sentry.captureException(err)
+    })
+} else {
+    console.log('document not yet ready, waiting for start event')
+    async function onLoad() {
+        document.removeEventListener('load', onLoad)
+        try {
+            await start()
+        } catch (err) {
+            displayError(err)
+            console.log('reporting start error to Sentry')
+            Sentry.captureException(err)
+        }
+    }
+
+    document.addEventListener('load', onLoad)
+}
 
 async function start() {
     if (/^0\.7\./.test(extensionVersion)) {
@@ -217,7 +233,6 @@ async function start() {
         document.getElementById('warning-container').removeAttribute('hidden')
     } else {
         // Create PeerManager and set up event handlers
-
         peerManager = await PeerManager.from({
             debugMode,
             remotePeerId,
