@@ -343,6 +343,9 @@ async function start() {
             }
 
             if (document.visibilityState !== 'visible') {
+                // Don't show an error if the user hides the pages and then if fails to connect
+                clearTimeout(connectTimer)
+
                 return
             }
 
@@ -381,6 +384,7 @@ async function start() {
 }
 
 function restartConnectionTimeout() {
+    console.log('restarting connection timer')
     clearTimeout(connectTimer)
     connectTimer = setTimeout(async () => {
         console.error('connection timed out')
