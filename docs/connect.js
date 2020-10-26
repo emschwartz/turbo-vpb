@@ -119,6 +119,7 @@ let callNumber
 
 let peerManager
 let connectTimer
+let pageLastBecameVisible = Date.now()
 
 let lastCallStartTime
 let lastCallDuration = 0
@@ -268,20 +269,26 @@ async function start() {
             document.getElementById('contact-details').hidden = true
         }
         peerManager.onerror = (err) => {
-            displayError(err)
             console.error('peer error', err)
 
-            if (document.visibilityState !== 'hidden') {
-                if (err) {
-                    if (err.type) {
-                        Sentry.captureException(err, {
-                            tags: {
-                                error_type: err.type
-                            }
-                        })
-                    } else {
-                        Sentry.captureException(err)
-                    }
+            // Only show and report errors if they are not caused by the page being put to sleep by the browser
+            // The error event fires after the document.readyState is changed to visible, which is why
+            // we check if the page became visible within a certain number of milliseconds
+            if (document.visibilityState === 'hidden' || (Date.now() - pageLastBecameVisible) < 10) {
+                return
+            }
+
+            displayError(err)
+
+            if (err) {
+                if (err.type) {
+                    Sentry.captureException(err, {
+                        tags: {
+                            error_type: err.type
+                        }
+                    })
+                } else {
+                    Sentry.captureException(err)
                 }
             }
         }
@@ -338,6 +345,8 @@ async function start() {
             if (document.visibilityState !== 'visible') {
                 return
             }
+
+            pageLastBecameVisible = Date.now()
 
             if (pendingSaveMessage) {
                 showSaveMessage(pendingSaveMessage)
