@@ -108,11 +108,15 @@ layout: default
             <div class="col"></div>
         </div>
         <div class="mt-4 mb-5">
-            <div class="custom-control custom-switch text-muted">
+            <div class="custom-control custom-switch text-muted" id="ios-long-press-mode" hidden>
                 <input class="custom-control-input" type="checkbox" id="require-long-press-mode">
                 <label class="custom-control-label" for="require-long-press-mode">
                     Long-press to call (for Google Voice)
                 </label>
+            </div>
+            <div class="alert alert-light text-center" id="android-google-voice" hidden>
+                To call with Google Voice on Android, set Google Voice as the default Phone and SMS app
+                by going to Settings &gt; Apps & Notifications &gt; Advanced &gt; Default Apps.
             </div>
         </div>
     </div>

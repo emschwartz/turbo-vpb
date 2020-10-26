@@ -326,17 +326,24 @@ async function start() {
         })
 
         // Require long-press mode setting
-        if (storage.getItem('requireLongPressMode')) {
-            document.getElementById('require-long-press-mode').checked = true
-        }
-        document.getElementById('require-long-press-mode')
-            .addEventListener('change', (e) => {
+        if (/iphone|ipad|ios/i.test(navigator.userAgent) || storage.getItem('requireLongPressMode')) {
+            const longPressSettings = document.getElementById('ios-long-press-mode')
+            longPressSettings.removeAttribute('hidden')
+            const checkbox = longPressSettings.querySelector('input[type="checkbox"]')
+            if (storage.getItem('requireLongPressMode')) {
+                checkbox.checked = true
+            }
+            checkbox.addEventListener('change', (e) => {
                 if (e.target.checked) {
                     storage.setItem('requireLongPressMode', 'true')
                 } else {
                     storage.removeItem('requireLongPressMode')
                 }
             })
+        } else if (/android/i.test(navigator.userAgent)) {
+            document.getElementById('ios-long-press-mode').setAttribute('hidden', 'true')
+            document.getElementById('android-google-voice').removeAttribute('hidden')
+        }
 
         document.addEventListener('visibilitychange', async () => {
             console.log('visibility state:', document.visibilityState)
