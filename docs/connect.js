@@ -186,6 +186,7 @@ document.addEventListener('readystatechange', () => {
 restartConnectionTimeout()
 start().catch((err) => {
     displayError(err)
+    console.log('reporting start error to Sentry')
     Sentry.captureException(err)
 })
 
@@ -283,6 +284,7 @@ async function start() {
             displayError(err)
 
             if (err) {
+                console.log('reporting peer error to Sentry')
                 if (err.type) {
                     Sentry.captureException(err, {
                         tags: {
@@ -404,6 +406,7 @@ function restartConnectionTimeout() {
 
         const err = new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?')
         displayError(err)
+        console.log('reporting timeout error to Sentry')
         Sentry.captureException(err)
         peerManager.stop()
     }, CONNECT_TIMEOUT)
