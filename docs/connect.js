@@ -120,6 +120,7 @@ let callNumber
 
 let peerManager
 let connectTimer
+let connectTimerIsRunning = false
 let pageLastBecameVisible = Date.now()
 
 let lastCallStartTime
@@ -410,10 +411,16 @@ async function start() {
 }
 
 function restartConnectionTimeout() {
+    if (connectTimerIsRunning) {
+        console.log('not restarting connection timer because it is still running')
+        return
+    }
     console.log('restarting connection timer')
     clearTimeout(connectTimer)
+    connectTimerIsRunning = true
     connectTimer = setTimeout(async () => {
         console.error('connection timed out')
+        connectTimerIsRunning = false
 
         if (peerManager && !peerManager.isWebSocketMode()) {
             console.log('trying websocket mode')
