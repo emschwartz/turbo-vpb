@@ -49,7 +49,7 @@ class PeerManager {
         this.reconnectResolves = []
 
         this.encryptionKey = encryptionKey
-        this.mode = WEBRTC_MODE
+        this.mode = this.encryptionKey ? WEBSOCKET_MODE : WEBRTC_MODE
         this.ws = null
     }
 
