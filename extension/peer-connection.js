@@ -255,13 +255,16 @@ class PeerConnection {
             console.log('connecting to:', url)
             this.ws = new ReconnectingWebSocket(url)
             this.ws.binaryType = 'arraybuffer'
-            const startTime = Date.now()
+            let startTime = Date.now()
+            let openTime
             this.ws.onopen = () => {
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
+                openTime = Date.now()
                 resolve()
             }
             this.ws.onclose = () => {
-                console.log('websocket closed')
+                console.log('websocket closed', openTime ? `(after ${Date.now() - openTime}ms)` : '')
+                startTime = Date.now()
                 if (this.mode === WEBSOCKET_MODE) {
                     this.ondisconnect()
                 }
