@@ -249,7 +249,7 @@ async function start() {
         }
         peerManager.onconnect = () => {
             setStatus('Connected', 'success')
-            clearTimeout(connectTimer)
+            stopConnectionTimeout()
 
             const warningContainer = document.getElementById('warning-container')
             if (warningContainer) {
@@ -264,12 +264,12 @@ async function start() {
             }
         }
         peerManager.onmessage = (data) => {
-            clearTimeout(connectTimer)
+            stopConnectionTimeout()
             handleData(data)
         }
         peerManager.onreconnecting = (target) => {
             if (sessionIsComplete()) {
-                clearTimeout(connectTimer)
+                stopConnectionTimeout()
                 console.log('Session is complete, stopping peer manager')
                 peerManager.stop()
                 return
@@ -371,7 +371,7 @@ async function start() {
 
             if (document.visibilityState !== 'visible') {
                 // Don't show an error if the user hides the pages and then if fails to connect
-                clearTimeout(connectTimer)
+                stopConnectionTimeout()
 
                 return
             }
@@ -408,6 +408,14 @@ async function start() {
             lastCallStartTime = null
         })
     }
+}
+
+function stopConnectionTimeout() {
+    if (connectTimerIsRunning) {
+        console.log('stopping connection timer')
+    }
+    clearTimeout(connectTimer)
+    connectTimerIsRunning = false
 }
 
 function restartConnectionTimeout() {
@@ -799,7 +807,7 @@ function markSessionComplete() {
     document.getElementById('contact-details').remove()
     document.getElementById('session-ended').removeAttribute('hidden')
 
-    clearTimeout(connectTimer)
+    stopConnectionTimeout()
 
     if (sessionTimeInterval) {
         clearInterval(sessionTimeInterval)
