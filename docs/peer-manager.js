@@ -253,21 +253,20 @@ class PeerManager {
         console.log(`peer connected to server (took ${Date.now() - startTime}ms)`)
 
         this.peer.on('error', async (err) => {
-            if (this.mode === WEBSOCKET_MODE) {
-                console.log('peer error', err)
-                return
+            console.error('peer error', err)
+
+            if (this.mode === WEBRTC_MODE) {
+                this._closeConnection()
+                return this.reconnect(err)
             }
-            this._closeConnection()
-            return this.reconnect(err)
         })
         this.peer.on('disconnect', async () => {
-            if (this.mode === WEBSOCKET_MODE) {
-                console.log('peer disconnected')
-                return
+            console.warn('peer disconnected')
+
+            if (this.mode === WEBRTC_MODE) {
+                this._closeConnection()
+                return this.reconnect()
             }
-            this._closeConnection()
-            await this.onreconnecting()
-            return this.reconnect()
         })
     }
 
@@ -303,21 +302,20 @@ class PeerManager {
             this.onmessage(data)
         })
         this.connection.on('close', async () => {
-            if (this.mode === WEBSOCKET_MODE) {
-                console.log('peer connection closed')
-                return
-            }
+            console.warn('peer connection closed')
             this.connection = null
-            await this.onreconnecting()
-            return this.reconnect()
+
+            if (this.mode === WEBRTC_MODE) {
+                return this.reconnect()
+            }
         })
         this.connection.on('error', async (err) => {
-            if (this.mode === WEBSOCKET_MODE) {
-                console.log('peer connection error', err)
-                return
-            }
+            console.error('peer connection error', err)
             this.connection = null
-            return this.reconnect()
+
+            if (this.mode === WEBRTC_MODE) {
+                return this.reconnect(err)
+            }
         })
     }
 
@@ -361,18 +359,21 @@ class PeerManager {
             this.ws.onopen = () => {
                 openTime = Date.now()
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
+
+                // We only consider it connected when we get a message from the extension
                 if (this.mode === WEBSOCKET_MODE) {
                     this.onreconnecting('Extension')
                 }
                 this.sendMessage({ type: 'connect' })
+
                 resolve()
             }
             this.ws.onclose = (event) => {
                 const reason = event ? event.reason : ''
                 if (openTime) {
-                    console.log(`websocket closed (after ${Date.now() - openTime}ms). reason: ${reason}`)
+                    console.warn(`websocket closed (after ${Date.now() - openTime}ms). reason: ${reason}`)
                 } else {
-                    console.log(`websocket closed. reason: ${reason}`)
+                    console.warn(`websocket closed. reason: ${reason}`)
                 }
                 startTime = Date.now()
                 if (this.mode === WEBSOCKET_MODE) {
