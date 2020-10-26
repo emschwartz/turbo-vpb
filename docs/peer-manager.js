@@ -404,7 +404,6 @@ class PeerManager {
                         this.onerror(new Error(`WebSocket closed (reason: ${reason || 'unknown'})`))
                     }
                 }
-                reject(new Error('Websocket closed before it was opened'))
             }
             this.ws.onerror = (event) => {
                 let err
