@@ -146,13 +146,19 @@ class PeerConnection {
                 this.ws.send(encrypted)
             } else {
                 console.log('sending message to pubsub via HTTP POST')
-                await fetch(`${PUBLISH_URL_BASE}${this.sessionId}/extension`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/octet-stream'
-                    },
-                    body: encrypted
-                })
+                try {
+                    await fetch(`${PUBLISH_URL_BASE}${this.sessionId}/extension`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/octet-stream'
+                        },
+                        body: encrypted
+                    })
+                } catch (err) {
+                    console.error('error sending message to pubsub', err)
+                    // This will queue the message to be sent when the websocket opens
+                    this.ws.send(encrypted)
+                }
             }
         }
     }
