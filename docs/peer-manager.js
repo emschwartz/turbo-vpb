@@ -164,24 +164,22 @@ class PeerManager {
                 Sentry.configureScope((scope) => scope.setSpan(span))
             }
 
-            if (this.mode === WEBRTC_MODE) {
-                if (!this.iceServers) {
-                    this.iceServers = await wrapWithTracingSpan(span, 'getIceServers', () => getIceServers())
-                }
-
-                try {
+            try {
+                if (this.mode === WEBRTC_MODE) {
+                    if (!this.iceServers) {
+                        this.iceServers = await wrapWithTracingSpan(span, 'getIceServers', () => getIceServers())
+                    }
                     await wrapWithTracingSpan(span, 'checkPeerConnected', () => this._checkPeerConnected())
                     await wrapWithTracingSpan(span, 'checkConnectionOpen', () => this._checkConnectionOpen())
-                } catch (err) {
-                    this.isConnecting = false
-                    return wrapWithTracingSpan(span, 'reconnect', () => this.reconnect(err))
+                } else {
+                    await wrapWithTracingSpan(span, 'connectPubSub', () => this._connectPubSub())
                 }
 
                 this.isConnecting = false
                 await this.onconnect()
-            } else {
-                await wrapWithTracingSpan(span, 'connectPubSub', () => this._connectPubSub())
+            } catch (err) {
                 this.isConnecting = false
+                return wrapWithTracingSpan(span, 'reconnect', () => this.reconnect(err))
             }
 
             if (span) {
@@ -386,8 +384,6 @@ class PeerManager {
                     this.onreconnecting('Extension')
                 }
                 this.sendMessage({ type: 'connect' })
-
-                resolve()
             }
             this.ws.onclose = (event) => {
                 const reason = event ? event.reason : ''
@@ -440,7 +436,7 @@ class PeerManager {
                 }
                 try {
                     const message = await decrypt(this.encryptionKey, data)
-                    this.onconnect()
+                    resolve()
                     this.onmessage(message)
                 } catch (err) {
                     console.error('got invalid message from pubsub', err)
