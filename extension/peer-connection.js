@@ -142,8 +142,10 @@ class PeerConnection {
         } else {
             const encrypted = await encrypt(this.encryptionKey, message)
             if (this.isConnected()) {
+                console.log('sending message to pubsub via websocket')
                 this.ws.send(encrypted)
             } else {
+                console.log('sending message to pubsub via HTTP POST')
                 await fetch(`${PUBLISH_URL_BASE}${this.sessionId}/extension`, {
                     method: 'POST',
                     headers: {
