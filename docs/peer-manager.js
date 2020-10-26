@@ -407,9 +407,12 @@ class PeerManager {
                 } else {
                     console.error('websocket error', event)
                 }
-                if (this.mode === WEBSOCKET_MODE) {
+
+                // Only call reconnect if ReconnectingWebSocket isn't already trying to reconnect
+                if (this.ws.readyState !== WebSocket.CONNECTING && this.mode === WEBSOCKET_MODE) {
                     this.reconnect(err)
                 }
+
                 reject(err)
             }
             this.ws.onmessage = async ({ data }) => {
