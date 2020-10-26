@@ -88,9 +88,11 @@ class PeerManager {
 
         if (++this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
             console.error('exceeded max number of reconnect attempts')
-            if (this.encryptionKey) {
+            if (this.encryptionKey && this.mode === WEBRTC_MODE) {
                 console.log('switching to websocket mode')
                 this.mode = WEBSOCKET_MODE
+                this.reconnectDelay = RECONNECT_DELAY_START
+                this.reconnectAttempts = 0
                 return this.connect()
             } else {
                 return this.onerror(new Error('Exceeded maximum number of reconnection attempts'))
@@ -406,7 +408,7 @@ class PeerManager {
                     console.error('websocket error', event)
                 }
                 if (this.mode === WEBSOCKET_MODE) {
-                    this.onerror(err)
+                    this.reconnect(err)
                 }
                 reject(err)
             }
