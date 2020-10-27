@@ -127,6 +127,7 @@ let lastCallStartTime
 let lastCallDuration = 0
 let lastCallResult
 let pendingSaveMessage
+let connectionsThisLoad = 0
 
 // Analytics
 try {
@@ -262,6 +263,23 @@ async function start() {
                     document.getElementById('session-time').innerText = msToTimeString(Date.now() - startTime)
                 }, 1000)
             }
+
+            // Track how many times the peer manager has connected this page load and this tab session
+            connectionsThisLoad += 1
+            let connectionsThisSession
+            if (window.sessionStorage) {
+                connectionsThisSession = parseInt(window.sessionStorage.getItem('connectionsThisSession') || 0) + 1
+                window.sessionStorage.setItem('connectionsThisSession', connectionsThisSession)
+            }
+            if (Sentry) {
+                Sentry.configureScope((scope) => {
+                    scope.setTag('connections_this_load', connectionsThisLoad)
+                    if (typeof connectionsThisSession === 'number') {
+                        scope.setTag('connections_this_session', connectionsThisSession)
+                    }
+                })
+            }
+
         }
         peerManager.onmessage = (data) => {
             stopConnectionTimeout()
