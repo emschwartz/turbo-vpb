@@ -152,6 +152,18 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
     }
 })
 
+// Called when browser is closing
+// This is mostly done to clean up the pubsub channels
+browser.runtime.onSuspend.addListener(async () => {
+    await Promise.all(Object.values(peers).map((record) => {
+        if (record.peer) {
+            return record.peer.destroy()
+        } else {
+            return Promise.resolve()
+        }
+    }))
+})
+
 async function createPeer(tabId) {
     if (peers[tabId]) {
         if (!peers[tabId].peer) {
