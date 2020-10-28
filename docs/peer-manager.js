@@ -317,7 +317,7 @@ class PeerManager {
         console.log(`connected to extension (took ${Date.now() - startTime}ms)`)
 
         this.connection.on('data', (data) => {
-            console.log('got data', data)
+            console.log('got data from peer', data)
             this.onmessage(data)
         })
         this.connection.on('close', async () => {
@@ -437,6 +437,7 @@ class PeerManager {
                 try {
                     const message = await decrypt(this.encryptionKey, data)
                     resolve()
+                    console.log('got data from pubsub', message)
                     this.onmessage(message)
                 } catch (err) {
                     console.error('got invalid message from pubsub', err)
