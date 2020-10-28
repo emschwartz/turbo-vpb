@@ -512,7 +512,6 @@ function handleData(data) {
 
         // New contact
         if (newPhoneNumber !== phoneNumber) {
-            // Make sure the last call stats were saved
             saveCallStats()
             setLoadingFinished()
 
@@ -521,34 +520,34 @@ function handleData(data) {
                 loadContactSpan.finish()
                 loadContactSpan = null
             }
-        }
 
-        phoneNumber = newPhoneNumber
-        firstName = data.contact.firstName
-        if (data.contact.additionalFields && typeof data.contact.additionalFields === 'object') {
-            const details = {}
-            for (let key in data.contact.additionalFields) {
-                details[key.toLowerCase()] = data.contact.additionalFields[key]
+            phoneNumber = newPhoneNumber
+            firstName = data.contact.firstName
+            if (data.contact.additionalFields && typeof data.contact.additionalFields === 'object') {
+                const details = {}
+                for (let key in data.contact.additionalFields) {
+                    details[key.toLowerCase()] = data.contact.additionalFields[key]
+                }
+                additionalFields = details
+            } else {
+                additionalFields = null
             }
-            additionalFields = details
-        } else {
-            additionalFields = null
-        }
 
-        document.getElementById('contact-details').hidden = false
-        document.getElementById('statistics').hidden = false
+            document.getElementById('contact-details').hidden = false
+            document.getElementById('statistics').hidden = false
 
-        document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
+            document.getElementById('name').innerText = `${data.contact.firstName} ${data.contact.lastName}`
 
-        document.getElementById('phone-number-link').href = "tel:" + phoneNumber
-        document.getElementById('phone-number').innerText = data.contact.phoneNumber
+            document.getElementById('phone-number-link').href = "tel:" + phoneNumber
+            document.getElementById('phone-number').innerText = data.contact.phoneNumber
 
-        createTextMessageLinks(firstName, phoneNumber, additionalFields)
+            createTextMessageLinks(firstName, phoneNumber, additionalFields)
 
-        // Scroll to contact card
-        if (!isScrolledIntoView(document.getElementById('name'))) {
-            document.getElementById('contact-details').scrollIntoView()
-            window.scrollBy(0, 0 - document.querySelector('nav').scrollHeight)
+            // Scroll to contact card
+            if (!isScrolledIntoView(document.getElementById('name'))) {
+                document.getElementById('contact-details').scrollIntoView()
+                window.scrollBy(0, 0 - document.querySelector('nav').scrollHeight)
+            }
         }
     }
 
