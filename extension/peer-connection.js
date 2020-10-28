@@ -261,7 +261,12 @@ class PeerConnection {
         return new Promise((resolve, reject) => {
             const url = `${SUBSCRIBE_URL_BASE}${this.peerId}/extension`
             console.log('connecting to:', url)
-            this.ws = new ReconnectingWebSocket(url)
+            this.ws = new ReconnectingWebSocket(url, [], {
+                minReconnectionDelay: 50,
+                maxReconnectionDelay: 1000,
+                connectionTimeout: 2000,
+                debug: true
+            })
             this.ws.binaryType = 'arraybuffer'
             let startTime = Date.now()
             let openTime
