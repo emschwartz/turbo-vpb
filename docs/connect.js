@@ -499,8 +499,6 @@ function handleData(data) {
             return displayError(new Error(`Got invalid contact details from extension: ${JSON.stringify(data.contact)}`))
         }
 
-        setLoadingFinished()
-
         const matches = data.contact.phoneNumber.match(/\d+/g)
         if (!matches) {
             return displayError(new Error(`Got invalid phone number from extension: ${data.contact.phoneNumber}`))
@@ -514,6 +512,8 @@ function handleData(data) {
         if (newPhoneNumber !== phoneNumber) {
             // Make sure the last call stats were saved
             saveCallStats()
+            setLoadingFinished()
+
 
             if (loadContactSpan) {
                 loadContactSpan.finish()
