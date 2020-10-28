@@ -28,6 +28,13 @@ for (let i = 0; i < BASE64_URL_CHARACTERS.length; i++) {
     BASE64_URL_LOOKUP[BASE64_URL_CHARACTERS.charCodeAt(i)] = i;
 }
 
+const PUBSUB_STATE = {
+    CLOSED: 'CLOSED',
+    CONNECTING: 'CONNECTING',
+    OPEN: 'OPEN',
+    CONNECTED: 'CONNECTED'
+}
+
 class PeerManager {
     constructor({ debugMode, remotePeerId, encryptionKey }) {
         this.debugMode = debugMode
@@ -52,6 +59,7 @@ class PeerManager {
         this.mode = this.encryptionKey ? WEBSOCKET_MODE : WEBRTC_MODE
         this.fallbackMode = this.mode === WEBRTC_MODE ? WEBSOCKET_MODE : WEBRTC_MODE
         this.ws = null
+        this.pubsubState = PUBSUB_STATE.CLOSED
     }
 
     static async from(opts) {
@@ -338,15 +346,24 @@ class PeerManager {
         })
     }
 
+    /**
+     * Connect or reconnect to the WebSocket PubSub endpoint
+     * Note we only consider it to be "connected" after we
+     * have received a message (rather than just when the connection opens)
+     */
     async _connectPubSub() {
+        if (this.pubsubState !== PUBSUB_STATE.CLOSED) {
+            console.log(`websocket already ${this.pubsubState.toLowerCase()}`)
+            return
+        }
+        this.pubsubState = PUBSUB_STATE.CONNECTING
+
+        if (this.mode === WEBSOCKET_MODE) {
+            this.onreconnecting('Server')
+        }
+
+        // Close the old websocket
         if (this.ws) {
-            if (this.ws.readyState === WebSocket.OPEN) {
-                console.log('websocket already connected')
-                return
-            }
-            if (this.mode === WEBSOCKET_MODE) {
-                this.onreconnecting('Server')
-            }
             // Note: we don't use the ws.reconnect method
             // because it seems slower than just creating the ws again
             console.log('closing old websocket and creating a new one')
@@ -365,7 +382,7 @@ class PeerManager {
             if (typeof ReconnectingWebSocket === 'function') {
                 console.log('Using ReconnectingWebSocket')
                 this.ws = new ReconnectingWebSocket(url, [], {
-                    minReconnectDelay: RECONNECT_BACKOFF,
+                    minReconnectionDelay: RECONNECT_BACKOFF,
                     maxRetries: MAX_RECONNECT_ATTEMPTS,
                     debug: true
                 })
@@ -378,6 +395,8 @@ class PeerManager {
             this.ws.onopen = () => {
                 openTime = Date.now()
                 console.log(`websocket open (took ${Date.now() - startTime}ms)`)
+
+                this.pubsubState = PUBSUB_STATE.OPEN
 
                 // We only consider it connected when we get a message from the extension
                 if (this.mode === WEBSOCKET_MODE) {
@@ -393,6 +412,7 @@ class PeerManager {
                     console.warn(`websocket closed. reason: ${reason}`)
                 }
                 startTime = Date.now()
+                this.pubsubState = PUBSUB_STATE.CLOSED
                 if (this.mode === WEBSOCKET_MODE) {
                     if (typeof ReconnectingWebSocket === 'function') {
                         this.onreconnecting('Server')
@@ -421,6 +441,7 @@ class PeerManager {
                 } else {
                     console.error('websocket error', event)
                 }
+                this.pubsubState = PUBSUB_STATE.CLOSED
 
                 // Only call reconnect if ReconnectingWebSocket isn't already trying to reconnect
                 if (this.ws.readyState !== WebSocket.CONNECTING && this.mode === WEBSOCKET_MODE) {
@@ -436,8 +457,14 @@ class PeerManager {
                 }
                 try {
                     const message = await decrypt(this.encryptionKey, data)
-                    resolve()
                     console.log('got data from pubsub', message)
+
+                    if (this.pubsubState !== PUBSUB_STATE.CONNECTED) {
+                        this.onconnect()
+                        this.pubsubState = PUBSUB_STATE.CONNECTED
+                        resolve()
+                    }
+
                     this.onmessage(message)
                 } catch (err) {
                     console.error('got invalid message from pubsub', err)

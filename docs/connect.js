@@ -249,6 +249,7 @@ async function start() {
             })
         }
         peerManager.onconnect = () => {
+            console.log('PeerManager.onconnect')
             setStatus('Connected', 'success')
             stopConnectionTimeout()
 
@@ -286,6 +287,7 @@ async function start() {
             handleData(data)
         }
         peerManager.onreconnecting = (target) => {
+            console.log('PeerManager.onreconnecting', target)
             if (sessionIsComplete()) {
                 stopConnectionTimeout()
                 console.log('Session is complete, stopping peer manager')
@@ -305,7 +307,7 @@ async function start() {
             document.getElementById('contact-details').hidden = true
         }
         peerManager.onerror = (err) => {
-            console.error('peer error', err)
+            console.log('PeerManager.onerror', err)
 
             // Only show and report errors if they are not caused by the page being put to sleep by the browser
             // The error event fires after the document.readyState is changed to visible, which is why
