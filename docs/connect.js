@@ -128,6 +128,7 @@ let lastCallDuration = 0
 let lastCallResult
 let pendingSaveMessage
 let connectionsThisLoad = 0
+let waitForNewContact = false // if true, only display contact details if it's a new phone number
 
 // Analytics
 try {
@@ -513,16 +514,21 @@ function handleData(data) {
         // New contact
         if (newPhoneNumber !== phoneNumber) {
             saveCallStats()
-            setLoadingFinished()
-
 
             if (loadContactSpan) {
                 loadContactSpan.finish()
                 loadContactSpan = null
             }
+        }
+
+        // Show the contact if it's a new one or we aren't waiting for a new one
+        // (namely in the case where the page was hidden, the websocket errored)
+        if (newPhoneNumber !== phoneNumber || !waitForNewContact) {
+            waitForNewContact = false
 
             phoneNumber = newPhoneNumber
             firstName = data.contact.firstName
+
             if (data.contact.additionalFields && typeof data.contact.additionalFields === 'object') {
                 const details = {}
                 for (let key in data.contact.additionalFields) {
@@ -533,6 +539,8 @@ function handleData(data) {
                 additionalFields = null
             }
 
+            // Update the relevant parts of the page with the new contact details
+            setLoadingFinished()
             document.getElementById('contact-details').hidden = false
             document.getElementById('statistics').hidden = false
 
@@ -635,16 +643,8 @@ function handleData(data) {
                         }
                     })
                 }
-                await peerManager.sendMessage({
-                    type: 'callResult',
-                    result,
-                    callNumber,
-                    timestamp: (new Date()).toISOString()
-                })
-                setLoading()
-                showSaveMessage(result)
 
-                await saveCallStats()
+                await sendCallResult(result, true)
             })
 
             callResultLinks.appendChild(button)
@@ -731,19 +731,32 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
                         }
                     })
                 }
-                await peerManager.sendMessage({
-                    type: 'callResult',
-                    result,
-                    callNumber,
-                    timestamp: (new Date()).toISOString()
-                })
-                setLoading()
 
-                await saveCallStats()
+                await sendCallResult(result)
             }
         })
         textMessageLinks.appendChild(a)
     }
+}
+
+async function sendCallResult(result, showSaveMessageNow) {
+    await peerManager.sendMessage({
+        type: 'callResult',
+        result,
+        callNumber,
+        timestamp: (new Date()).toISOString()
+    })
+
+    // Only show the next contact when a new contact
+    // is loaded (ignore if the same contact is resent)
+    waitForNewContact = true
+    setLoading()
+
+    if (showSaveMessageNow) {
+        showSaveMessage(result)
+    }
+
+    await saveCallStats()
 }
 
 function setStatus(status, alertType) {
