@@ -708,12 +708,17 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
                     })
                 }
 
+                // Return so we don't double-count the text stats
                 return sendCallResult(result)
             }
 
-            await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
-                method: 'POST'
-            }, 3)
+            try {
+                await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+                    method: 'POST'
+                }, 3)
+            } catch (err) {
+                console.error('error saving text stats', err)
+            }
         })
         textMessageLinks.appendChild(a)
     }
