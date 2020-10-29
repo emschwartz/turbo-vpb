@@ -708,8 +708,12 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
                     })
                 }
 
-                await sendCallResult(result)
+                return sendCallResult(result)
             }
+
+            await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+                method: 'POST'
+            }, 3)
         })
         textMessageLinks.appendChild(a)
     }
