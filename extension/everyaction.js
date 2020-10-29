@@ -1,4 +1,5 @@
 console.log('using everyaction-specific content script')
+const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i
 
 let couldntReachContact = false
 
@@ -71,7 +72,8 @@ function getContactDetails() {
 
     // Find phone number
     const currentPhoneNumber = ((document.getElementById('current-number') && document.getElementById('current-number').firstElementChild)
-        || Array.from(document.getElementsByTagName('a')).find((a) => a.href.startsWith('tel:'))
+        || Array.from(document.getElementsByTagName('a'))
+            .find((a) => a.href.startsWith('tel:') && !DESIGNATED_CONTACT_REGEX.test(a.parentElement.id) && !DESIGNATED_CONTACT_REGEX.test(a.parentElement.parentElement.id))
         || {}).innerText
 
     const contactName = (document.querySelector('.person-phone-panel')

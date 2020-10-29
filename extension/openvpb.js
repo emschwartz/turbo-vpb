@@ -1,4 +1,5 @@
 console.log('using openvpb-specific content script')
+const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i
 
 let couldntReachContact = false
 // OpenVPB displays a pop-up after you make your first call
@@ -78,7 +79,8 @@ function getContactDetails() {
     // Find phone number
     const currentPhoneNumber = (document.getElementById('openVpbPhoneLink')
         || document.getElementById('openvpbphonelink')
-        || Array.from(document.getElementsByTagName('a')).find((a) => a.href.startsWith('tel:'))
+        || Array.from(document.getElementsByTagName('a'))
+            .find((a) => a.href.startsWith('tel:') && !DESIGNATED_CONTACT_REGEX.test(a.parentElement.id) && !DESIGNATED_CONTACT_REGEX.test(a.parentElement.parentElement.id))
         || {}).innerText
 
     const contactName = (document.getElementById('contactName') || {}).innerText
