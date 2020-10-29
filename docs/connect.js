@@ -671,6 +671,8 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
         const span = document.createElement('span')
         span.innerText = label
         a.appendChild(span)
+
+        let savedTextStats = false
         a.addEventListener('click', async (e) => {
             lastCallResult = result
             pendingSaveMessage = result
@@ -713,9 +715,12 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
             }
 
             try {
-                await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
-                    method: 'POST'
-                }, 3)
+                if (!savedTextStats) {
+                    await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+                        method: 'POST'
+                    }, 3)
+                    savedTextStats = true
+                }
             } catch (err) {
                 console.error('error saving text stats', err)
             }
