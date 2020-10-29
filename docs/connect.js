@@ -173,6 +173,21 @@ if (Sentry) {
         })
         scope.setTag('extension_version', extensionVersion)
         scope.setTag('extension_useragent', extensionUserAgent)
+
+        // Tag with browser and operating system
+        if (/chrome/i.test(extensionUserAgent)) {
+            scope.setTag('extension_browser', 'chrome')
+        } else if (/firefox/i.test(extensionUserAgent)) {
+            scope.setTag('extension_browser', 'firefox')
+        }
+        if (/windows/i.test(extensionUserAgent)) {
+            scope.setTag('extension_os', 'windows')
+        } else if (/mac/i.test(extensionUserAgent)) {
+            scope.setTag('extension_os', 'mac')
+        } else if (/linux|unix/i.test(extensionUserAgent)) {
+            scope.setTag('extension_os', 'linux')
+        }
+
         if (domain) {
             scope.setTag('domain', domain)
         }
