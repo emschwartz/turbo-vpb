@@ -104,10 +104,10 @@ let firstName
 let additionalFields
 let yourName = ''
 // resultCode -> number of times used
-let resultCodes = {}
+let resultCodesTimesUsed = {}
 if (storage.getItem('resultCodes')) {
     try {
-        resultCodes = JSON.parse(storage.getItem('resultCodes'))
+        resultCodesTimesUsed = JSON.parse(storage.getItem('resultCodes'))
     } catch (err) {
         console.error('Result codes is corrupted', err)
     }
@@ -129,6 +129,7 @@ let lastCallResult
 let pendingSaveMessage
 let connectionsThisLoad = 0
 let waitForNewContact = false // if true, only display contact details if it's a new phone number
+let autoSaveTextedResultEnabled = true
 
 // Analytics
 try {
@@ -486,6 +487,21 @@ function restartConnectionTimeout() {
 }
 
 function handleData(data) {
+    // Automatically saving the call result only works for OpenVPB and EveryAction
+    // phone banks that have the Texted result code enabled
+    // (On BlueVote, it uses the Not Home code instead)
+    // TODO in a future version, consider either falling back to other result codes like
+    // Left Message or Not Home, or give the option to select the result code that will be sent
+    if (Array.isArray(data.resultCodes) && domain && !/bluevote/.test(domain)) {
+        if (!data.resultCodes.some((code) => code.toLowerCase() === 'texted')) {
+            autoSaveTextedResultEnabled = false
+            const warning = document.getElementById('texted-result-code-missing-warning')
+            if (warning) {
+                warning.removeAttribute('hidden')
+            }
+        }
+    }
+
     if (data.yourName) {
         yourName = data.yourName
     }
@@ -608,62 +624,7 @@ function handleData(data) {
     }
 
     if (Array.isArray(data.resultCodes)) {
-        const callResultLinks = document.getElementById('call-result-links')
-        while (callResultLinks.firstChild) {
-            callResultLinks.removeChild(callResultLinks.firstChild)
-        }
-        // Sort result codes by frequency of use
-        const orderedResultCodes = data.resultCodes.sort((a, b) => (resultCodes[b] || 0) - (resultCodes[a] || 0))
-        for (let result of orderedResultCodes) {
-            // Don't show Texted result code if TurboVPB texting is enabled
-            if (result.toLowerCase() === 'texted' && messageTemplates) {
-                continue
-            }
-
-            if (!resultCodes[result]) {
-                resultCodes[result] = 0
-            }
-            const button = document.createElement('button')
-            button.className = "btn btn-outline-danger btn-block p-3 my-3"
-            button.role = 'button'
-
-            if (result.startsWith('Do Not')) {
-                button.innerHTML = CALL_RESULT_ICONS['Do Not']
-            } else if (CALL_RESULT_ICONS[result]) {
-                button.innerHTML = CALL_RESULT_ICONS[result]
-            } else {
-                button.innerHTML = CALL_RESULT_ICONS.Other
-            }
-            const svg = button.querySelector('svg')
-            if (svg) {
-                svg.classList.add('mr-2', 'mb-1')
-            }
-
-
-            const span = document.createElement('span')
-            span.innerText = result
-            button.appendChild(span)
-
-            button.addEventListener('click', async () => {
-                console.log(`Sending call result: ${result}`)
-                resultCodes[result] += 1
-                storage.setItem('resultCodes', JSON.stringify(resultCodes))
-                lastCallResult = result
-
-                if (Sentry && typeof Sentry.startTransaction === 'function') {
-                    loadContactSpan = Sentry.startTransaction({
-                        name: `${peerManager.mode}.loadNextContact`,
-                        tags: {
-                            connection_mode: peerManager.mode
-                        }
-                    })
-                }
-
-                await sendCallResult(result, true)
-            })
-
-            callResultLinks.appendChild(button)
-        }
+        createCallResultButtons(data.resultCodes)
     }
 }
 
@@ -736,7 +697,7 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
                         a.classList.replace('btn-outline-danger', 'btn-outline-secondary')
                     }, 800)
                 }
-            } else if (result) {
+            } else if (result && autoSaveTextedResultEnabled) {
                 console.log(`sending call result: ${result}`)
                 if (Sentry && typeof Sentry.startTransaction === 'function') {
                     loadContactSpan = Sentry.startTransaction({
@@ -751,6 +712,63 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
             }
         })
         textMessageLinks.appendChild(a)
+    }
+}
+
+function createCallResultButtons(resultCodes) {
+    const callResultLinks = document.getElementById('call-result-links')
+    while (callResultLinks.firstChild) {
+        callResultLinks.removeChild(callResultLinks.firstChild)
+    }
+    // Sort result codes by frequency of use
+    const orderedResultCodes = resultCodes.sort((a, b) => (resultCodesTimesUsed[b] || 0) - (resultCodesTimesUsed[a] || 0))
+    for (let result of orderedResultCodes) {
+        for (let result of resultCodes) {
+            if (!resultCodesTimesUsed[result]) {
+                resultCodesTimesUsed[result] = 0
+            }
+        }
+
+        const button = document.createElement('button')
+        button.className = "btn btn-outline-danger btn-block p-3 my-3"
+        button.role = 'button'
+
+        if (result.startsWith('Do Not')) {
+            button.innerHTML = CALL_RESULT_ICONS['Do Not']
+        } else if (CALL_RESULT_ICONS[result]) {
+            button.innerHTML = CALL_RESULT_ICONS[result]
+        } else {
+            button.innerHTML = CALL_RESULT_ICONS.Other
+        }
+        const svg = button.querySelector('svg')
+        if (svg) {
+            svg.classList.add('mr-2', 'mb-1')
+        }
+
+
+        const span = document.createElement('span')
+        span.innerText = result
+        button.appendChild(span)
+
+        button.addEventListener('click', async () => {
+            console.log(`Sending call result: ${result}`)
+            resultCodesTimesUsed[result] += 1
+            storage.setItem('resultCodes', JSON.stringify(resultCodesTimesUsed))
+            lastCallResult = result
+
+            if (Sentry && typeof Sentry.startTransaction === 'function') {
+                loadContactSpan = Sentry.startTransaction({
+                    name: `${peerManager.mode}.loadNextContact`,
+                    tags: {
+                        connection_mode: peerManager.mode
+                    }
+                })
+            }
+
+            await sendCallResult(result, true)
+        })
+
+        callResultLinks.appendChild(button)
     }
 }
 

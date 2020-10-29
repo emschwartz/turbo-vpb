@@ -14,21 +14,27 @@ layout: default
 </nav>
 
 <div class="container-sm p-4" id="main-container">
-    <div id="initial-message" class="alert alert-primary text-center mb-4" hidden>
-        <span id="days-left"></span> Election Day! Thank you for the important work you're doing.
-        <script>
-            const electionDay = new Date('Nov 3, 2020')
-            const today = new Date()
-            const daysLeft = Math.ceil((electionDay - today) / 86400000)
-            const elem = document.getElementById('days-left')
-            if (daysLeft > 0) {
-                elem.innerText = `${daysLeft} days until`
-            } else if (daysLeft === 0) {
-                elem.innerText = 'Today is'
-            } else {
-                document.getElementById('initial-message').remove()
-            }
-        </script>
+    <div id="initial-message" hidden>
+        <div class="alert alert-primary text-center mb-4">
+            <span id="days-left"></span> Election Day! Thank you for the important work you're doing.
+            <script>
+                const electionDay = new Date('Nov 3, 2020')
+                const today = new Date()
+                const daysLeft = Math.ceil((electionDay - today) / 86400000)
+                const elem = document.getElementById('days-left')
+                if (daysLeft > 0) {
+                    elem.innerText = `${daysLeft} days until`
+                } else if (daysLeft === 0) {
+                    elem.innerText = 'Today is'
+                } else {
+                    document.getElementById('initial-message').remove()
+                }
+            </script>
+        </div>
+        <div id="texted-result-code-missing-warning" class="alert alert-warning text-justify">
+            Warning: This phone bank does not have the <code>Texted</code> result code enabled.
+            You can send texts but TurboVPB will not be able to automatically save the result and load the next contact.
+        </div>
     </div>
 
     <div id="warning-container" hidden>
