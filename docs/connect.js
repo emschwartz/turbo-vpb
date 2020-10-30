@@ -226,7 +226,7 @@ if (document.readyState !== 'loading') {
 }
 
 async function start() {
-    if (/^0\.7\./.test(extensionVersion)) {
+    if (/^(?:0\.[789])|(?:[1-9]\..*)\./.test(extensionVersion)) {
         document.getElementById('text-message-instructions-text-only').setAttribute('hidden', 'true')
         document.getElementById('text-message-instructions-with-link').removeAttribute('hidden')
 
