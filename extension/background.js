@@ -139,17 +139,17 @@ browser.tabs.onRemoved.addListener(async (tabId) => {
     }
 })
 
-browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    if (peers[tabId] && !tab.url) {
-        console.log(`tab ${tabId} navigated to unsupported site, destroying peer`)
-        sendMessage(tabId, {
-            type: 'disconnect'
-        })
-        // Don't remove the record in case the user navigates back
-        // The content script will cause the peer to be reconnected
-        setTimeout(() => peers[tabId].peer.destroy(), 300)
-    }
-})
+// browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+//     if (peers[tabId] && !tab.url) {
+//         console.log(`tab ${tabId} navigated to unsupported site, destroying peer`)
+//         sendMessage(tabId, {
+//             type: 'disconnect'
+//         })
+//         // Don't remove the record in case the user navigates back
+//         // The content script will cause the peer to be reconnected
+//         setTimeout(() => peers[tabId].peer.destroy(), 300)
+//     }
+// })
 
 // Run when installed or updated
 browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
