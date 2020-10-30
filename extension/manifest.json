@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "TurboVPB",
-    "version": "0.9.5",
+    "version": "0.9.6",
     "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
     "author": "Evan Schwartz",
     "homepage_url": "https://turbovpb.com",
