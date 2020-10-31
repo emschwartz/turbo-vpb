@@ -242,6 +242,13 @@ async function start() {
             }
         })
     }
+    // Show warning about version 0.9.5 being broken
+    if (extensionVersion === '0.9.5') {
+        const warning = document.getElementById('version-0-9-5-warning')
+        if (warning) {
+            warning.removeAttribute('hidden')
+        }
+    }
 
     // Connect to the extension if a remotePeerId is specified and the session isn't complete
     if (sessionIsComplete()) {
