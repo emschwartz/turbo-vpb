@@ -737,10 +737,13 @@ function createCallResultButtons(resultCodes) {
     // Sort result codes by frequency of use
     const orderedResultCodes = resultCodes.sort((a, b) => (resultCodesTimesUsed[b] || 0) - (resultCodesTimesUsed[a] || 0))
     for (let result of orderedResultCodes) {
-        for (let result of resultCodes) {
-            if (!resultCodesTimesUsed[result]) {
-                resultCodesTimesUsed[result] = 0
-            }
+        // Don't display the Texted result code if there are message templates configured
+        if (result && result.toLowerCase() === 'texted' && messageTemplates.length > 0) {
+            return
+        }
+
+        if (!resultCodesTimesUsed[result]) {
+            resultCodesTimesUsed[result] = 0
         }
 
         const button = document.createElement('button')
