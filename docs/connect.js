@@ -58,9 +58,9 @@ const CALL_RESULT_ICONS = {
     Texted: TEXT_MESSAGE_MARK_TEXTED_ICON,
 }
 
-const THEIR_NAME_REGEX = /[\[\(\{\<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}\>]+/ig
-const YOUR_NAME_REGEX = /[\[\(\{\<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}\>]+/ig
-const ADDITIONAL_FIELDS_REGEX = /[\[\(\{\<]+([\w\s]+)[\]\)\}\>]+/g
+const THEIR_NAME_REGEX = /[\[\(\{<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}>]+/ig
+const YOUR_NAME_REGEX = /[\[\(\{<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}>]+/ig
+const ADDITIONAL_FIELDS_REGEX = /[\[\(\{<]+(.+?)[\]\)\}>]+/g
 
 const debugMode = window.location.href.includes('debug')
 const searchParams = (new URL(window.location.href)).searchParams
@@ -662,8 +662,12 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
             while ((matches = ADDITIONAL_FIELDS_REGEX.exec(messageBody))) {
                 const keyWithBrackets = matches[0]
                 const key = matches[1]
-                if (typeof key === 'string' && additionalFields[key.toLowerCase()]) {
-                    messageBody = messageBody.replace(keyWithBrackets, additionalFields[key.toLowerCase()])
+                if (typeof key === 'string') {
+                    if (additionalFields[key.toLowerCase()]) {
+                        messageBody = messageBody.replace(keyWithBrackets, additionalFields[key.toLowerCase()])
+                    } else {
+                        console.warn(`Could not replace [${key}] because that field was not sent by the extension in the contact's additional properites`)
+                    }
                 }
             }
         }
