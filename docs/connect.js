@@ -1,9 +1,19 @@
 'use strict'
 
 console.log('Loading connect.js')
+
+/**
+ * Constants
+ */
 const CONNECT_TIMEOUT = 15000
 const WAIT_AFTER_PAGE_BECOMES_VISIBLE = 100
+const THEIR_NAME_REGEX = /[\[\(\{<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}>]+/ig
+const YOUR_NAME_REGEX = /[\[\(\{<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}>]+/ig
+const ADDITIONAL_FIELDS_REGEX = /[\[\(\{<]+(.+?)[\]\)\}>]+/g
 
+/**
+ * Icon SVGs
+ */
 const TEXT_MESSAGE_MARK_TEXTED_ICON = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-chat-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
   <path fill-rule="evenodd" d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
   <path fill-rule="evenodd" d="M4 5.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8zm0 2.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5z"/>
@@ -58,10 +68,10 @@ const CALL_RESULT_ICONS = {
     Texted: TEXT_MESSAGE_MARK_TEXTED_ICON,
 }
 
-const THEIR_NAME_REGEX = /[\[\(\{<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}>]+/ig
-const YOUR_NAME_REGEX = /[\[\(\{<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}>]+/ig
-const ADDITIONAL_FIELDS_REGEX = /[\[\(\{<]+(.+?)[\]\)\}>]+/g
-
+/**
+ * URL Parameters
+ * (Some of these are used in the code, some are just used to tag errors sent to Sentry)
+ */
 const debugMode = window.location.href.includes('debug')
 const searchParams = (new URL(window.location.href)).searchParams
 const sessionId = searchParams.get('session') || ''
@@ -73,6 +83,7 @@ const remotePeerId = window.location.hash.slice(1)
 const encryptionKey = window.location.hash.slice(1)
     .replace(/[^&]*&/, '')
     .replace('&debug', '')
+// The commit hash is included by Jekyll
 const commitHash = document.querySelector('meta[name="commit-hash"]')
 const release = commitHash && commitHash.content
 
@@ -98,6 +109,18 @@ if (!storage) {
     }
 }
 
+/**
+ * Connection manager and timeout
+ */
+let peerManager
+let connectTimer
+let connectTimerIsRunning = false
+let pageLastBecameVisible = Date.now()
+let sessionComplete = false
+
+/**
+ * Contact data sent by the extension
+ */
 let messageTemplates = []
 let phoneNumber
 let firstName
@@ -113,25 +136,28 @@ if (storage.getItem('resultCodes')) {
     }
 }
 
-let startTime = Date.now()
+/**
+ * Call and session stats
+ */
+let startTime = Date.now() // this may be updated if the page was reloaded but continued a session started earlier
 let sessionTimeInterval
-let sessionComplete = false
 let callNumber
+let connectionsThisLoad = 0
 
-let peerManager
-let connectTimer
-let connectTimerIsRunning = false
-let pageLastBecameVisible = Date.now()
-
+/**
+ * Last call details
+ * (Used to send and display call results after the user comes back to this page)
+ */
 let lastCallStartTime
 let lastCallDuration = 0
 let lastCallResult
 let pendingSaveMessage
-let connectionsThisLoad = 0
 let waitForNewContact = false // if true, only display contact details if it's a new phone number
 let autoSaveTextedResultEnabled = true
 
-// Analytics
+/**
+ * Analytics
+ */
 try {
     const tracker = ackeeTracker.create({
         server: 'https://analytics.turbovpb.com',
@@ -149,7 +175,9 @@ try {
     console.error('error setting up tracking', err)
 }
 
-// Error tracking
+/**
+ * Error Reporting
+ */
 let loadContactSpan
 if (Sentry) {
     console.log('Re-initializing Sentry')
@@ -166,8 +194,14 @@ if (Sentry) {
                 return breadcrumb
             }
         },
+        // Performance sample
         tracesSampleRate: 0.01,
     });
+
+    // Tag Sentry reports with various details about the session and extension
+    // (The extension does not report additional details to Sentry so we rely
+    // on details sent from the extension to this page to figure out if there's
+    // an extension-related problem)
     Sentry.configureScope(function (scope) {
         scope.setUser({
             id: sessionId,
@@ -189,6 +223,7 @@ if (Sentry) {
             scope.setTag('extension_os', 'linux')
         }
 
+        // This is the phone bank site the extension is being used on
         if (domain) {
             scope.setTag('domain', domain)
         }
@@ -198,11 +233,20 @@ if (Sentry) {
     console.error('Could not load Sentry')
 }
 
+window.addEventListener('error', displayError)
+
 document.addEventListener('readystatechange', () => {
+    // Log this because some errors seem to be caused by this script
+    // being run before the page is actually ready
+    // TODO: figure out why this is
     console.log('document readyState:', document.readyState)
 })
 
+// Start the connection timer so it shows an error if there is
+// no contact loaded within a reasonable amount of time
 restartConnectionTimeout()
+
+// Either run the start function or wait until the page has fully loaded
 if (document.readyState !== 'loading') {
     start().catch((err) => {
         displayError(err)
@@ -226,29 +270,7 @@ if (document.readyState !== 'loading') {
 }
 
 async function start() {
-    if (/^(?:0\.[789])|(?:[1-9]\..*)\./.test(extensionVersion)) {
-        document.getElementById('text-message-instructions-text-only').setAttribute('hidden', 'true')
-        document.getElementById('text-message-instructions-with-link').removeAttribute('hidden')
-
-        document.getElementById('open-options-page').addEventListener('click', async (e) => {
-            e.preventDefault()
-
-            if (peerManager) {
-                await peerManager.sendMessage({
-                    type: 'openOptions'
-                })
-            } else {
-                console.error('cannot send open options message because peer manager is undefined')
-            }
-        })
-    }
-    // Show warning about version 0.9.5 being broken
-    if (extensionVersion === '0.9.5') {
-        const warning = document.getElementById('version-0-9-5-warning')
-        if (warning) {
-            warning.removeAttribute('hidden')
-        }
-    }
+    showVersionRelatedMessages()
 
     // Connect to the extension if a remotePeerId is specified and the session isn't complete
     if (sessionIsComplete()) {
@@ -307,8 +329,8 @@ async function start() {
 
         }
         peerManager.onmessage = (data) => {
-            stopConnectionTimeout()
-            handleData(data)
+            stopConnectionTimeout() // we know we're connected if we got a message
+            handleExtensionMessage(data)
         }
         peerManager.onreconnecting = (target) => {
             console.log('PeerManager.onreconnecting', target)
@@ -323,6 +345,7 @@ async function start() {
             setLoading()
 
             // Don't start timer if it started reconnecting because the page is hidden
+            // TODO: this event may fire after the page becomes visible again
             if (document.visibilityState !== 'hidden') {
                 restartConnectionTimeout()
             }
@@ -359,6 +382,10 @@ async function start() {
 
         peerManager.connect()
 
+        /**
+         * Event Listeners
+         */
+
         // Estimate call duration
         // Start the timer either on click or on the touchstart event
         const callButton = document.getElementById('phone-number-link')
@@ -386,6 +413,9 @@ async function start() {
         })
 
         // Require long-press mode setting
+        // This is used on iPhones to allow people to only call with an app like Google Voice.
+        // The setting disables the normal click so that the user can hold the button
+        // to bring up the call options menu and select (Google) Voice from the list.
         if (/iphone|ipad|ios/i.test(navigator.userAgent) || storage.getItem('requireLongPressMode')) {
             const longPressSettings = document.getElementById('ios-long-press-mode')
             longPressSettings.removeAttribute('hidden')
@@ -405,6 +435,8 @@ async function start() {
             document.getElementById('android-google-voice').removeAttribute('hidden')
         }
 
+        // This page is often hidden and then made visible again as users
+        // switch to the phone or messaging app and then switch back to their browser
         document.addEventListener('visibilitychange', async () => {
             console.log('visibility state:', document.visibilityState)
             if (Sentry && typeof Sentry.configureScope === 'function') {
@@ -454,6 +486,35 @@ async function start() {
     }
 }
 
+function showVersionRelatedMessages() {
+    if (/^(?:0\.[789])|(?:[1-9]\..*)\./.test(extensionVersion)) {
+        document.getElementById('text-message-instructions-text-only').setAttribute('hidden', 'true')
+        document.getElementById('text-message-instructions-with-link').removeAttribute('hidden')
+
+        document.getElementById('open-options-page').addEventListener('click', async (e) => {
+            e.preventDefault()
+
+            if (peerManager) {
+                await peerManager.sendMessage({
+                    type: 'openOptions'
+                })
+            } else {
+                console.error('cannot send open options message because peer manager is undefined')
+            }
+        })
+    }
+    // Show warning about version 0.9.5 being broken
+    if (extensionVersion === '0.9.5') {
+        const warning = document.getElementById('version-0-9-5-warning')
+        if (warning) {
+            warning.removeAttribute('hidden')
+        }
+    }
+}
+
+/**
+ * Connection timeout functions
+ */
 function stopConnectionTimeout() {
     if (connectTimerIsRunning) {
         console.log('stopping connection timer')
@@ -462,6 +523,7 @@ function stopConnectionTimeout() {
     connectTimerIsRunning = false
 }
 
+// (Re)Start the connection timeout only if one isn't already running
 function restartConnectionTimeout() {
     if (connectTimerIsRunning) {
         console.log('not restarting connection timer because it is still running')
@@ -493,7 +555,7 @@ function restartConnectionTimeout() {
     }, CONNECT_TIMEOUT)
 }
 
-function handleData(data) {
+function handleExtensionMessage(data) {
     // Automatically saving the call result only works for OpenVPB and EveryAction
     // phone banks that have the Texted result code enabled
     // (On BlueVote, it uses the Not Home code instead)
@@ -800,6 +862,7 @@ function createCallResultButtons(resultCodes) {
     }
 }
 
+// Send the call result to the extension
 async function sendCallResult(result, showSaveMessageNow) {
     await peerManager.sendMessage({
         type: 'callResult',
@@ -819,6 +882,64 @@ async function sendCallResult(result, showSaveMessageNow) {
 
     await saveCallStats()
 }
+
+// Save anonymous call stats to the centralized statistics service
+// This is called either when:
+// 1. A text message button is clicked
+// 2. A result code button is clicked
+// 3. A new contact is loaded
+async function saveCallStats() {
+    if (!lastCallDuration) {
+        if (!lastCallResult || lastCallResult.toLowerCase() !== 'texted') {
+            // This means the last call was already saved
+            return
+        }
+    }
+
+    console.log(`Saving call result. Duration: ${lastCallDuration}ms, result: ${lastCallResult}`)
+
+    try {
+        // TODO we might miss the last call if they never return to the page
+
+        const requests = []
+
+        if (lastCallDuration) {
+            const body = {
+                duration: lastCallDuration,
+            }
+            if (lastCallResult) {
+                body.lastCallResult = lastCallResult
+            }
+            fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8'
+                },
+                body: JSON.stringify(body)
+            }, 3)
+        }
+
+        if (lastCallResult && lastCallResult.toLowerCase() === 'texted') {
+            requests.push(fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+                method: 'POST'
+            }, 3))
+        }
+
+        await Promise.all(requests)
+
+    } catch (err) {
+        console.error('Error saving call stats', err)
+    }
+
+    lastCallDuration = 0
+    lastCallResult = null
+    lastCallStartTime = null
+}
+
+
+/**
+ * Functions to show session status in the DOM
+ */
 
 function setStatus(status, alertType) {
     if (document.readyState === 'complete') {
@@ -927,6 +1048,63 @@ function sessionIsComplete() {
     return false
 }
 
+function setLoading() {
+    document.getElementById('loading').removeAttribute('hidden')
+    document.getElementById('contact-details').setAttribute('hidden', 'true')
+}
+
+function setLoadingFinished() {
+    if (document.getElementById('loading')) {
+        document.getElementById('loading').setAttribute('hidden', 'true')
+    }
+    if (document.getElementById('contact-details')) {
+        document.getElementById('contact-details').removeAttribute('hidden')
+    }
+}
+
+function showSaveMessage(result) {
+    document.getElementById('snackbar').classList.add('show')
+    document.getElementById('snackbar-message').innerText = `Saved Call Result: ${result}`
+    setTimeout(() => {
+        document.getElementById('snackbar').classList.remove('show')
+    }, 2500)
+}
+
+
+/**
+ * Utilities
+ */
+
+async function fetchRetry(url, params, times) {
+    if (!times) {
+        times = 3
+    }
+    let backoff = 50
+    let error
+    while (times > 0) {
+        try {
+            const response = await fetch(url, params)
+            if (response.ok) {
+                return response
+            } else {
+                console.error('fetch response was not ok')
+            }
+        } catch (err) {
+            error = err
+        }
+
+        // TODO don't retry fatal errors
+        times -= 1
+        if (times === 0) {
+            throw error
+        } else {
+            console.error('fetch error, retrying', error)
+            await new Promise((resolve) => setTimeout(resolve, backoff))
+            backoff = backoff * 2
+        }
+    }
+}
+
 function msToTimeString(ms) {
     let time = ''
     const hours = Math.floor(ms / 3600000)
@@ -961,110 +1139,3 @@ function isScrolledIntoView(el) {
     const isVisible = elemTop < window.innerHeight && elemBottom >= 0
     return isVisible
 }
-
-function setLoading() {
-    document.getElementById('loading').removeAttribute('hidden')
-    document.getElementById('contact-details').setAttribute('hidden', 'true')
-}
-
-function setLoadingFinished() {
-    if (document.getElementById('loading')) {
-        document.getElementById('loading').setAttribute('hidden', 'true')
-    }
-    if (document.getElementById('contact-details')) {
-        document.getElementById('contact-details').removeAttribute('hidden')
-    }
-}
-
-function showSaveMessage(result) {
-    document.getElementById('snackbar').classList.add('show')
-    document.getElementById('snackbar-message').innerText = `Saved Call Result: ${result}`
-    setTimeout(() => {
-        document.getElementById('snackbar').classList.remove('show')
-    }, 2500)
-}
-
-// This is called either when:
-// 1. A text message button is clicked
-// 2. A result code button is clicked
-// 3. A new contact is loaded
-async function saveCallStats() {
-    if (!lastCallDuration) {
-        if (!lastCallResult || lastCallResult.toLowerCase() !== 'texted') {
-            // This means the last call was already saved
-            return
-        }
-    }
-
-    console.log(`Saving call result. Duration: ${lastCallDuration}ms, result: ${lastCallResult}`)
-
-    try {
-        // TODO we might miss the last call if they never return to the page
-
-        const requests = []
-
-        if (lastCallDuration) {
-            const body = {
-                duration: lastCallDuration,
-            }
-            if (lastCallResult) {
-                body.lastCallResult = lastCallResult
-            }
-            fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json; charset=UTF-8'
-                },
-                body: JSON.stringify(body)
-            }, 3)
-        }
-
-        if (lastCallResult && lastCallResult.toLowerCase() === 'texted') {
-            requests.push(fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
-                method: 'POST'
-            }, 3))
-        }
-
-        await Promise.all(requests)
-
-    } catch (err) {
-        console.error('Error saving call stats', err)
-    }
-
-    lastCallDuration = 0
-    lastCallResult = null
-    lastCallStartTime = null
-}
-
-async function fetchRetry(url, params, times) {
-    if (!times) {
-        times = 3
-    }
-    let backoff = 50
-    let error
-    while (times > 0) {
-        try {
-            const response = await fetch(url, params)
-            if (response.ok) {
-                return response
-            } else {
-                console.error('fetch response was not ok')
-            }
-        } catch (err) {
-            error = err
-        }
-
-        // TODO don't retry fatal errors
-        times -= 1
-        if (times === 0) {
-            throw error
-        } else {
-            console.error('fetch error, retrying', error)
-            await new Promise((resolve) => setTimeout(resolve, backoff))
-            backoff = backoff * 2
-        }
-    }
-}
-
-// Catch uncaught exceptions
-window.addEventListener('error', displayError)
