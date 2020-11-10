@@ -64,6 +64,22 @@ The mobile ([connect](./docs/connect.html)) page uses [Sentry](https://sentry.io
 - The PeerJS server and Ackee analytics servers are hosted on Heroku
 - All of the above are behind Cloudflare
 
+## Thanks
+
+### Open Source
+
+Major thanks to the following open source projects that made this possible:
+
+- [Nchan](https://nchan.io)'s brilliant, high-performance PubSub server
+- [Ackee](https://ackee.electerious.com/)'s privacy-preserving analytics
+- [PeerJS](https://peerjs.com)'s easy-to-use WebRTC implementation
+- [Bootstrap](https://getbootstrap.com)'s straightforward theme
+- [Tingle](https://tingle.robinparisi.com/)'s plain vanilla modal plugin
+- [kjua](https://larsjung.de/kjua/)'s QR code generator
+- Mozilla's [Web Extension polyfill](https://github.com/mozilla/webextension-polyfill)
+
+And thanks to all of the people who work on Web standards like WebSockets, WebRTC, and Web Crypto.
+
 ### Sponsored Services
 
 TurboVPB would have been much more difficult (and expensive) to build and run without the sponsored open source plans from:
