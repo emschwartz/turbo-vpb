@@ -1,16 +1,18 @@
 use axum::body::Bytes;
 use axum::extract::ws::{Message, WebSocketUpgrade};
 use axum::extract::{Extension, Path};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::{delete, get};
+use axum::routing::{delete, get, get_service};
 use axum::{Router, Server};
 use dashmap::DashMap;
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{error::Error, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::select;
 use tokio::sync::broadcast::{channel, Sender};
 use tokio::time::sleep;
+use tower_http::services::ServeDir;
 use tracing::{debug, info};
 
 const PING_INTERVAL: Duration = Duration::from_secs(20);
@@ -36,13 +38,21 @@ async fn main() {
     tracing_subscriber::fmt::init();
     let state: State = Default::default();
 
+    let static_path = format!("{}/src/static", env!("CARGO_MANIFEST_DIR"));
+    let static_file_service =
+        get_service(ServeDir::new(static_path)).handle_error(internal_service_error);
+
     let app = Router::new()
-        .route("/", get(|| async { "Hello, I am the TurboVPB server\n" }))
+        .route(
+            "/health",
+            get(|| async { "Hello, I am the TurboVPB server\n" }),
+        )
         .route(
             "/c/:channel_id/:identity",
             get(ws_handler).post(post_channel),
         )
         .route("/c/:channel_id", delete(delete_channel))
+        .fallback(static_file_service)
         .layer(Extension(state));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
@@ -51,6 +61,10 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+async fn internal_service_error(_: impl Error) -> impl IntoResponse {
+    (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
 }
 
 async fn ws_handler(
