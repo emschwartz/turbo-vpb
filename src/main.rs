@@ -15,10 +15,13 @@ use tracing::{debug, info};
 
 const PING_INTERVAL: Duration = Duration::from_secs(20);
 
-type State = Arc<DashMap<String, Connections>>;
-struct Connections {
+type State = Arc<DashMap<String, Channel>>;
+struct Channel {
     extension: Sender<Message>,
     website: Sender<Message>,
+    /// Keep track of the number of open channel so we can drop the
+    /// channel record when the last connection is dropped.
+    num_connections: usize,
 }
 
 #[derive(Deserialize, Debug, Clone, Copy)]
@@ -57,22 +60,18 @@ async fn ws_handler(
 ) -> impl IntoResponse {
     debug!("channel {} {:?} connected", channel_id, identity);
     ws.on_upgrade(move |ws| async move {
-        let connections = state.entry(channel_id).or_insert_with(|| Connections {
+        let mut channel = state.entry(channel_id.clone()).or_insert_with(|| Channel {
             extension: channel(1).0,
             website: channel(1).0,
+            num_connections: 0,
         });
+        channel.num_connections += 1;
 
         let (sender, mut receiver) = match identity {
-            Identity::Extension => (
-                connections.website.clone(),
-                connections.extension.subscribe(),
-            ),
-            Identity::Website => (
-                connections.extension.clone(),
-                connections.website.subscribe(),
-            ),
+            Identity::Extension => (channel.website.clone(), channel.extension.subscribe()),
+            Identity::Website => (channel.extension.clone(), channel.website.subscribe()),
         };
-        drop(connections);
+        drop(channel);
 
         let (mut ws_sink, mut ws_stream) = ws.split();
 
@@ -124,6 +123,16 @@ async fn ws_handler(
             _ = (&mut receive_task) => send_task.abort(),
             // TODO timeout channels
         };
+
+        // Remove the channel record when the last connection is dropped
+        let num_channel = {
+            let mut channel = state.get_mut(&channel_id).unwrap();
+            channel.num_connections -= 1;
+            channel.num_connections
+        };
+        if num_channel == 0 {
+            state.remove(&channel_id);
+        }
     })
 }
 
@@ -139,10 +148,10 @@ async fn post_channel(
     state: Extension<State>,
     body: Bytes,
 ) -> impl IntoResponse {
-    if let Some(connections) = state.get(&channel_id) {
+    if let Some(channel) = state.get(&channel_id) {
         let channel = match identity {
-            Identity::Extension => connections.website.clone(),
-            Identity::Website => connections.extension.clone(),
+            Identity::Extension => channel.website.clone(),
+            Identity::Website => channel.extension.clone(),
         };
         // TODO return error
         // TODO don't copy the message if possible
