@@ -3,4 +3,5 @@ web-ext-artifacts
 extension.zip
 docs/_site
 docs/.jekyll-cache
+target
 
