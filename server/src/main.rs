@@ -7,10 +7,13 @@ use axum::{Router, Server};
 use dashmap::DashMap;
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::select;
 use tokio::sync::broadcast::{channel, Sender};
+use tokio::time::sleep;
 use tracing::{debug, info};
+
+const PING_INTERVAL: Duration = Duration::from_secs(20);
 
 type State = Arc<DashMap<String, Connections>>;
 struct Connections {
@@ -73,12 +76,25 @@ async fn ws_handler(
 
         let (mut ws_sink, mut ws_stream) = ws.split();
 
-        // Forward outgoing messages
+        // Forward outgoing messages and send pings
         let mut send_task = tokio::spawn(async move {
-            while let Ok(message) = receiver.recv().await {
-                if ws_sink.send(message).await.is_err() {
-                    break;
-                };
+            loop {
+                select! {
+                    message = receiver.recv() => {
+                        match message {
+                            Ok(message) => if ws_sink.send(message).await.is_err() {
+                                return;
+                            }
+                            Err(_) => break
+                        }
+                    }
+                    // Send a ping if no outgoing message has been sent before the timeout
+                    _ = sleep(PING_INTERVAL) => {
+                        if ws_sink.send(Message::Ping(Vec::new())).await.is_err() {
+                            break;
+                        }
+                    }
+                }
             }
         });
 
@@ -90,6 +106,7 @@ async fn ws_handler(
                         // Ignore send errors because that just means that the other side is not connected
                         sender.send(Message::Binary(message)).ok();
                     }
+                    // This is only for testing purposes
                     Message::Text(message) => {
                         sender.send(Message::Binary(message.into_bytes())).ok();
                     }
