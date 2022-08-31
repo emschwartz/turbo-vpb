@@ -1,5 +1,5 @@
 use axum::{http::StatusCode, response::IntoResponse, routing::get_service, Server};
-use std::{env::current_dir, error::Error, net::SocketAddr};
+use std::{error::Error, net::SocketAddr};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -12,11 +12,8 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     // Serve static files
-    let static_dir = current_dir()
-        .expect("failed to get current directory")
-        .join("static");
-    let static_file_service = get_service(ServeDir::new(&static_dir))
-        .fallback(get_service(ServeFile::new(static_dir.join("favicon.ico"))))
+    let static_file_service = get_service(ServeDir::new("static"))
+        .fallback(get_service(ServeFile::new("static/favicons/favicon.ico")))
         .handle_error(internal_service_error);
 
     let app = api::router()
