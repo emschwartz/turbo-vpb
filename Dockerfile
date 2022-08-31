@@ -12,7 +12,6 @@ RUN cargo build --release
 # Copy the rest
 COPY . .
 RUN cargo build --release
-RUN strip -s target/release/turbovpb-server
 
 # Runtime image
 FROM debian:bullseye-slim
@@ -28,7 +27,5 @@ COPY --from=builder /usr/src/app/target/release/turbovpb-server /app/turbovpb-se
 
 # Copy in the static files
 COPY static /app/static
-
-EXPOSE 8080
 
 CMD ["/app/turbovpb-server"]
