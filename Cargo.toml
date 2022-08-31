@@ -9,9 +9,10 @@ edition = "2021"
 axum = { version = "0.5", features = ["ws"] }
 dashmap = "5.3"
 futures = "0.3"
+handlebars = "4.3"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.20", features = ["full"] }
-tower-http = { version = "0.3.4", features = ["fs"] }
+tower-http = { version = "0.3", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
