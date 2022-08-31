@@ -25,10 +25,7 @@ WORKDIR /app
 
 # Get compiled binaries from builder's cargo install directory
 COPY --from=builder /usr/src/app/target/release/turbovpb-server /app/turbovpb-server
-# Copy in static files and website pages
 COPY --from=builder /usr/src/app/static /app/static
-COPY --from=builder /usr/src/app/templates /app/templates
-COPY --from=builder /usr/src/app/content /app/content
 
 EXPOSE 8080
 

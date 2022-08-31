@@ -2,38 +2,42 @@ use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service};
 use axum::{Router, Server};
-use handlebars::{no_escape, Handlebars};
 use serde::Serialize;
 use std::{env::current_dir, error::Error, net::SocketAddr};
-use tokio::fs::read_to_string;
+use tinytemplate::{format_unescaped, TinyTemplate};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tracing::info;
 
 mod api;
 
-const PAGES: &[&str] = &["index", "connect", "share"];
+const PAGES: &[(&str, &str)] = &[
+    ("index", include_str!("../content/index.html")),
+    ("connect", include_str!("../content/connect.html")),
+    ("share", include_str!("../content/share.html")),
+];
+static TEMPLATE: &str = include_str!("../templates/default.html");
 
 #[derive(Serialize)]
 struct TemplateParams {
-    content: String,
+    content: &'static str,
 }
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let root_dir = current_dir().expect("failed to get current directory");
-    let static_dir = root_dir.join("static");
-    let favicon_dir = static_dir.join("favicons");
+    let static_dir = current_dir()
+        .expect("failed to get current directory")
+        .join("static");
 
-    let static_file_service = get_service(ServeDir::new(static_dir))
-        .fallback(get_service(ServeFile::new(favicon_dir.join("favicon.ico"))))
+    let static_file_service = get_service(ServeDir::new(&static_dir))
+        .fallback(get_service(ServeFile::new(static_dir.join("favicon.ico"))))
         .handle_error(internal_service_error);
 
     // Render pages
     let app = api::router()
-        .merge(pages_router().await)
+        .merge(pages_router())
         .fallback(static_file_service)
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http());
@@ -47,26 +51,18 @@ async fn main() {
         .unwrap();
 }
 
-async fn pages_router() -> Router {
-    let root_dir = current_dir().expect("failed to get current directory");
-    let content_dir = root_dir.join("content");
-
-    // Load template
-    let mut templates = Handlebars::new();
+fn pages_router() -> Router {
+    let mut templates = TinyTemplate::new();
     // Don't escape HTML because we are specifically using this to embed the page content as HTML in the template
-    templates.register_escape_fn(no_escape);
+    templates.set_default_formatter(&format_unescaped);
     templates
-        .register_template_file("template", root_dir.join("templates/default.hbs"))
+        .add_template("template", TEMPLATE)
         .expect("Error parsing template");
 
     let mut router = Router::new();
 
     // Render each of the pages and add them as routes
-    for page in PAGES {
-        let path = content_dir.join(format!("{}.html", page));
-        let content = read_to_string(path)
-            .await
-            .expect(&format!("Error reading page {}", page));
+    for (page, content) in PAGES {
         let content = templates
             .render("template", &TemplateParams { content })
             .expect(&format!("Error rendering page {}", page));
