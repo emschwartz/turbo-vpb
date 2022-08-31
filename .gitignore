@@ -4,4 +4,5 @@ extension.zip
 docs/_site
 docs/.jekyll-cache
 target
+**/.DS_Store
 
