@@ -4,8 +4,7 @@ use axum::routing::{get, get_service};
 use axum::{Router, Server};
 use handlebars::{no_escape, Handlebars};
 use serde::Serialize;
-use std::path::Path as FilePath;
-use std::{error::Error, net::SocketAddr};
+use std::{env::current_dir, error::Error, net::SocketAddr};
 use tokio::fs::read_to_string;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
@@ -24,8 +23,8 @@ struct TemplateParams {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let root_dir = FilePath::new(env!("CARGO_MANIFEST_DIR"));
-    let static_dir = root_dir.join("src/static");
+    let root_dir = current_dir().expect("failed to get current directory");
+    let static_dir = root_dir.join("static");
     let favicon_dir = static_dir.join("favicons");
 
     let static_file_service = get_service(ServeDir::new(static_dir))
@@ -49,23 +48,22 @@ async fn main() {
 }
 
 async fn pages_router() -> Router {
-    let root_dir = FilePath::new(env!("CARGO_MANIFEST_DIR"));
-    let src_dir = root_dir.join("src");
-    let pages_dir = src_dir.join("pages");
+    let root_dir = current_dir().expect("failed to get current directory");
+    let content_dir = root_dir.join("content");
 
     // Load template
     let mut templates = Handlebars::new();
     // Don't escape HTML because we are specifically using this to embed the page content as HTML in the template
     templates.register_escape_fn(no_escape);
     templates
-        .register_template_file("template", src_dir.join("template.hbs"))
+        .register_template_file("template", root_dir.join("templates/default.hbs"))
         .expect("Error parsing template");
 
     let mut router = Router::new();
 
     // Render each of the pages and add them as routes
     for page in PAGES {
-        let path = pages_dir.join(format!("{}.html", page));
+        let path = content_dir.join(format!("{}.html", page));
         let content = read_to_string(path)
             .await
             .expect(&format!("Error reading page {}", page));

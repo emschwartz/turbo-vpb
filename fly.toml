@@ -10,7 +10,7 @@ processes = []
 
 [experimental]
   allowed_public_ports = []
-  auto_rollback = true
+  auto_rollback = false
 
 [[services]]
   internal_port = 8080
