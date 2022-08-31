@@ -1,10 +1,10 @@
 use axum::extract::ws::{Message, WebSocketUpgrade};
 use axum::extract::{Extension, Path};
 use axum::routing::{delete, get};
-use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Router};
+use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Json, Router};
 use dashmap::DashMap;
 use futures::{sink::SinkExt, stream::StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::broadcast::{channel, Sender};
 use tokio::{select, time::sleep};
@@ -28,14 +28,16 @@ enum Identity {
     Website,
 }
 
+#[derive(Serialize)]
+struct Status {
+    status: &'static str,
+}
+
 pub fn router() -> Router {
     let state: State = Default::default();
 
     Router::new()
-        .route(
-            "/health",
-            get(|| async { "Hello, I am the TurboVPB server\n" }),
-        )
+        .route("/status", get(|| async { Json(Status { status: "ok" }) }))
         .route(
             "/c/:channel_id/:identity",
             get(ws_handler).post(post_channel),
