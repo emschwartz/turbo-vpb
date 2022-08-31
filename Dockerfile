@@ -26,4 +26,6 @@ WORKDIR /app
 # Get compiled binaries from builder's cargo install directory
 COPY --from=builder /usr/src/app/target/release/turbovpb-server /app/turbovpb-server
 
+EXPOSE 8080
+
 CMD ["/app/turbovpb-server"]
