@@ -6,7 +6,7 @@ kill_timeout = 5
 processes = []
 
 [env]
-  RUST_LOG = "turbovpb-server=debug"
+  RUST_LOG = "turbovpb_server=debug"
 
 [experimental]
   allowed_public_ports = []
