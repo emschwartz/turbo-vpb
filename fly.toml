@@ -22,6 +22,17 @@ processes = []
     soft_limit = 4000
     type = "connections"
 
+  # Check the website being served
+  [[services.http_checks]]
+    interval = 10000
+    grace_period = "5s"
+    method = "get"
+    path = "/"
+    protocol = "http"
+    restart_limit = 0
+    timeout = 2000
+
+  # Check the API
   [[services.http_checks]]
     interval = 10000
     grace_period = "5s"
