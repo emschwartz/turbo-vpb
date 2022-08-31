@@ -1,7 +1,7 @@
 use axum::{http::StatusCode, response::IntoResponse, routing::get_service, Server};
 use std::{env::current_dir, error::Error, net::SocketAddr};
 use tower_http::services::{ServeDir, ServeFile};
-use tower_http::{compression::CompressionLayer, trace::TraceLayer};
+use tower_http::trace::TraceLayer;
 use tracing::info;
 
 mod api;
@@ -22,7 +22,6 @@ async fn main() {
     let app = api::router()
         .merge(pages::router())
         .fallback(static_file_service)
-        .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));

@@ -1,3 +1,6 @@
 /target
 /extension
 /.git
+fly.toml
+README.md
+LICENSE.txt
