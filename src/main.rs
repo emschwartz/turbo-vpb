@@ -8,7 +8,7 @@ use std::path::Path as FilePath;
 use std::{error::Error, net::SocketAddr};
 use tokio::fs::read_to_string;
 use tower_http::services::{ServeDir, ServeFile};
-use tower_http::trace::TraceLayer;
+use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tracing::info;
 
 mod api;
@@ -36,6 +36,7 @@ async fn main() {
     let app = api::router()
         .merge(pages_router().await)
         .fallback(static_file_service)
+        .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
