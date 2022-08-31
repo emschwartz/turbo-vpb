@@ -14,8 +14,9 @@ const RECONNECT_BACKOFF = 10
 const RECONNECT_DELAY_START = 25
 const MAX_RECONNECT_ATTEMPTS = 2
 
-const PUBLISH_URL_BASE = 'https://pubsub.turbovpb.com/c/'
-const SUBSCRIBE_URL_BASE = 'wss://pubsub.turbovpb.com/c/'
+const PUBLISH_URL_BASE = new URL('/c/', window.location.href).toString()
+const SUBSCRIBE_URL_BASE = PUBLISH_URL_BASE.replace('http', 'ws')
+console.log('Pubsub URL:', SUBSCRIBE_URL_BASE)
 const WEBRTC_MODE = 'webrtc'
 const WEBSOCKET_MODE = 'websocket'
 
