@@ -30,7 +30,7 @@ async fn main() {
     Server::bind(&addr)
         .serve(app.into_make_service())
         .await
-        .unwrap();
+        .expect("Error running server on port");
 }
 
 async fn internal_service_error(_: impl Error) -> impl IntoResponse {
