@@ -6,12 +6,12 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = { version = "0.5", features = ["ws"] }
+axum = { version = "0.5", default-features = false, features = ["http1", "json", "ws"] }
 dashmap = "5.3"
 futures = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 tinytemplate = "1.2"
-tokio = { version = "1.20", features = ["full"] }
+tokio = { version = "1.20", default-features = false, features = ["macros", "parking_lot", "rt-multi-thread", "time"] }
 tower-http = { version = "0.3", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
