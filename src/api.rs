@@ -15,7 +15,7 @@ const PING_INTERVAL: Duration = Duration::from_secs(20);
 type State = Arc<DashMap<String, Channel>>;
 struct Channel {
     extension: Sender<Message>,
-    website: Sender<Message>,
+    browser: Sender<Message>,
     /// Keep track of the number of open channel so we can drop the
     /// channel record when the last connection is dropped.
     num_connections: usize,
@@ -25,7 +25,7 @@ struct Channel {
 #[serde(rename_all = "lowercase")]
 enum Identity {
     Extension,
-    Website,
+    Browser,
 }
 
 #[derive(Serialize)]
@@ -52,6 +52,9 @@ async fn ws_handler(
     state: Extension<State>,
 ) -> impl IntoResponse {
     let span = info_span!("connection", channel_id, ?identity);
+    let _entered = span.enter();
+
+    debug!("got websocket connection");
 
     ws.on_upgrade(move |ws| {
         async move {
@@ -59,14 +62,14 @@ async fn ws_handler(
 
             let mut channel = state.entry(channel_id.clone()).or_insert_with(|| Channel {
                 extension: channel(1).0,
-                website: channel(1).0,
+                browser: channel(1).0,
                 num_connections: 0,
             });
             channel.num_connections += 1;
 
             let (sender, mut receiver) = match identity {
-                Identity::Extension => (channel.website.clone(), channel.extension.subscribe()),
-                Identity::Website => (channel.extension.clone(), channel.website.subscribe()),
+                Identity::Extension => (channel.browser.clone(), channel.extension.subscribe()),
+                Identity::Browser => (channel.extension.clone(), channel.browser.subscribe()),
             };
             drop(channel);
 
@@ -102,11 +105,15 @@ async fn ws_handler(
                     match message {
                         Message::Binary(message) => {
                             // Ignore send errors because that just means that the other side is not connected
-                            sender.send(Message::Binary(message)).ok();
+                            if let Err(err) = sender.send(Message::Binary(message)) {
+                                debug!("error sending message to channel: {err}");
+                            }
                         }
                         // This is only for testing purposes
                         Message::Text(message) => {
-                            sender.send(Message::Binary(message.into_bytes())).ok();
+                            if let Err(err) = sender.send(Message::Binary(message.into_bytes())) {
+                                debug!("error sending message to channel: {err}");
+                            }
                         }
                         Message::Ping(_) => {
                             sender.send(Message::Pong(Vec::new())).ok();
@@ -136,7 +143,7 @@ async fn ws_handler(
                 state.remove(&channel_id);
             }
         }
-        .instrument(span)
+        .in_current_span()
     })
 }
 
@@ -155,8 +162,8 @@ async fn post_channel(
 ) -> impl IntoResponse {
     if let Some(channel) = state.get(&channel_id) {
         let channel = match identity {
-            Identity::Extension => channel.website.clone(),
-            Identity::Website => channel.extension.clone(),
+            Identity::Extension => channel.browser.clone(),
+            Identity::Browser => channel.extension.clone(),
         };
 
         match channel.send(Message::Binary(body.to_vec())) {
