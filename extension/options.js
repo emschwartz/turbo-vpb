@@ -1,5 +1,6 @@
 console.log('options script loaded')
 const SUBSTITUTION_REGEX = /([\[\(\{\<]+[\w\s]+[\]\)\}\>])+/g
+const DEFAULT_SERVER_URL = 'https://turbovpb.com'
 
 const messageContainer = document.getElementById('messages')
 const messageTemplateHtml = document.getElementById('message-template')
@@ -17,29 +18,34 @@ document.getElementById('add-message-template')
 
 document.getElementById('settings').addEventListener('change', saveSettings)
 
-browser.storage.local.get(['yourName', 'messageTemplates'])
-    .then(({ yourName, messageTemplates }) => {
-        if (yourName) {
-            document.getElementById('yourName').value = yourName
-        }
-        if (typeof messageTemplates === 'string') {
-            // For backwards compatibility
-            messageTemplates = JSON.parse(messageTemplates)
-            browser.storage.local.set({
-                messageTemplates
-            })
-        }
-        if (messageTemplates && messageTemplates.length > 0) {
-            messageTemplates.forEach(addMessageTemplate)
-        } else {
-            addMessageTemplate({
-                label: '',
-                message: ''
-            })
-        }
+// Load the current settings from storage and update the options page accordingly
+browser.storage.local.get(['yourName', 'messageTemplates', 'serverUrl']).then(updateOptionsPageFromStorage)
 
-        setShareUrl(messageTemplates)
-    })
+function updateOptionsPageFromStorage({ yourName, messageTemplates, serverUrl = DEFAULT_SERVER_URL }) {
+    if (yourName) {
+        document.getElementById('yourName').value = yourName
+    }
+    if (typeof messageTemplates === 'string') {
+        // For backwards compatibility
+        messageTemplates = JSON.parse(messageTemplates)
+        browser.storage.local.set({
+            messageTemplates
+        })
+    }
+    if (messageTemplates && messageTemplates.length > 0) {
+        messageTemplates.forEach(addMessageTemplate)
+    } else {
+        addMessageTemplate({
+            label: '',
+            message: ''
+        })
+    }
+    if (serverUrl) {
+        document.getElementById('server-url').value = serverUrl
+    }
+
+    setShareUrl(serverUrl, messageTemplates)
+}
 
 function addMessageTemplate(template) {
     if (!template) {
@@ -66,6 +72,7 @@ function addMessageTemplate(template) {
     })
     messageContainer.appendChild(messageTemplateNode)
 }
+
 function saveSettings() {
     console.log('saving settings')
     const messageTemplates = []
@@ -97,19 +104,22 @@ function saveSettings() {
         }
     }
 
-    setShareUrl(messageTemplates)
+    const serverUrl = document.getElementById('server-url').value || DEFAULT_SERVER_URL
+
+    setShareUrl(serverUrl, messageTemplates)
 
     return browser.storage.local.set({
         yourName: document.getElementById('yourName').value,
-        messageTemplates
+        messageTemplates,
+        serverUrl
     })
 }
 
-function setShareUrl(messageTemplates) {
+function setShareUrl(serverUrl, messageTemplates) {
     const shareButton = document.getElementById('share-settings')
     if (shareButton) {
         if (messageTemplates && messageTemplates.length > 0) {
-            shareButton.href = `https://turbovpb.com/share?messageTemplates=${encodeURIComponent(JSON.stringify(messageTemplates))}`
+            shareButton.href = `${serverUrl}/share?messageTemplates=${encodeURIComponent(JSON.stringify(messageTemplates))}`
             shareButton.classList.remove('disabled')
         } else {
             shareButton.classList.add('disabled')

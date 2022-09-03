@@ -7,8 +7,8 @@ let iceServers = [{
     "url": "stun:global.stun.twilio.com:3478?transport=udp",
     "urls": "stun:global.stun.twilio.com:3478?transport=udp"
 }]
-const PUBLISH_URL_BASE = 'https://pubsub.turbovpb.com/c/'
-const SUBSCRIBE_URL_BASE = 'wss://pubsub.turbovpb.com/c/'
+// const DEFAULT_SERVER_URL = 'https://pubsub.turbovpb.com'
+const DEFAULT_SERVER_URL = 'http://localhost:8080'
 const WEBRTC_MODE = 'webrtc'
 const WEBSOCKET_MODE = 'websocket'
 
@@ -18,8 +18,9 @@ const ENCRYPTION_ALGORITHM = 'AES-GCM'
 const BASE64_URL_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 
 class PeerConnection {
-    constructor(encryptionKey) {
+    constructor(encryptionKey, url = DEFAULT_SERVER_URL) {
         this.encryptionKey = encryptionKey
+        this.url = new URL('/c/', url).toString()
 
         // Create Peer ID
         const array = new Uint8Array(16)
@@ -43,9 +44,9 @@ class PeerConnection {
         this.ws = null
     }
 
-    static async create() {
+    static async create(url) {
         const encryptionKey = await generateKey()
-        return new PeerConnection(encryptionKey)
+        return new PeerConnection(encryptionKey, url)
     }
 
     async connect() {
@@ -116,7 +117,7 @@ class PeerConnection {
         }
 
         try {
-            await fetch(`${PUBLISH_URL_BASE}${this.sessionId}`, { method: 'DELETE' })
+            await fetch(`${this.url}${this.sessionId}`, { method: 'DELETE' })
         } catch (err) {
             console.error('error deleting channels', err)
         }
@@ -147,7 +148,7 @@ class PeerConnection {
             } else {
                 console.log('sending message to pubsub via HTTP POST')
                 try {
-                    await fetch(`${PUBLISH_URL_BASE}${this.sessionId}/extension`, {
+                    await fetch(`${this.url}${this.sessionId}/extension`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/octet-stream'
@@ -178,6 +179,10 @@ class PeerConnection {
     }
 
     async _createPeer() {
+        if (typeof window.Peer === 'undefined') {
+            console.warn('peerjs not found, falling back to websocket mode')
+            return
+        }
         try {
             // The response will be cached so we'll only request it once every 12 hours
             const res = await fetch('https://nts.turbovpb.com/ice')
@@ -259,7 +264,7 @@ class PeerConnection {
         }
 
         return new Promise((resolve, reject) => {
-            const url = `${SUBSCRIBE_URL_BASE}${this.peerId}/extension`
+            const url = `${this.url.replace('http', 'ws')}${this.peerId}/extension`
             console.log('connecting to:', url)
             this.ws = new ReconnectingWebSocket(url, [], {
                 minReconnectionDelay: 50,

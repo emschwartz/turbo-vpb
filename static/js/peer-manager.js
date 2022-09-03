@@ -14,13 +14,10 @@ const RECONNECT_BACKOFF = 10
 const RECONNECT_DELAY_START = 25
 const MAX_RECONNECT_ATTEMPTS = 2
 
-const PUBLISH_URL_BASE = new URL('/c/', window.location.href).toString()
-const SUBSCRIBE_URL_BASE = PUBLISH_URL_BASE.replace('http', 'ws')
-console.log('Pubsub URL:', SUBSCRIBE_URL_BASE)
+const DEFAULT_SERVER_URL = typeof window !== 'undefined' && window.location ? window.location.href : 'https://pubsub.turbovpb.com'
 const WEBRTC_MODE = 'webrtc'
 const WEBSOCKET_MODE = 'websocket'
 
-const ENCRYPTION_KEY_LENGTH = 256
 const ENCRYPTION_IV_BYTE_LENGTH = 12
 const ENCRYPTION_ALGORITHM = 'AES-GCM'
 const BASE64_URL_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -37,10 +34,11 @@ const PUBSUB_STATE = {
 }
 
 class PeerManager {
-    constructor({ debugMode, remotePeerId, encryptionKey }) {
+    constructor({ debugMode, remotePeerId, encryptionKey, url = DEFAULT_SERVER_URL }) {
         this.debugMode = debugMode
         this.remotePeerId = remotePeerId
         this.iceServers = null
+        this.url = url
 
         this.active = false
         this.peer = null
@@ -376,7 +374,7 @@ class PeerManager {
         }
 
         return new Promise((resolve, reject) => {
-            const url = `${SUBSCRIBE_URL_BASE}${this.remotePeerId}/browser`
+            const url = new URL(`/c/${this.remotePeerId}/browser`, this.url.replace('http', 'ws')).toString()
             console.log('connecting to:', url)
             let startTime = Date.now()
             let openTime
@@ -605,4 +603,8 @@ async function wrapWithTracingSpan(span, spanName, promise) {
         await promise
     }
     child.finish()
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PeerManager
 }

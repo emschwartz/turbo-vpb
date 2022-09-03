@@ -31,13 +31,15 @@ const RESULT_CODES = {
     NotContacted: 2,
     Texted: 3
 }
+let serverUrl
 
-// Load previously stored statistics
-browser.storage.local.get(['sessionRecords', 'totalCalls', 'totalTexts'])
+// Load previously stored statistics and settings
+browser.storage.local.get(['sessionRecords', 'totalCalls', 'totalTexts', 'serverUrl'])
     .then((fromStorage) => {
         Object.assign(sessionRecords, fromStorage.sessionRecords || {})
         totalCalls += (fromStorage.totalCalls || 0)
         totalTexts += (fromStorage.totalTexts || 0)
+        serverUrl = fromStorage.serverUrl
     })
 
 // Load content scripts for enabled domains
@@ -49,9 +51,7 @@ browser.permissions.getAll()
             console.error('Error injecting share script', err)
         }
         for (let origin of origins) {
-            if (origin.includes('turbovpb')
-                || origin.includes('localhost')
-                || !origin.startsWith('http')) {
+            if (!origin.startsWith('http')) {
                 continue
             }
 
@@ -65,6 +65,8 @@ browser.permissions.getAll()
                 await enableOrigin(BLUEVOTE_ORIGIN)
             } else if (STARTTHEVAN_REGEX.test(origin)) {
                 await enableOrigin(STARTTHEVAN_ORIGIN)
+            } else if (LOCALHOST_REGEX.test(origin)) {
+                await enableOrigin(LOCALHOST_ORIGIN)
             } else {
                 try {
                     await enableOrigin(origin)
@@ -75,18 +77,27 @@ browser.permissions.getAll()
         }
     })
 
-// Send message templates if they change
+// Send messages to tabs if the settings change
 browser.storage.onChanged.addListener(async (changes) => {
-    if (!changes.messageTemplates) {
-        return
+    if (changes.messageTemplates) {
+        const messageTemplates = changes.messageTemplates.newValue
+        for (let tabId in peers) {
+            sendMessage(tabId, {
+                type: 'messageTemplateUpdate',
+                messageTemplates
+            })
+        }
     }
 
-    const messageTemplates = changes.messageTemplates.newValue
-    for (let tabId in peers) {
-        sendMessage(tabId, {
-            type: 'messageTemplateUpdate',
-            messageTemplates
-        })
+    if (changes.serverUrl) {
+        serverUrl = changes.serverUrl.newValue
+
+        // Tell all of the tabs to reload because we need to recreate the peers with the new serverUrl
+        for (let tabId in peers) {
+            sendMessage(tabId, {
+                type: 'reload',
+            })
+        }
     }
 })
 
@@ -191,7 +202,7 @@ async function createPeer(tabId) {
         }
     }
 
-    const peer = await PeerConnection.create()
+    const peer = await PeerConnection.create(serverUrl)
     const sessionId = peer.getSessionId()
     const connectionSecret = await peer.getConnectionSecret()
     const version = browser.runtime.getManifest().version
@@ -201,7 +212,7 @@ async function createPeer(tabId) {
     if (tabUrl) {
         domain = (new URL(tabUrl)).host
     }
-    const url = `https://turbovpb.com/connect?session=${sessionId}&version=${version}${domain ? '&domain=' + encodeURIComponent(domain) : ''}&userAgent=${userAgent}#${connectionSecret}`
+    const url = `${serverUrl}/connect?session=${sessionId}&version=${version}${domain ? '&domain=' + encodeURIComponent(domain) : ''}&userAgent=${userAgent}#${connectionSecret}`
 
     let connectionAttempt = 0
     peers[tabId] = {
