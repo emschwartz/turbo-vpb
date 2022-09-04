@@ -94,10 +94,10 @@ browser.storage.onChanged.addListener(async (changes) => {
     if (changes.serverUrl) {
         serverUrl = changes.serverUrl.newValue
 
-        // Tell all of the tabs to reload because we need to recreate the peers with the new serverUrl
+        // Tell all of the tabs to update their connect URLs
         for (let tabId in peers) {
             sendMessage(tabId, {
-                type: 'reload',
+                type: 'updateConnectUrl'
             })
         }
     }

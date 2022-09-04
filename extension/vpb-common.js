@@ -29,7 +29,7 @@ let url
 sendConnect()
     .then((newUrl) => url = newUrl)
 
-browser.runtime.onMessage.addListener((message) => {
+browser.runtime.onMessage.addListener(async (message) => {
     if (message.type === 'contactRequest') {
         console.log('got contact request from background')
         sendDetails()
@@ -68,16 +68,26 @@ browser.runtime.onMessage.addListener((message) => {
     } else if (message.type === 'showQrCode') {
         console.log('showing qr code')
         showModal()
-    } else if (message.type === 'reload') {
-        console.log('reloading')
-        window.location.reload()
+    } else if (message.type === 'updateConnectUrl') {
+        await updateConnectUrl()
     } else {
         console.warn('got unexpected message from background:', message)
     }
 })
 
-window.addEventListener('focus', async () => {
-    console.log('sending connect message to background to ensure peer is still connected')
+window.addEventListener('focus', updateConnectUrl)
+
+if (!window.sessionStorage.getItem('turboVpbHideModal')) {
+    // Only create the modal after the page is fully loaded
+    const watchForReady = setInterval(() => {
+        if (document.getElementById('turbovpbcontainer')) {
+            clearInterval(watchForReady)
+            showModal()
+        }
+    }, 50)
+}
+
+async function updateConnectUrl() {
     const newUrl = await sendConnect()
     if (url !== newUrl) {
         url = newUrl
@@ -88,16 +98,6 @@ window.addEventListener('focus', async () => {
             elem.replaceWith(newQrCode.cloneNode(true))
         }
     }
-})
-
-if (!window.sessionStorage.getItem('turboVpbHideModal')) {
-    // Only create the modal after the page is fully loaded
-    const watchForReady = setInterval(() => {
-        if (document.getElementById('turbovpbcontainer')) {
-            clearInterval(watchForReady)
-            showModal()
-        }
-    }, 50)
 }
 
 function showModal() {
