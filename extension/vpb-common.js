@@ -68,6 +68,9 @@ browser.runtime.onMessage.addListener((message) => {
     } else if (message.type === 'showQrCode') {
         console.log('showing qr code')
         showModal()
+    } else if (message.type === 'reload') {
+        console.log('reloading')
+        window.location.reload()
     } else {
         console.warn('got unexpected message from background:', message)
     }
@@ -224,23 +227,24 @@ async function sendConnect() {
 }
 
 async function sendDetails() {
-    console.log('sending details')
     let { yourName, messageTemplates } = await browser.storage.local.get(['yourName', 'messageTemplates'])
     if (typeof messageTemplates === 'string') {
         messageTemplates = JSON.parse(messageTemplates)
     }
+    const contact = {
+        phoneNumber: window.sessionStorage.getItem('turboVpbPhoneNumber'),
+        firstName: window.sessionStorage.getItem('turboVpbFirstName'),
+        lastName: window.sessionStorage.getItem('turboVpbLastName'),
+        additionalFields: window.sessionStorage.getItem('turboVpbAdditionalFields') ? JSON.parse(window.sessionStorage.getItem('turboVpbAdditionalFields')) : undefined
+    }
+    console.log('sending details', contact)
     try {
         await browser.runtime.sendMessage({
             type: 'contact',
             data: {
                 messageTemplates,
                 yourName,
-                contact: {
-                    phoneNumber: window.sessionStorage.getItem('turboVpbPhoneNumber'),
-                    firstName: window.sessionStorage.getItem('turboVpbFirstName'),
-                    lastName: window.sessionStorage.getItem('turboVpbLastName'),
-                    additionalFields: window.sessionStorage.getItem('turboVpbAdditionalFields') ? JSON.parse(window.sessionStorage.getItem('turboVpbAdditionalFields')) : undefined
-                },
+                contact,
                 stats: {
                     calls: parseInt(window.sessionStorage.getItem('turboVpbCalls')),
                     successfulCalls: parseInt(window.sessionStorage.getItem('turboVpbSuccessfulCalls')),
@@ -252,7 +256,6 @@ async function sendDetails() {
                 lastCallResult: window.sessionStorage.getItem('turboVpbLastCallResult')
             }
         })
-        console.log('sent contact')
     } catch (err) {
         console.error('error sending contact details', err)
     }

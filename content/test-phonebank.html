@@ -1,0 +1,88 @@
+<script>
+  async function nextContact() {
+    const response = await (
+      await fetch("https://randomuser.me/api?nat=us")
+    ).json();
+    const contact = response.results[0];
+    document.getElementById(
+      "contactName"
+    ).innerText = `${contact.name.first} ${contact.name.last}`;
+    document.getElementById(
+      "address"
+    ).innerText = `${contact.location.street.number} ${contact.location.street.name}, ${contact.location.city}, ${contact.location.state}`;
+    const phoneNumber = document.getElementById("openVpbPhoneLink");
+    phoneNumber.href = `tel:${contact.phone}`;
+    phoneNumber.innerText = contact.phone;
+  }
+  nextContact();
+</script>
+
+<div>
+  <div id="openvpbsidebarcontainer"></div>
+
+  <h1>Contact</h1>
+  <a id="openVpbPhoneLink" href="tel:+11234567890">(123)-456-7890</a>
+
+  <div class="person-phone-panel">
+    <div id="contactName"></div>
+  </div>
+
+  <div id="openvpb-target-details">
+    <dl>
+      <dt>Address</dt>
+      <dl id="address"></dl>
+    </dl>
+  </div>
+
+  <button id="displaycontactresultsbutton">Couldn't Reach Contact</button>
+  <button id="firstcallmodalnextcallbutton">First Call Button</button>
+
+  <div>
+    <ul>
+      <li class="radio-unit">
+        <input
+          id="left-voicemail"
+          value="Left Voicemail"
+          type="radio"
+          name="script-contact-result"
+        />
+        <label for="left-voicemail" class="radio-label">Left Voicemail</label>
+      </li>
+
+      <li class="radio-unit">
+        <input
+          id="refused"
+          value="Refused"
+          type="radio"
+          name="script-contact-result"
+        />
+        <label for="refused" class="radio-label">Refused</label>
+      </li>
+
+      <li class="radio-unit">
+        <input
+          id="busy"
+          value="Busy"
+          type="radio"
+          name="script-contact-result"
+        />
+        <label for="busy" class="radio-label">Busy</label>
+      </li>
+
+      <li class="radio-unit">
+        <input
+          id="texted"
+          value="Texted"
+          type="radio"
+          name="script-contact-result"
+        />
+        <label for="texted" class="radio-label">Texted</label>
+      </li>
+    </ul>
+
+    <button id="contactresultscancelbutton">Cancel</button>
+    <button id="contactresultssavenextbutton" onclick="nextContact()">
+      Save Results & Load Next
+    </button>
+  </div>
+</div>

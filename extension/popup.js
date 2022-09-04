@@ -3,12 +3,14 @@ const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
 const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i
 const BLUEVOTE_REGEX = /https\:\/\/.*\.bluevote.com/i
 const STARTTHEVAN_REGEX = /https\:\/\/(www\.)?startthevan.com/i
+const LOCALHOST_REGEX = /https?\:\/\/localhost/i
 
 const OPENVPB_ORIGIN = 'https://www.openvpb.com/VirtualPhoneBank*'
 const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
 const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
+const LOCALHOST_ORIGIN = 'http://localhost/*'
 
 let canEnable = false
 let isEnabled = false
@@ -60,6 +62,7 @@ async function onOpen() {
 
     if (activeTab) {
         activeTabId = activeTab.id
+        console.log('Active tab ID:', activeTabId)
 
         if (activeTab.url) {
             console.log('Current tab URL:', activeTab.url)
@@ -102,6 +105,12 @@ async function onOpen() {
                 origin = `${url.protocol}//${url.host}/ContactDetailScript*`
                 isEnabled = permissions.origins.includes(origin)
                 shouldShowQrCode = /ContactDetailScript/i.test(activeTab.url)
+            } else if (LOCALHOST_REGEX.test(activeTab.url)) {
+                canEnable = true
+                siteName = 'Test Phonebank'
+                origin = LOCALHOST_ORIGIN
+                isEnabled = permissions.origins.includes(origin)
+                shouldShowQrCode = true
             }
         }
     }
@@ -196,8 +205,6 @@ async function toggleOnSite() {
     }
 
     try {
-        const backgroundPage = await browser.runtime.getBackgroundPage()
-
         if (!isEnabled) {
             console.log('requesting permission for:', origin)
             let permissionGranted
@@ -227,6 +234,8 @@ async function toggleOnSite() {
             }
 
         } else {
+            const backgroundPage = await browser.runtime.getBackgroundPage()
+
             console.log('disabling origin:', origin)
             await backgroundPage.disableOrigin(origin)
 
@@ -251,7 +260,7 @@ async function showQrCode() {
         })
         window.close()
     } catch (err) {
-        console.error(err)
+        console.error('Error sending message to tab:', activeTabId, err)
     }
 }
 

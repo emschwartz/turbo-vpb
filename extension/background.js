@@ -6,6 +6,7 @@ const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
 const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i
 const BLUEVOTE_REGEX = /https\:\/\/.*\.bluevote.com/i
 const STARTTHEVAN_REGEX = /https\:\/\/(www\.)?startthevan.com/i
+const LOCALHOST_REGEX = /https?\:\/\/localhost/i
 
 const OPENVPB_ORIGIN = 'https://www.openvpb.com/VirtualPhoneBank*'
 const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
@@ -13,6 +14,7 @@ const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
 const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
 const TURBOVPB_SHARE_ORIGIN = 'https://turbovpb.com/share*'
+const LOCALHOST_ORIGIN = 'http://localhost/*'
 
 const peers = {}
 const unregisterContentScripts = {}
@@ -39,7 +41,7 @@ browser.storage.local.get(['sessionRecords', 'totalCalls', 'totalTexts', 'server
         Object.assign(sessionRecords, fromStorage.sessionRecords || {})
         totalCalls += (fromStorage.totalCalls || 0)
         totalTexts += (fromStorage.totalTexts || 0)
-        serverUrl = fromStorage.serverUrl
+        serverUrl = fromStorage.serverUrl || DEFAULT_SERVER_URL
     })
 
 // Load content scripts for enabled domains
@@ -334,7 +336,7 @@ async function injectShareScript() {
 }
 
 function getContentScripts(origin) {
-    if (OPENVPB_REGEX.test(origin)) {
+    if (OPENVPB_REGEX.test(origin) || LOCALHOST_REGEX.test(origin)) {
         originSpecificJs = { file: 'openvpb.js' }
     } else if (BLUEVOTE_REGEX.test(origin)) {
         originSpecificJs = { file: 'bluevote.js' }

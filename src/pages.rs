@@ -6,6 +6,10 @@ const PAGES: &[(&str, &str)] = &[
     ("index", include_str!("../content/index.html")),
     ("connect", include_str!("../content/connect.html")),
     ("share", include_str!("../content/share.html")),
+    (
+        "test-phonebank",
+        include_str!("../content/test-phonebank.html"),
+    ),
 ];
 static TEMPLATE: &str = include_str!("../templates/default.html");
 

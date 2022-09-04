@@ -32,9 +32,9 @@ function getResultCodes() {
         resultCodes.push(elements[i].innerText)
     }
     console.log('determined result codes to be:', resultCodes)
-    document.getElementById('cancel-has-made-contact').click()
 
     window.sessionStorage.setItem('turboVpbResultCodes', JSON.stringify(resultCodes))
+    document.getElementById('cancel-has-made-contact').click()
 }
 
 function getContactDetails() {
