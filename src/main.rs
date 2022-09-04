@@ -4,8 +4,8 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
-mod api;
 mod pages;
+mod pubsub;
 
 #[tokio::main]
 async fn main() {
@@ -16,7 +16,7 @@ async fn main() {
         .fallback(get_service(ServeFile::new("static/favicons/favicon.ico")))
         .handle_error(internal_service_error);
 
-    let app = api::router()
+    let app = pubsub::router()
         .merge(pages::router())
         .fallback(static_file_service)
         .layer(TraceLayer::new_for_http());
