@@ -1,7 +1,7 @@
 <script>
   async function nextContact() {
     const response = await (
-      await fetch("https://randomuser.me/api?nat=us")
+      await fetch("https://randomuser.me/api?nat=us&inc=name,phone,location")
     ).json();
     const contact = response.results[0];
     document.getElementById(
