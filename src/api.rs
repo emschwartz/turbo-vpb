@@ -20,11 +20,8 @@ struct Channel {
     /// Keep track of the number of open channel so we can drop the
     /// channel record when the last connection is dropped.
     num_connections: usize,
-    /// We store the first message sent by the extension for backwards compatibility.
-    /// The extension sends a connect message, which was previously stored by the
-    /// nchan server. Without it, when the website connects, it expects to get a
-    /// connect message but never does, so it never thinks it's connected.
-    extension_first_message: Option<Message>,
+    /// We store the last message sent by the extension for backwards compatibility.
+    extension_last_message: Option<Message>,
 }
 
 impl Default for Channel {
@@ -33,7 +30,7 @@ impl Default for Channel {
             extension: channel(CHANNEL_CAPACITY).0,
             browser: channel(CHANNEL_CAPACITY).0,
             num_connections: 0,
-            extension_first_message: None,
+            extension_last_message: None,
         }
     }
 }
@@ -87,14 +84,15 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 
     let (mut ws_sink, mut ws_stream) = ws.split();
 
-    // If this is the browser, send the stored first message from the extension
+    // Send the browser the last message we got from the extension
     if identity == Identity::Browser {
         if let Some(message) = state
             .get(&channel_id)
-            .and_then(|channel| channel.extension_first_message.clone())
+            .and_then(|channel| channel.extension_last_message.clone())
         {
-            trace!("sending first message to browser");
-            ws_sink.send(message).await.unwrap();
+            if let Err(err) = ws_sink.send(message).await {
+                debug!("error sending message to websocket: {err}");
+            }
         }
     }
 
@@ -133,16 +131,10 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
             while let Some(Ok(message)) = ws_stream.next().await {
                 match message {
                     Message::Binary(_) => {
-                        // Store the first message from the extension for backwards compatibility
-                        if identity == Identity::Extension
-                            && state_clone
-                                .get(&channel_id_clone)
-                                .map(|c| c.extension_first_message.is_none())
-                                == Some(true)
-                        {
+                        // Store the last message from the extension for backwards compatibility
+                        if identity == Identity::Extension {
                             if let Some(mut channel) = state_clone.get_mut(&channel_id_clone) {
-                                trace!("storing first extension message");
-                                channel.extension_first_message = Some(message.clone());
+                                channel.extension_last_message = Some(message.clone());
                             }
                         }
 
