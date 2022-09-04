@@ -5,7 +5,7 @@ use std::{error::Error, net::SocketAddr};
 use tower_http::compression::CompressionLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
-use tracing::{debug, info};
+use tracing::{error, info};
 
 mod pages;
 mod pubsub;
@@ -31,11 +31,15 @@ async fn main() {
         .ok()
         .and_then(|key| serde_json::from_str(&key).ok());
     if let Some(service_account_key) = service_account_key {
-        let bigquery = BigQueryClient::from_service_account_key(service_account_key, false)
-            .await
-            .expect("Error creating BigQuery client");
-        debug!("Stats collection enabled");
-        api = api.merge(stats::router(bigquery));
+        match BigQueryClient::from_service_account_key(service_account_key, false).await {
+            Ok(bigquery) => {
+                info!("BigQuery client initialized");
+                api = api.merge(stats::router(bigquery));
+            }
+            Err(err) => {
+                error!("Failed to initialize BigQuery client: {err}");
+            }
+        }
     }
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
