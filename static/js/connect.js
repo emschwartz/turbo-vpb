@@ -788,7 +788,7 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
 
             try {
                 if (!savedTextStats) {
-                    await fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+                    await fetchRetry(`/api/stats/sessions/${sessionId}/texts`, {
                         method: 'POST'
                     }, 3)
                     savedTextStats = true
@@ -909,7 +909,7 @@ async function saveCallStats() {
             if (lastCallResult) {
                 body.result = lastCallResult
             }
-            fetchRetry(`/sessions/${sessionId}/calls`, {
+            fetchRetry(`/api/stats/sessions/${sessionId}/calls`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json; charset=UTF-8'
@@ -919,7 +919,7 @@ async function saveCallStats() {
         }
 
         if (lastCallResult && lastCallResult.toLowerCase() === 'texted') {
-            requests.push(fetchRetry(`/sessions/${sessionId}/texts`, {
+            requests.push(fetchRetry(`/api/stats/sessions/${sessionId}/texts`, {
                 method: 'POST'
             }, 3))
         }

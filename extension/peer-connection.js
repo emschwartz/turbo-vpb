@@ -7,8 +7,7 @@ let iceServers = [{
     "url": "stun:global.stun.twilio.com:3478?transport=udp",
     "urls": "stun:global.stun.twilio.com:3478?transport=udp"
 }]
-// const DEFAULT_SERVER_URL = 'https://pubsub.turbovpb.com'
-const DEFAULT_SERVER_URL = 'http://localhost:8080'
+const DEFAULT_SERVER_URL = 'https://turbovpb.com'
 const WEBRTC_MODE = 'webrtc'
 const WEBSOCKET_MODE = 'websocket'
 
@@ -20,7 +19,7 @@ const BASE64_URL_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw
 class PeerConnection {
     constructor(encryptionKey, url = DEFAULT_SERVER_URL) {
         this.encryptionKey = encryptionKey
-        this.url = new URL('/c/', url).toString()
+        this.url = new URL('/api/channels/', url).toString()
 
         // Create Peer ID
         const array = new Uint8Array(16)

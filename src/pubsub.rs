@@ -52,12 +52,15 @@ pub fn router() -> Router {
     let state: State = Default::default();
 
     Router::new()
-        .route("/status", get(|| async { Json(Status { status: "ok" }) }))
         .route(
-            "/c/:channel_id/:identity",
+            "/api/status",
+            get(|| async { Json(Status { status: "ok" }) }),
+        )
+        .route(
+            "/api/channels/:channel_id/:identity",
             get(ws_handler).post(post_channel),
         )
-        .route("/c/:channel_id", delete(delete_channel))
+        .route("/api/channels/:channel_id", delete(delete_channel))
         .layer(Extension(state))
 }
 

@@ -374,7 +374,7 @@ class PeerManager {
         }
 
         return new Promise((resolve, reject) => {
-            const url = new URL(`/c/${this.remotePeerId}/browser`, this.url.replace('http', 'ws')).toString()
+            const url = new URL(`/api/channels/${this.remotePeerId}/browser`, this.url.replace('http', 'ws')).toString()
             console.log('connecting to:', url)
             let startTime = Date.now()
             let openTime

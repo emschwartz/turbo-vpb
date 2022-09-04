@@ -11,8 +11,8 @@ static BIGQUERY_DATASET_ID: &str = "stats";
 
 pub fn router(bigquery: BigQueryClient) -> Router {
     let router = Router::new()
-        .route("/sessions/:session_id/calls", post(post_call))
-        .route("/sessions/:session_id/texts", post(post_text))
+        .route("/api/stats/sessions/:session_id/calls", post(post_call))
+        .route("/api/stats/sessions/:session_id/texts", post(post_text))
         .layer(Extension(bigquery));
 
     router
