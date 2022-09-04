@@ -11,6 +11,7 @@ use tokio::{select, time::sleep};
 use tracing::{debug, instrument, trace};
 
 const PING_INTERVAL: Duration = Duration::from_secs(20);
+const CHANNEL_INACTIVITY_TIMEOUT: Duration = Duration::from_secs(60 * 30);
 const CHANNEL_CAPACITY: usize = 1;
 
 type State = Arc<DashMap<String, Channel>>;
@@ -97,6 +98,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
     }
 
     // Handle websocket messages
+    let mut timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
     loop {
         select! {
             biased;
@@ -105,7 +107,11 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
             outgoing = receiver.recv() => {
                 if let Ok(message) = outgoing {
                     match ws_sink.send(message).await {
-                        Ok(_) => trace!("sent message"),
+                        Ok(_) => {
+                            // Update the inactivity timer
+                            timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
+                            trace!("sent message");
+                        },
                         Err(err) => debug!("error sending message to websocket: {err}"),
                     }
                 } else {
@@ -122,6 +128,10 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                     }
                     None => break,
                 };
+
+                // Update the inactivity timer
+                timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
+
                 match message {
                     Message::Binary(_) => {
                         // Store the last message from the extension for backwards compatibility
@@ -148,6 +158,11 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                 if ws_sink.send(Message::Ping(Vec::new())).await.is_err() {
                     break;
                 }
+            }
+            // Timeout channels that have been inactive for too long
+            _ = timeout.take().unwrap_or(sleep(CHANNEL_INACTIVITY_TIMEOUT)) => {
+                debug!("channel timed out after {CHANNEL_INACTIVITY_TIMEOUT:?} seconds of inactivity");
+                break;
             }
         }
     }
