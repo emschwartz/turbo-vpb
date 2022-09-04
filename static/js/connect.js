@@ -187,8 +187,7 @@ if (Sentry) {
         release,
         beforeBreadcrumb: (breadcrumb) => {
             if ((breadcrumb.category === 'xhr' || breadcrumb.category === 'fetch') &&
-                breadcrumb.data &&
-                (breadcrumb.data.url.startsWith('https://analytics.turbovpb.com' || breadcrumb.data.url.startsWith('https://stats.turbovpb.com')))) {
+                breadcrumb.data && breadcrumb.data.url.startsWith('https://analytics.turbovpb.com')) {
                 return null
             } else {
                 return breadcrumb
@@ -908,9 +907,9 @@ async function saveCallStats() {
                 duration: lastCallDuration,
             }
             if (lastCallResult) {
-                body.lastCallResult = lastCallResult
+                body.result = lastCallResult
             }
-            fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/calls`, {
+            fetchRetry(`/sessions/${sessionId}/calls`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json; charset=UTF-8'
@@ -920,7 +919,7 @@ async function saveCallStats() {
         }
 
         if (lastCallResult && lastCallResult.toLowerCase() === 'texted') {
-            requests.push(fetchRetry(`https://stats.turbovpb.com/sessions/${sessionId}/texts`, {
+            requests.push(fetchRetry(`/sessions/${sessionId}/texts`, {
                 method: 'POST'
             }, 3))
         }
