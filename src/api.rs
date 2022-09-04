@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::broadcast::{channel, Sender};
 use tokio::{select, time::sleep};
-use tracing::{debug, instrument, trace, Instrument};
+use tracing::{debug, instrument, trace};
 
 const PING_INTERVAL: Duration = Duration::from_secs(20);
 const CHANNEL_CAPACITY: usize = 1;
@@ -96,57 +96,45 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
         }
     }
 
-    // Forward outgoing messages and send pings
-    let mut send_task = tokio::spawn(
-        async move {
-            loop {
-                select! {
-                    message = receiver.recv() => {
-                        if let Ok(message) = message {
-                            match ws_sink.send(message).await {
-                                Ok(_) => trace!("sent message"),
-                                Err(err) => debug!("error sending message to websocket: {err}"),
-                            }
-                        } else {
-                            break;
-                        }
+    // Handle websocket messages
+    loop {
+        select! {
+            biased;
+
+            // Send outgoing messages
+            outgoing = receiver.recv() => {
+                if let Ok(message) = outgoing {
+                    match ws_sink.send(message).await {
+                        Ok(_) => trace!("sent message"),
+                        Err(err) => debug!("error sending message to websocket: {err}"),
                     }
-                    // Send a ping if no outgoing message has been sent before the timeout
-                    _ = sleep(PING_INTERVAL) => {
-                        if ws_sink.send(Message::Ping(Vec::new())).await.is_err() {
-                            break;
-                        }
-                    }
+                } else {
+                    break;
                 }
             }
-        }
-        .in_current_span(),
-    );
-
-    // Forward incoming messages
-    let state_clone = state.clone();
-    let channel_id_clone = channel_id.clone();
-    let mut receive_task = tokio::spawn(
-        async move {
-            while let Some(Ok(message)) = ws_stream.next().await {
+            // Handle incoming messages
+            incoming = ws_stream.next() => {
+                let message = match incoming {
+                    Some(Ok(message)) => message,
+                    Some(Err(err)) => {
+                        debug!("error receiving message from websocket: {err}");
+                        break;
+                    }
+                    None => break,
+                };
                 match message {
                     Message::Binary(_) => {
                         // Store the last message from the extension for backwards compatibility
                         if identity == Identity::Extension {
-                            if let Some(mut channel) = state_clone.get_mut(&channel_id_clone) {
+                            if let Some(mut channel) = state.get_mut(&channel_id) {
                                 channel.extension_last_message = Some(message.clone());
                             }
                         }
 
                         // Ignore send errors because that just means that the other side is not connected
-                        if let Err(err) = sender.send(message) {
-                            debug!("error sending message to channel: {err}");
-                        }
-                    }
-                    // This is only for testing purposes
-                    Message::Text(message) => {
-                        if let Err(err) = sender.send(Message::Binary(message.into_bytes())) {
-                            debug!("error sending message to channel: {err}");
+                        match sender.send(message) {
+                            Ok(_) => trace!("sent message"),
+                            Err(err) => debug!("error sending message to channel: {err}"),
                         }
                     }
                     Message::Ping(_) => {
@@ -155,16 +143,14 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                     _ => {}
                 }
             }
+            // Send a ping if no outgoing message has been sent before the timeout
+            _ = sleep(PING_INTERVAL) => {
+                if ws_sink.send(Message::Ping(Vec::new())).await.is_err() {
+                    break;
+                }
+            }
         }
-        .in_current_span(),
-    );
-
-    // If any one of the tasks exit, abort the other.
-    select! {
-        _ = (&mut send_task) => receive_task.abort(),
-        _ = (&mut receive_task) => send_task.abort(),
-        // TODO timeout channels
-    };
+    }
 
     debug!("websocket closed");
 
