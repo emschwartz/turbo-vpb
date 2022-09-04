@@ -1,6 +1,7 @@
 use axum::{response::Html, routing::get, Router};
 use serde::Serialize;
 use tinytemplate::{format_unescaped, TinyTemplate};
+use tower_http::compression::CompressionLayer;
 
 const PAGES: &[(&str, &str)] = &[
     ("index", include_str!("../content/index.html")),
@@ -42,5 +43,5 @@ pub fn router() -> Router {
             .route(&format!("/{}.html", page), service);
     }
 
-    router
+    router.layer(CompressionLayer::new())
 }
