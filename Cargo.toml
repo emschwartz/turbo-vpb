@@ -18,7 +18,7 @@ tokio = { version = "1.20", default-features = false, features = ["macros", "par
 tower-http = { version = "0.3", features = ["compression-full", "fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-yup-oauth2 = "7.0.1"
+yup-oauth2 = { version = "7.0", default-features = false }
 
 [profile.release]
 lto = true

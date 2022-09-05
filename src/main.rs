@@ -14,6 +14,7 @@ mod stats;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
+    info!("Starting TurboVPB server");
 
     // Serve static files
     let static_file_service = get_service(ServeDir::new("static"))

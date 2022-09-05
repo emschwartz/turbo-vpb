@@ -16,11 +16,10 @@ RUN cargo build --release
 # Runtime image
 FROM debian:bullseye-slim
 
-# Run as "app" user
-RUN useradd -ms /bin/bash app
-
-USER app
-WORKDIR /app
+# Install CA certificates
+RUN apt-get update \
+    && apt-get install -y ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Get compiled binaries from builder's cargo install directory
 COPY --from=builder /usr/src/app/target/release/turbovpb-server /app/turbovpb-server
