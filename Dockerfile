@@ -1,30 +1,17 @@
 FROM rust:1.63 as builder
-
-# Make a fake Rust app to keep a cached layer of compiled crates
-RUN USER=root cargo new app
 WORKDIR /usr/src/app
-COPY Cargo.toml Cargo.lock ./
-# Needs at least a main.rs file with a main function
-RUN mkdir src && echo "fn main(){}" > src/main.rs
-# Will build all dependent crates in release mode
-RUN cargo build --release
-
-# Copy the rest
 COPY . .
-RUN cargo build --release
+RUN cargo install --path .
+# --mount=type=cache,target=/usr/local/cargo/registry \
+    # --mount=type=cache,target=/usr/src/app/target \
+    # cargo install --path .
 
-# Runtime image
-FROM debian:bullseye-slim
+FROM debian:buster-slim
 
-# Install CA certificates
 RUN apt-get update \
     && apt-get install -y ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Get compiled binaries from builder's cargo install directory
-COPY --from=builder /usr/src/app/target/release/turbovpb-server /app/turbovpb-server
-
-# Copy in the static files
-COPY static /app/static
-
-CMD ["/app/turbovpb-server"]
+COPY --from=builder /usr/local/cargo/bin/turbovpb-server /usr/app/turbovpb-server
+COPY static /usr/app/static
+CMD ["/usr/app/turbovpb-server"]
