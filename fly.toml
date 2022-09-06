@@ -7,6 +7,7 @@ processes = []
 
 [env]
   RUST_LOG = "turbovpb_server=debug"
+  RUST_BACKTRACE = "1"
 
 [experimental]
   allowed_public_ports = []
@@ -22,26 +23,6 @@ processes = []
     soft_limit = 4000
     type = "connections"
 
-  # Check the website being served
-  [[services.http_checks]]
-    interval = 10000
-    grace_period = "5s"
-    method = "get"
-    path = "/"
-    protocol = "http"
-    restart_limit = 0
-    timeout = 2000
-
-  # Check the API
-  [[services.http_checks]]
-    interval = 10000
-    grace_period = "5s"
-    method = "get"
-    path = "/api/status"
-    protocol = "http"
-    restart_limit = 0
-    timeout = 2000
-
   [[services.ports]]
     force_https = true
     handlers = ["http"]
@@ -51,8 +32,22 @@ processes = []
     handlers = ["tls", "http"]
     port = 443
 
-  [[services.tcp_checks]]
+  # Check the website being served
+  [[services.http_checks]]
+    interval = "10s"
     grace_period = "5s"
-    interval = "15s"
+    method = "get"
+    path = "/"
+    protocol = "http"
     restart_limit = 0
-    timeout = "2s"
+    timeout = "5s"
+
+  # Check the API
+  [[services.http_checks]]
+    interval = "10s"
+    grace_period = "5s"
+    method = "get"
+    path = "/api/status"
+    protocol = "http"
+    restart_limit = 0
+    timeout = "5s"

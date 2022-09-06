@@ -29,6 +29,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/src/app/turbovpb-server /usr/app/turbovpb-server
-COPY static /usr/app/static
+COPY ./static/ /usr/app/static/
+
+EXPOSE 8080
 
 CMD ["/usr/app/turbovpb-server"]
