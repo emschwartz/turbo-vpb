@@ -52,7 +52,7 @@ async fn main() {
         }
     }
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    let addr = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], 8080));
     info!("Listening on {}", addr);
 
     let app = api.merge(website).layer(TraceLayer::new_for_http());
