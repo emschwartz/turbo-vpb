@@ -2,6 +2,14 @@ FROM rust:1.63 as builder
 
 WORKDIR /usr/src/app
 
+# Build the dependencies first
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/src/app/target \
+    cargo build --release
+RUN rm src/*.rs
+
 # Build the server
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
