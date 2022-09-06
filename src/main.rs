@@ -1,11 +1,10 @@
 use axum::{http::StatusCode, response::IntoResponse, routing::get_service, Server};
 use gcp_bigquery_client::Client as BigQueryClient;
-use std::env;
-use std::{error::Error, net::SocketAddr};
-use tower_http::compression::CompressionLayer;
+use std::{env, error::Error, net::SocketAddr};
+use tokio::fs;
 use tower_http::services::{ServeDir, ServeFile};
-use tower_http::trace::TraceLayer;
-use tracing::{error, info};
+use tower_http::{compression::CompressionLayer, trace::TraceLayer};
+use tracing::{debug, error, info};
 
 mod pages;
 mod pubsub;
@@ -16,8 +15,18 @@ async fn main() {
     tracing_subscriber::fmt::init();
     info!("Starting TurboVPB server");
 
+    // Make sure we can access the static file directory
+    let static_dir = env::args().nth(1).unwrap_or_else(|| "static".to_string());
+    fs::read_dir(&static_dir)
+        .await
+        .expect("Failed to read static directory")
+        .next_entry()
+        .await
+        .expect("Failed to read file from static directory");
+    debug!("Using static directory: {}", static_dir);
+
     // Serve static files
-    let static_file_service = get_service(ServeDir::new("static"))
+    let static_file_service = get_service(ServeDir::new(static_dir))
         .fallback(get_service(ServeFile::new("static/favicons/favicon.ico")))
         .handle_error(internal_service_error);
 
@@ -44,7 +53,7 @@ async fn main() {
     }
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
-    info!("listening on {}", addr);
+    info!("Listening on {}", addr);
 
     let app = api.merge(website).layer(TraceLayer::new_for_http());
     Server::bind(&addr)
