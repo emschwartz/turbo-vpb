@@ -1,3 +1,6 @@
+import '../scss/main.scss'
+import 'webextension-polyfill'
+
 console.log('options script loaded')
 const SUBSTITUTION_REGEX = /([\[\(\{\<]+[\w\s]+[\]\)\}\>])+/g
 const DEFAULT_SERVER_URL = 'https://turbovpb.com'

@@ -1,4 +1,5 @@
 console.log("Content script loaded")
+import browser from 'webextension-polyfill'
 
 // We set these colors manually instead of using the Bootstrap classes
 // because OpenVPB overrides the default Bootstrap colors

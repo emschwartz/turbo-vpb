@@ -24,12 +24,7 @@
     },
     "background": {
         "scripts": [
-            "dependencies/browser-polyfill.js",
-            "dependencies/content-scripts-register-polyfill.js",
-            "dependencies/peerjs.js",
-            "dependencies/reconnecting-websocket-iife.js",
-            "peer-connection.js",
-            "background.js"
+            "scripts/background.js"
         ]
     },
     "browser_action": {
@@ -38,10 +33,10 @@
             "32": "icons/phone-outgoing-blue-32.png"
         },
         "default_title": "TurboVPB",
-        "default_popup": "popup.html"
+        "default_popup": "static/popup.html"
     },
     "options_ui": {
-        "page": "options.html",
+        "page": "static/options.html",
         "browser_style": true
     }
 }

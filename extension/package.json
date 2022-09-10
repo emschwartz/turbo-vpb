@@ -1,0 +1,35 @@
+{
+  "name": "turbovpb-extension",
+  "version": "1.0.0",
+  "description": "## Source Code",
+  "scripts": {
+    "start": "parcel watch src/manifest.json --host localhost --config @parcel/config-webextension",
+    "build": "parcel build src/manifest.json --config @parcel/config-webextension"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emschwartz/turbo-vpb.git"
+  },
+  "author": "Evan Schwartz <evan@turbovpb.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/emschwartz/turbo-vpb/issues"
+  },
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "homepage": "https://github.com/emschwartz/turbo-vpb#readme",
+  "devDependencies": {
+    "@parcel/config-webextension": "^2.7.0",
+    "@parcel/transformer-sass": "^2.7.0",
+    "bootstrap": "^4.6.2",
+    "content-scripts-register-polyfill": "^4.0.0",
+    "parcel": "^2.7.0",
+    "sass": "^1.54.9",
+    "webextension-polyfill": "^0.10.0"
+  },
+  "dependencies": {
+    "kjua": "^0.9.0",
+    "peerjs": "^1.4.7",
+    "reconnecting-websocket": "^4.4.0",
+    "tingle.js": "^0.16.0"
+  }
+}

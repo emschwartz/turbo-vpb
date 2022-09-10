@@ -1,3 +1,6 @@
+import ReconnectingWebSocket from 'reconnecting-websocket'
+import Peer from 'peerjs'
+
 const RECONNECT_TIMEOUT = 3000
 
 let iceServers = [{

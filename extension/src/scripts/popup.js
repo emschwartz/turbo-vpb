@@ -1,3 +1,6 @@
+import '../scss/main.scss'
+import browser from 'webextension-polyfill/dist/browser-polyfill'
+
 const OPENVPB_REGEX = /https\:\/\/(www\.)?openvpb\.com/i
 const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
 const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i

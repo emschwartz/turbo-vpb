@@ -1,3 +1,7 @@
+import tingle from 'tingle.js'
+import 'tingle.js/dist/tingle.min.css'
+import browser from 'webextension-polyfill'
+
 console.log('Loaded share integration')
 
 const DOWNLOAD_ICON = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-cloud-arrow-down-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">

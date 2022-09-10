@@ -1,3 +1,7 @@
+import PeerConnection from './peer-connection'
+import browser from 'webextension-polyfill'
+import 'content-scripts-register-polyfill'
+
 const FINAL_ERRORS = ['browser-incompatible', 'invalid-id', 'invalid-key', 'ssl-unavailable', 'unavailable-id']
 const MAX_RECONNECT_ATTEMPTS = 3
 
@@ -15,6 +19,8 @@ const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
 const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
 const TURBOVPB_SHARE_ORIGIN = 'https://turbovpb.com/share*'
 const LOCALHOST_ORIGIN = 'http://localhost/*'
+
+const DEFAULT_SERVER_URL = 'https://turbovpb.com'
 
 const peers = {}
 const unregisterContentScripts = {}
