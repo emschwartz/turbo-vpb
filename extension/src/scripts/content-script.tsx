@@ -2,15 +2,16 @@ import { h, render } from "preact";
 import TurboVpbContainer from "../components/turbovpb-container";
 import PubSubClient from "../lib/pubsub-client";
 import { signal } from "@preact/signals";
+import { ConnectionStatus } from "../lib/types";
 
 const serverBase = "http://localhost:8080";
 
-const isConnected = signal(false);
+const status = signal("connectinToServer" as ConnectionStatus);
 
 const sidebar = document.getElementById("openvpbsidebarcontainer");
 if (sidebar) {
   console.log("rendering turbovpb container");
-  render(<TurboVpbContainer isConnected={isConnected} />, sidebar);
+  render(<TurboVpbContainer status={status} />, sidebar);
 } else {
   console.error("Could not find sidebar container");
 }
@@ -19,16 +20,18 @@ async function connect() {
   const client = new PubSubClient(serverBase);
   client.onopen = () => {
     console.log("connected");
-    isConnected.value = true;
+    status.value = "waitingForMessage";
   };
   client.onclose = () => {
-    isConnected.value = false;
+    status.value = "disconnected";
   };
   client.onerror = () => {
-    isConnected.value = false;
+    status.value = "disconnected";
+  };
+  client.onmessage = (message) => {
+    status.value = "connected";
   };
   await client.connect();
-  isConnected.value = true;
 }
 
 connect().catch(console.error);

@@ -36,30 +36,7 @@ export default class PubSubClient {
     this.ws.binaryType = "arraybuffer";
     console.log("connecting to", this.url);
 
-    // Handle the first connection differently
-    await new Promise((resolve, reject) => {
-      function errorHandler({ message }) {
-        removeListeners();
-        reject(new Error(message));
-      }
-      function closeHandler() {
-        removeListeners();
-        reject(new Error("WebSocket closed before it was opened"));
-      }
-      function removeListeners() {
-        this.ws.removeEventListener("error", errorHandler);
-        this.ws.removeEventListener("close", closeHandler);
-      }
-      this.ws.addEventListener("open", resolve);
-      this.ws.addEventListener("error", errorHandler);
-      this.ws.addEventListener("close", closeHandler);
-    });
-
-    this.ws.addEventListener("message", (async (msg) => {
-      const decrypted = await decrypt(this.encryptionKey, msg.data);
-      this.onmessage(decrypted);
-    }) as (event: MessageEvent) => void);
-
+    // Set up all the event handlers
     this.ws.addEventListener("open", () => {
       console.log("ws opened");
       this.onopen();
@@ -71,6 +48,30 @@ export default class PubSubClient {
     this.ws.addEventListener("error", ({ message }) => {
       console.error("ws error", message);
       this.onerror(new Error(message));
+    });
+    this.ws.addEventListener("message", (async (msg) => {
+      const decrypted = await decrypt(this.encryptionKey, msg.data);
+      this.onmessage(decrypted);
+    }) as (event: MessageEvent) => void);
+
+    // Wait for the first connection to make sure we can actually connect
+    await new Promise((resolve, reject) => {
+      function errorHandler({ message }) {
+        removeListeners();
+        reject(new Error(message));
+      }
+      function closeHandler() {
+        removeListeners();
+        reject(new Error("WebSocket closed before it was opened"));
+      }
+      function removeListeners() {
+        this.ws.removeEventListener("open", resolve);
+        this.ws.removeEventListener("error", errorHandler);
+        this.ws.removeEventListener("close", closeHandler);
+      }
+      this.ws.addEventListener("open", resolve);
+      this.ws.addEventListener("error", errorHandler);
+      this.ws.addEventListener("close", closeHandler);
     });
   }
 

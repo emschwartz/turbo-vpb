@@ -1,13 +1,22 @@
 import { h, FunctionComponent } from "preact";
-import { Signal, computed } from "@preact/signals";
+import { Signal } from "@preact/signals";
+import { ConnectionStatus } from "../lib/types";
 
-const ConnectionStatus: FunctionComponent<{ isConnected: boolean }> = ({
-  isConnected,
-}) => {
-  const color = isConnected
-    ? "color: #fff; background-color: #28a745;"
-    : "color: #000; background-color: #ffc107;";
-  const text = isConnected ? "Connected" : "Waiting to connect...";
+const ConnectionStatusBadge: FunctionComponent<{
+  status: ConnectionStatus;
+}> = ({ status }) => {
+  const color =
+    status === "connected"
+      ? "color: #fff; background-color: #28a745;"
+      : "color: #000; background-color: #ffc107;";
+  let text = "Connecting to server...";
+  if (status === "connected") {
+    text = "Connected";
+  } else if (status === "disconnected") {
+    text = "Disconnected";
+  } else if (status === "waitingForMessage") {
+    text = "Waiting for connection...";
+  }
 
   return (
     <span style={`font-weight: bold; ${color}`} class="badge px-1">
@@ -17,8 +26,8 @@ const ConnectionStatus: FunctionComponent<{ isConnected: boolean }> = ({
 };
 
 const TurboVpbContainer: FunctionComponent<{
-  isConnected: Signal<boolean>;
-}> = ({ isConnected }) => {
+  status: Signal<ConnectionStatus>;
+}> = ({ status }) => {
   return (
     <div
       id="turbovpbcontainer"
@@ -44,7 +53,7 @@ const TurboVpbContainer: FunctionComponent<{
         <span style="padding-left:.3rem; padding-right: .3rem; padding-top: .1rem; font-size: 1.17em; font-weight: bold; color: #000;">
           TurboVPB
         </span>
-        <ConnectionStatus isConnected={isConnected.value} />
+        <ConnectionStatusBadge status={status.value} />
       </div>
     </div>
   );
