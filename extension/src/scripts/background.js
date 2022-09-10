@@ -1,6 +1,6 @@
-import PeerConnection from './peer-connection'
 import browser from 'webextension-polyfill'
 import 'content-scripts-register-polyfill'
+import PeerConnection from './peer-connection'
 
 const FINAL_ERRORS = ['browser-incompatible', 'invalid-id', 'invalid-key', 'ssl-unavailable', 'unavailable-id']
 const MAX_RECONNECT_ATTEMPTS = 3
@@ -20,7 +20,8 @@ const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
 const TURBOVPB_SHARE_ORIGIN = 'https://turbovpb.com/share*'
 const LOCALHOST_ORIGIN = 'http://localhost/*'
 
-const DEFAULT_SERVER_URL = 'https://turbovpb.com'
+// const DEFAULT_SERVER_URL = 'https://turbovpb.com'
+const DEFAULT_SERVER_URL = 'http://localhost:8080'
 
 const peers = {}
 const unregisterContentScripts = {}
@@ -333,28 +334,22 @@ async function injectShareScript() {
     await browser.contentScripts.register({
         matches: [TURBOVPB_SHARE_ORIGIN],
         js: [
-            { file: 'dependencies/browser-polyfill.js' },
-            { file: 'dependencies/tingle.js' },
-            { file: 'share-integration.js' },
+            { file: './share-integration.js' },
         ],
-        css: [{ file: 'dependencies/tingle.css' }]
+        css: [{ file: '../../node_modules/tingle.js/dist/tingle.css' }]
     })
 }
 
 function getContentScripts(origin) {
     if (OPENVPB_REGEX.test(origin) || LOCALHOST_REGEX.test(origin)) {
-        originSpecificJs = { file: 'openvpb.js' }
+        originSpecificJs = { file: './openvpb.js' }
     } else if (BLUEVOTE_REGEX.test(origin)) {
-        originSpecificJs = { file: 'bluevote.js' }
+        originSpecificJs = { file: './bluevote.js' }
     } else {
         // All other possibilities are instances of VAN
-        originSpecificJs = { file: 'everyaction.js' }
+        originSpecificJs = { file: './everyaction.js' }
     }
     return [
-        { file: 'dependencies/browser-polyfill.js' },
-        { file: 'dependencies/tingle.js' },
-        { file: 'dependencies/kjua.js' },
-        { file: 'vpb-common.js' },
         originSpecificJs
     ]
 }
@@ -365,7 +360,7 @@ async function enableOrigin(origin) {
         const { unregister } = await browser.contentScripts.register({
             matches: [origin],
             js: getContentScripts(origin),
-            css: [{ file: 'dependencies/tingle.css' }]
+            css: [{ file: '../../node_modules/tingle.js/dist/tingle.css' }]
         })
         unregisterContentScripts[origin] = unregister
     } catch (err) {

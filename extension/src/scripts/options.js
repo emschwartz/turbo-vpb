@@ -1,5 +1,5 @@
 import '../scss/main.scss'
-import 'webextension-polyfill'
+import browser from 'webextension-polyfill'
 
 console.log('options script loaded')
 const SUBSTITUTION_REGEX = /([\[\(\{\<]+[\w\s]+[\]\)\}\>])+/g

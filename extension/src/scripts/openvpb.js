@@ -1,4 +1,5 @@
 console.log('using openvpb-specific content script')
+import { createQrCode, createTitleElement } from './vpb-common'
 const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i
 
 let couldntReachContact = false

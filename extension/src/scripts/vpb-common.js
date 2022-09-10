@@ -1,5 +1,6 @@
 console.log("Content script loaded")
 import browser from 'webextension-polyfill'
+import kjua from 'kjua'
 
 // We set these colors manually instead of using the Bootstrap classes
 // because OpenVPB overrides the default Bootstrap colors
@@ -88,7 +89,7 @@ if (!window.sessionStorage.getItem('turboVpbHideModal')) {
     }, 50)
 }
 
-async function updateConnectUrl() {
+export async function updateConnectUrl() {
     const newUrl = await sendConnect()
     if (url !== newUrl) {
         url = newUrl
@@ -101,7 +102,7 @@ async function updateConnectUrl() {
     }
 }
 
-function showModal() {
+export function showModal() {
     if (modal && modal.isOpen()) {
         console.log('modal is already open')
         return
@@ -137,7 +138,8 @@ function showModal() {
     modalOpenedTime = Date.now()
 }
 
-function createQrCode({ backgroundColor = '#fff', height = '30vh', width = '30vh' } = {}) {
+export async function createQrCode({ backgroundColor = '#fff', height = '30vh', width = '30vh' } = {}) {
+    const url = await sendConnect()
     if (url) {
         const container = document.createElement('div')
         container.classList.add('turboVpbQrCode')
@@ -162,7 +164,7 @@ function createQrCode({ backgroundColor = '#fff', height = '30vh', width = '30vh
     }
 }
 
-function createTitleElement(tag = 'div') {
+export function createTitleElement(tag = 'div') {
     const title = document.createElement(tag)
     title.style = 'display: flex; align-items: center;'
     title.innerHTML = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill"
@@ -179,7 +181,7 @@ function createTitleElement(tag = 'div') {
     return title
 }
 
-function createConnectionStatusBadge() {
+export function createConnectionStatusBadge() {
     // const container = document.createElement('span')
     // container.className = 'align-middle mx-1'
     const badge = document.createElement('span')
@@ -198,11 +200,11 @@ function createConnectionStatusBadge() {
     return badge
 }
 
-function isNewContact(phone) {
+export function isNewContact(phone) {
     return !window.sessionStorage.getItem('turboVpbPhoneNumber') || window.sessionStorage.getItem('turboVpbPhoneNumber') !== phone
 }
 
-async function handleContact(fullName, phone, additionalFields) {
+export async function handleContact(fullName, phone, additionalFields) {
     console.log('got new contact', fullName, phone, additionalFields)
 
     window.sessionStorage.setItem('turboVpbPhoneNumber', phone)
@@ -217,7 +219,7 @@ async function handleContact(fullName, phone, additionalFields) {
     await sendDetails()
 }
 
-async function sendConnect() {
+export async function sendConnect() {
     try {
         return browser.runtime.sendMessage({
             type: 'connect',
@@ -262,7 +264,7 @@ async function sendDetails() {
     }
 }
 
-async function saveCall(result) {
+export async function saveCall(result) {
     window.sessionStorage.setItem('turboVpbLastCallResult', result)
     if (result === 'Contacted') {
         console.log('logged successful call')

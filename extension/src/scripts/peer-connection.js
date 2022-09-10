@@ -10,7 +10,8 @@ let iceServers = [{
     "url": "stun:global.stun.twilio.com:3478?transport=udp",
     "urls": "stun:global.stun.twilio.com:3478?transport=udp"
 }]
-const DEFAULT_SERVER_URL = 'https://turbovpb.com'
+// const DEFAULT_SERVER_URL = 'https://turbovpb.com'
+const DEFAULT_SERVER_URL = 'http://localhost:8080'
 const WEBRTC_MODE = 'webrtc'
 const WEBSOCKET_MODE = 'websocket'
 
@@ -19,7 +20,7 @@ const ENCRYPTION_IV_BYTE_LENGTH = 12
 const ENCRYPTION_ALGORITHM = 'AES-GCM'
 const BASE64_URL_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 
-class PeerConnection {
+export default class PeerConnection {
     constructor(encryptionKey, url = DEFAULT_SERVER_URL) {
         this.encryptionKey = encryptionKey
         this.url = new URL('/api/channels/', url).toString()
@@ -56,7 +57,7 @@ class PeerConnection {
             return
         }
         this.connecting = true
-        await this._createPeer()
+        // await this._createPeer()
         await this._connectPubSub()
         this.connecting = false
     }
@@ -269,10 +270,10 @@ class PeerConnection {
             const url = `${this.url.replace('http', 'ws')}${this.peerId}/extension`
             console.log('connecting to:', url)
             this.ws = new ReconnectingWebSocket(url, [], {
-                minReconnectionDelay: 50,
+                minReconnectionDelay: 500,
                 maxReconnectionDelay: 1000,
-                connectionTimeout: 2000,
-                debug: true
+                connectionTimeout: 5000,
+                debug: false
             })
             this.ws.binaryType = 'arraybuffer'
             let startTime = Date.now()

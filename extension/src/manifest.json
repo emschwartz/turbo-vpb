@@ -1,42 +1,63 @@
 {
-    "manifest_version": 2,
-    "name": "TurboVPB",
-    "version": "0.9.6",
-    "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
-    "author": "Evan Schwartz",
-    "homepage_url": "https://turbovpb.com",
-    "permissions": [
-        "storage",
-        "activeTab",
+  "manifest_version": 2,
+  "name": "TurboVPB",
+  "version": "0.9.6",
+  "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
+  "author": "Evan Schwartz",
+  "homepage_url": "https://turbovpb.com",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "https://www.openvpb.com/VirtualPhoneBank*",
+    "https://*.everyaction.com/ContactDetailScript*",
+    "https://www.votebuilder.com/ContactDetailScript*",
+    "https://phonebank.bluevote.com/*",
+    "*://*.turbovpb.com/*",
+    "*://localhost/*"
+  ],
+  "optional_permissions": ["<all_urls>"],
+  "icons": {
+    "48": "icons/phone-outgoing-blue-48.png",
+    "96": "icons/phone-outgoing-blue-96.png",
+    "128": "icons/phone-outgoing-blue-128.png"
+  },
+  "background": {
+    "scripts": ["scripts/background.js"]
+  },
+  "browser_action": {
+    "default_icon": {
+      "16": "icons/phone-outgoing-blue-16.png",
+      "32": "icons/phone-outgoing-blue-32.png"
+    },
+    "default_title": "TurboVPB",
+    "default_popup": "static/popup.html"
+  },
+  "options_ui": {
+    "page": "static/options.html",
+    "browser_style": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["scripts/vpb-common.js"]
+    },
+    {
+      "matches": [
         "https://www.openvpb.com/VirtualPhoneBank*",
+        "http://localhost:8080/test-phonebank"
+      ],
+      "js": ["scripts/openvpb.js"]
+    },
+    {
+      "matches": [
         "https://*.everyaction.com/ContactDetailScript*",
-        "https://www.votebuilder.com/ContactDetailScript*",
-        "https://phonebank.bluevote.com/*",
-        "*://*.turbovpb.com/*"
-    ],
-    "optional_permissions": [
-        "<all_urls>"
-    ],
-    "icons": {
-        "48": "icons/phone-outgoing-blue-48.png",
-        "96": "icons/phone-outgoing-blue-96.png",
-        "128": "icons/phone-outgoing-blue-128.png"
+        "https://www.votebuilder.com/ContactDetailScript*"
+      ],
+      "js": ["scripts/everyaction.js"]
     },
-    "background": {
-        "scripts": [
-            "scripts/background.js"
-        ]
-    },
-    "browser_action": {
-        "default_icon": {
-            "16": "icons/phone-outgoing-blue-16.png",
-            "32": "icons/phone-outgoing-blue-32.png"
-        },
-        "default_title": "TurboVPB",
-        "default_popup": "static/popup.html"
-    },
-    "options_ui": {
-        "page": "static/options.html",
-        "browser_style": true
+    {
+      "matches": ["https://phonebank.bluevote.com/*"],
+      "js": ["scripts/bluevote.js"]
     }
+  ]
 }
