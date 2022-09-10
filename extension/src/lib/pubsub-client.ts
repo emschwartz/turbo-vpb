@@ -87,7 +87,7 @@ export default class PubSubClient {
     this.ws.close();
   }
 
-  async sendMessage(message: any) {
+  async send(message: any) {
     const encrypted = await encrypt(this.encryptionKey, message);
     this.ws.send(encrypted);
   }

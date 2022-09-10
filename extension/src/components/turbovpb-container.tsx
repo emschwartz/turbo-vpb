@@ -1,6 +1,7 @@
 import { h, FunctionComponent } from "preact";
 import { Signal } from "@preact/signals";
 import { ConnectionStatus } from "../lib/types";
+import QRCode from "react-qr-code";
 
 const ConnectionStatusBadge: FunctionComponent<{
   status: ConnectionStatus;
@@ -25,9 +26,21 @@ const ConnectionStatusBadge: FunctionComponent<{
   );
 };
 
+const ConnectQrCode: FunctionComponent<{
+  connectUrl: Signal<URL | undefined>;
+}> = ({ connectUrl }) =>
+  connectUrl.value ? (
+    <div style="width: 100%; height: 100%; max-width: 30vh; max-height: 30vh;">
+      <a href={connectUrl.value.href} target="_blank" rel="noopener noreferrer">
+        <QRCode value={connectUrl.value.toString()} />
+      </a>
+    </div>
+  ) : undefined;
+
 const TurboVpbContainer: FunctionComponent<{
   status: Signal<ConnectionStatus>;
-}> = ({ status }) => {
+  connectUrl: Signal<URL | undefined>;
+}> = ({ status, connectUrl }) => {
   return (
     <div
       id="turbovpbcontainer"
@@ -54,6 +67,8 @@ const TurboVpbContainer: FunctionComponent<{
           TurboVPB
         </span>
         <ConnectionStatusBadge status={status.value} />
+
+        <ConnectQrCode connectUrl={connectUrl} />
       </div>
     </div>
   );
