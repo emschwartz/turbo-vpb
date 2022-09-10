@@ -39,25 +39,8 @@
   "content_scripts": [
     {
       "matches": ["*://*/*"],
-      "js": ["scripts/vpb-common.js"]
-    },
-    {
-      "matches": [
-        "https://www.openvpb.com/VirtualPhoneBank*",
-        "http://localhost:8080/test-phonebank"
-      ],
-      "js": ["scripts/openvpb.js"]
-    },
-    {
-      "matches": [
-        "https://*.everyaction.com/ContactDetailScript*",
-        "https://www.votebuilder.com/ContactDetailScript*"
-      ],
-      "js": ["scripts/everyaction.js"]
-    },
-    {
-      "matches": ["https://phonebank.bluevote.com/*"],
-      "js": ["scripts/bluevote.js"]
+      "js": ["scripts/content-script.tsx"],
+      "css": ["scss/main.scss"]
     }
   ]
 }
