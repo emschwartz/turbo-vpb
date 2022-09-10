@@ -1,16 +1,15 @@
 import { generateKey, randomId, encrypt, decrypt, exportKey } from "./crypto";
-
-type EventType = "message" | "error" | "close";
-type EventHandler = (event?: any) => void | Promise<void>;
+import ReconnectingWebSocket from "reconnecting-websocket";
 
 export default class PubSubClient {
-  ws: WebSocket;
+  ws: ReconnectingWebSocket;
   encryptionKey: CryptoKey;
   url: string;
   channelId: string;
-  onmessage: (message: any) => {};
-  onerror: (error: any) => {};
-  onclose: () => {};
+  onmessage: (message: any) => void | Promise<void>;
+  onerror: (error: any) => void;
+  onclose: () => void;
+  onopen: () => void;
 
   constructor(
     serverBase: string,
@@ -22,6 +21,10 @@ export default class PubSubClient {
     this.url = `${serverBase.replace("http", "ws")}/api/channels/${
       this.channelId
     }/extension`;
+    this.onmessage = () => {};
+    this.onclose = () => {};
+    this.onerror = () => {};
+    this.onopen = () => {};
   }
 
   async connect(): Promise<void> {
@@ -29,26 +32,45 @@ export default class PubSubClient {
       this.encryptionKey = await generateKey();
     }
 
-    this.ws = new WebSocket(this.url);
-    this.ws.onmessage = async (msg) => {
+    this.ws = new ReconnectingWebSocket(this.url);
+    this.ws.binaryType = "arraybuffer";
+    console.log("connecting to", this.url);
+
+    // Handle the first connection differently
+    await new Promise((resolve, reject) => {
+      function errorHandler({ message }) {
+        removeListeners();
+        reject(new Error(message));
+      }
+      function closeHandler() {
+        removeListeners();
+        reject(new Error("WebSocket closed before it was opened"));
+      }
+      function removeListeners() {
+        this.ws.removeEventListener("error", errorHandler);
+        this.ws.removeEventListener("close", closeHandler);
+      }
+      this.ws.addEventListener("open", resolve);
+      this.ws.addEventListener("error", errorHandler);
+      this.ws.addEventListener("close", closeHandler);
+    });
+
+    this.ws.addEventListener("message", (async (msg) => {
       const decrypted = await decrypt(this.encryptionKey, msg.data);
       this.onmessage(decrypted);
-    };
-    return new Promise((resolve, reject) => {
-      this.ws.onopen = () => {
-        console.log("ws opened");
-        resolve();
-      };
-      this.ws.onclose = () => {
-        console.log("ws closed");
-        this.onclose();
-        reject(new Error("WebSocket closed before it was opened"));
-      };
-      this.ws.onerror = async (err) => {
-        console.error("ws error", err);
-        this.onerror(err);
-        reject(err);
-      };
+    }) as (event: MessageEvent) => void);
+
+    this.ws.addEventListener("open", () => {
+      console.log("ws opened");
+      this.onopen();
+    });
+    this.ws.addEventListener("close", () => {
+      console.log("ws closed");
+      this.onclose();
+    });
+    this.ws.addEventListener("error", ({ message }) => {
+      console.error("ws error", message);
+      this.onerror(new Error(message));
     });
   }
 

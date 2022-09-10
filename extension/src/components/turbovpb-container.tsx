@@ -1,27 +1,24 @@
-import { h, render, FunctionComponent } from "preact";
+import { h, FunctionComponent } from "preact";
+import { Signal, computed } from "@preact/signals";
 
 const ConnectionStatus: FunctionComponent<{ isConnected: boolean }> = ({
   isConnected,
-}) =>
-  isConnected ? (
-    <span
-      style="font-weight: bold; color: #fff; background-color: #28a745"
-      class="badge px-1"
-    >
-      Connected
-    </span>
-  ) : (
-    <span
-      style="font-weight:bold; color: #000; backgroud-color: #ffc107"
-      class="badge px-1"
-    >
-      Waiting for connection...
+}) => {
+  const color = isConnected
+    ? "color: #fff; background-color: #28a745;"
+    : "color: #000; background-color: #ffc107;";
+  const text = isConnected ? "Connected" : "Waiting to connect...";
+
+  return (
+    <span style={`font-weight: bold; ${color}`} class="badge px-1">
+      {text}
     </span>
   );
+};
 
-const TurboVpbContainer: FunctionComponent<{ isConnected: boolean }> = ({
-  isConnected,
-}) => {
+const TurboVpbContainer: FunctionComponent<{
+  isConnected: Signal<boolean>;
+}> = ({ isConnected }) => {
   return (
     <div
       id="turbovpbcontainer"
@@ -47,7 +44,7 @@ const TurboVpbContainer: FunctionComponent<{ isConnected: boolean }> = ({
         <span style="padding-left:.3rem; padding-right: .3rem; padding-top: .1rem; font-size: 1.17em; font-weight: bold; color: #000;">
           TurboVPB
         </span>
-        <ConnectionStatus isConnected={isConnected} />
+        <ConnectionStatus isConnected={isConnected.value} />
       </div>
     </div>
   );
