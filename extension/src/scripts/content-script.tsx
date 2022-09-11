@@ -1,8 +1,13 @@
 import { h, render } from "preact";
 import TurboVpbContainer from "../components/turbovpb-container";
 import PubSubClient from "../lib/pubsub-client";
-import { signal, effect, batch } from "@preact/signals";
-import { ConnectionStatus, ContactDetails, Stats } from "../lib/types";
+import { signal, effect, batch, computed } from "@preact/signals";
+import {
+  ConnectionStatus,
+  ContactDetails,
+  Stats,
+  ConnectionDetails,
+} from "../lib/types";
 import { importKey, randomId } from "../lib/crypto";
 import { browser } from "webextension-polyfill-ts";
 import integrations from "../lib/vpb-integrations";
@@ -11,17 +16,20 @@ console.log("TurboVPB content script loaded");
 
 const serverBase = "http://localhost:8080";
 
-type TabState = {
-  encryptionKey: string;
-  sessionId: string;
-  channelId: string;
-};
-
 const status = signal("connectinToServer" as ConnectionStatus);
-const connectUrl = signal(undefined as URL | undefined);
+const connectionDetails = signal(loadState());
+const connectUrl = computed(() => {
+  const details = connectionDetails.value;
+  const url = new URL("/connect", serverBase);
+  url.searchParams.set("sessionId", details.sessionId);
+  url.searchParams.set("version", browser.runtime.getManifest().version);
+  url.searchParams.set("userAgent", encodeURIComponent(navigator.userAgent));
+  url.searchParams.set("domain", encodeURIComponent(window.location.host));
+  url.hash = `${details.channelId}&${details.encryptionKey}`;
+  return url;
+});
 const currentContact = signal(undefined as ContactDetails | undefined);
 const resultCodes = signal(undefined as string[] | undefined);
-const connectionDetails = signal(loadState());
 const stats = signal(loadStats());
 
 const sidebar = document.getElementById("openvpbsidebarcontainer");
@@ -121,21 +129,9 @@ async function connect() {
       stats: stats.value,
     });
   }
-
-  // Build connect URL
-  const url = new URL("/connect", serverBase);
-  url.searchParams.set("sessionId", sessionId);
-  url.searchParams.set("version", browser.runtime.getManifest().version);
-  url.searchParams.set("userAgent", encodeURIComponent(navigator.userAgent));
-  url.searchParams.set("domain", encodeURIComponent(window.location.host));
-  url.hash = `${channelId}&${encryptionKey}`;
-
-  console.log("connect url", url.toString());
-
-  connectUrl.value = url;
 }
 
-function loadState(): TabState | undefined {
+function loadState(): ConnectionDetails | undefined {
   const state = window.sessionStorage.getItem("turboVpbConnection");
   if (state) {
     return JSON.parse(state);

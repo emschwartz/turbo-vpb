@@ -19,3 +19,9 @@ export type Stats = {
   lastContactLoadTime?: number;
   startTime: number;
 };
+
+export type ConnectionDetails = {
+  encryptionKey: string;
+  sessionId: string;
+  channelId: string;
+};

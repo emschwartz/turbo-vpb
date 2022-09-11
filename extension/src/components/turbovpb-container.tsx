@@ -1,5 +1,5 @@
 import { h, FunctionComponent } from "preact";
-import { Signal } from "@preact/signals";
+import { Signal, ReadonlySignal } from "@preact/signals";
 import { ConnectionStatus } from "../lib/types";
 import QRCode from "react-qr-code";
 
@@ -39,7 +39,7 @@ const ConnectQrCode: FunctionComponent<{
 
 const TurboVpbContainer: FunctionComponent<{
   status: Signal<ConnectionStatus>;
-  connectUrl: Signal<URL | undefined>;
+  connectUrl: ReadonlySignal<URL | undefined>;
 }> = ({ status, connectUrl }) => {
   return (
     <div
