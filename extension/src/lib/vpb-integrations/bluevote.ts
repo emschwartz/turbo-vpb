@@ -1,5 +1,7 @@
 import { ContactDetails } from "../types";
 
+export const type = "bluevote";
+
 export function scrapeContactDetails(): ContactDetails | undefined {
   const phoneNumber = (
     document.getElementById("main-phone") ||

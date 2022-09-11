@@ -10,12 +10,13 @@ import {
 } from "../lib/types";
 import { importKey, randomId } from "../lib/crypto";
 import { browser } from "webextension-polyfill-ts";
-import integrations from "../lib/vpb-integrations";
+import { selectIntegration } from "../lib/vpb-integrations";
 import storedSignal from "../lib/stored-signal";
 
 console.log("TurboVPB content script loaded");
 
 const serverBase = "http://localhost:8080";
+const vpb = selectIntegration();
 
 const status = signal("connectinToServer" as ConnectionStatus);
 const connectionDetails = storedSignal<ConnectionDetails | undefined>(
@@ -48,7 +49,11 @@ const sidebar = document.getElementById("openvpbsidebarcontainer");
 if (sidebar) {
   console.log("rendering turbovpb container");
   render(
-    <TurboVpbContainer status={status} connectUrl={connectUrl} />,
+    <TurboVpbContainer
+      phonebankType={vpb.type}
+      status={status}
+      connectUrl={connectUrl}
+    />,
     sidebar
   );
 } else {
@@ -69,13 +74,13 @@ checkForNewContact();
 function checkForNewContact() {
   console.log("checking for new contact");
   batch(() => {
-    const newContact = integrations.openvpb.scrapeContactDetails();
+    const newContact = vpb.scrapeContactDetails();
     if (currentContact.value && currentContact.value !== newContact) {
       stats.value.calls++;
       stats.value.lastContactLoadTime = Date.now();
     }
     currentContact.value = newContact;
-    resultCodes.value = integrations.openvpb.scrapeResultCodes();
+    resultCodes.value = vpb.scrapeResultCodes();
   });
 }
 
@@ -104,7 +109,7 @@ async function connect() {
     if (message.type === "connect") {
       await sendContactDetails();
     } else if (message.type === "callResult") {
-      integrations.openvpb.markResult(message.result);
+      vpb.markResult(message.result);
     } else {
       console.error("Unknown message type", message);
     }

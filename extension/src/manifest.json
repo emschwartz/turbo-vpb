@@ -13,7 +13,8 @@
     "https://www.votebuilder.com/ContactDetailScript*",
     "https://phonebank.bluevote.com/*",
     "*://*.turbovpb.com/*",
-    "*://localhost/*"
+    "ws://localhost/*",
+    "http://localhost/test-phonebank*"
   ],
   "optional_permissions": ["<all_urls>"],
   "icons": {
@@ -35,7 +36,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/*"],
+      "matches": ["http://localhost/test-phonebank*"],
       "js": ["scripts/content-script.tsx"],
       "css": ["scss/main.scss"]
     }

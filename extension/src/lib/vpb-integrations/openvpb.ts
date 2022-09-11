@@ -2,6 +2,8 @@ import { ContactDetails } from "../types";
 
 const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i;
 
+export const type = "openvpb";
+
 export function scrapeContactDetails(): ContactDetails {
   const phoneNumber = (
     document.getElementById("openVpbPhoneLink") ||
