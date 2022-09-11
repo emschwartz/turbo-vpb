@@ -75,6 +75,10 @@ export default class PubSubClient {
     });
   }
 
+  close() {
+    this.ws.close();
+  }
+
   getChannelId() {
     return this.channelId;
   }

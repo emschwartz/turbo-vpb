@@ -79,11 +79,6 @@ function checkForNewContact() {
 }
 
 async function connect() {
-  // First try loading the connection details from session storage in case
-  // the tab was just reloaded. This is important so that we don't reset
-  // the connection details once the user may have already scanned the QR
-  // code on this tab.
-
   const client = new PubSubClient(
     serverBase,
     connectionDetails.value?.channelId,
@@ -111,6 +106,13 @@ async function connect() {
       await sendContactDetails();
     }
   };
+  // Disconnect if there is no contact
+  const contactTimeout = setTimeout(() => {
+    console.log("No contact found, disconnecting from server");
+    connectionDetails.value = undefined;
+    client.close();
+  }, 10000);
+
   await client.connect();
   const encryptionKey = await client.exportEncryptionKey();
   const channelId = client.channelId;
@@ -123,7 +125,12 @@ async function connect() {
   };
 
   // Send the contact details whenever there is a new contact
-  effect(sendContactDetails);
+  effect(() => {
+    if (!!currentContact.value) {
+      clearTimeout(contactTimeout);
+    }
+    sendContactDetails();
+  });
 
   async function sendContactDetails() {
     const contact = currentContact.value;
