@@ -72,6 +72,7 @@ function checkForNewContact() {
     const newContact = integrations.openvpb.scrapeContactDetails();
     if (currentContact.value && currentContact.value !== newContact) {
       stats.value.calls++;
+      stats.value.lastContactLoadTime = Date.now();
     }
     currentContact.value = newContact;
     resultCodes.value = integrations.openvpb.scrapeResultCodes();
@@ -99,11 +100,13 @@ async function connect() {
   client.onmessage = async (message) => {
     status.value = "connected";
 
-    console.log("received message", message);
-
     // Send the details as soon as we receive a connect message
     if (message.type === "connect") {
       await sendContactDetails();
+    } else if (message.type === "callResult") {
+      integrations.openvpb.markResult(message.result);
+    } else {
+      console.error("Unknown message type", message);
     }
   };
   // Disconnect if there is no contact
