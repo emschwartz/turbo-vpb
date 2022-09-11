@@ -7,7 +7,10 @@ import { signal, effect } from "@preact/signals";
  * @param defaultValue - The default value to use if the key is not found in session storage.
  * @returns
  */
-const storedSignal = <T>(sessionStorageKey: string, defaultValue: T) => {
+export const sessionStoredSignal = <T>(
+  sessionStorageKey: string,
+  defaultValue: T
+) => {
   // Load the previous value from storage
   const previous: T = JSON.parse(
     window.sessionStorage.getItem(sessionStorageKey)
@@ -22,5 +25,3 @@ const storedSignal = <T>(sessionStorageKey: string, defaultValue: T) => {
 
   return s;
 };
-
-export default storedSignal;

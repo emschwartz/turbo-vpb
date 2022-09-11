@@ -25,3 +25,15 @@ export type ConnectionDetails = {
   sessionId: string;
   channelId: string;
 };
+
+export type MessageTemplateDetails = {
+  label: string;
+  message: string;
+  sendTextedResult: boolean;
+};
+
+export type ExtensionSettings = {
+  yourName?: string;
+  messageTemplates?: MessageTemplateDetails[];
+  serverUrl?: string;
+};

@@ -11,7 +11,7 @@ import {
 import { importKey, randomId } from "../lib/crypto";
 import { browser } from "webextension-polyfill-ts";
 import { selectIntegration } from "../lib/vpb-integrations";
-import storedSignal from "../lib/stored-signal";
+import { sessionStoredSignal } from "../lib/stored-signal";
 
 console.log("TurboVPB content script loaded");
 
@@ -19,7 +19,7 @@ const serverBase = "http://localhost:8080";
 const vpb = selectIntegration();
 
 const status = signal("connectinToServer" as ConnectionStatus);
-const connectionDetails = storedSignal<ConnectionDetails | undefined>(
+const connectionDetails = sessionStoredSignal<ConnectionDetails | undefined>(
   "turboVpbConnection",
   undefined
 );
@@ -39,7 +39,7 @@ const connectUrl = computed(() => {
 });
 const currentContact = signal(undefined as ContactDetails | undefined);
 const resultCodes = signal(undefined as string[] | undefined);
-const stats = storedSignal<Stats>("turboVpbStats", {
+const stats = sessionStoredSignal<Stats>("turboVpbStats", {
   calls: 0,
   successfulCalls: 0,
   startTime: Date.now(),
