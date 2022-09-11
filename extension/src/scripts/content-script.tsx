@@ -11,15 +11,23 @@ import {
 import { importKey, randomId } from "../lib/crypto";
 import { browser } from "webextension-polyfill-ts";
 import integrations from "../lib/vpb-integrations";
+import storedSignal from "../lib/stored-signal";
 
 console.log("TurboVPB content script loaded");
 
 const serverBase = "http://localhost:8080";
 
 const status = signal("connectinToServer" as ConnectionStatus);
-const connectionDetails = signal(loadState());
+const connectionDetails = storedSignal<ConnectionDetails | undefined>(
+  "turboVpbConnection",
+  undefined
+);
 const connectUrl = computed(() => {
   const details = connectionDetails.value;
+  if (!details) {
+    return;
+  }
+
   const url = new URL("/connect", serverBase);
   url.searchParams.set("sessionId", details.sessionId);
   url.searchParams.set("version", browser.runtime.getManifest().version);
@@ -30,7 +38,11 @@ const connectUrl = computed(() => {
 });
 const currentContact = signal(undefined as ContactDetails | undefined);
 const resultCodes = signal(undefined as string[] | undefined);
-const stats = signal(loadStats());
+const stats = storedSignal<Stats>("turboVpbStats", {
+  calls: 0,
+  successfulCalls: 0,
+  startTime: Date.now(),
+});
 
 const sidebar = document.getElementById("openvpbsidebarcontainer");
 if (sidebar) {
@@ -129,39 +141,6 @@ async function connect() {
       stats: stats.value,
     });
   }
-}
-
-function loadState(): ConnectionDetails | undefined {
-  const state = window.sessionStorage.getItem("turboVpbConnection");
-  if (state) {
-    return JSON.parse(state);
-  }
-}
-
-effect(saveState);
-function saveState() {
-  window.sessionStorage.setItem(
-    "turboVpbConnection",
-    JSON.stringify(connectionDetails.value)
-  );
-}
-
-function loadStats(): Stats | undefined {
-  const stats = window.sessionStorage.getItem("turboVpbStats");
-  if (stats) {
-    return JSON.parse(stats);
-  } else {
-    return {
-      calls: 0,
-      successfulCalls: 0,
-      startTime: Date.now(),
-    };
-  }
-}
-
-effect(saveStats);
-function saveStats() {
-  window.sessionStorage.setItem("turboVpbStats", JSON.stringify(stats.value));
 }
 
 connect().catch(console.error);
