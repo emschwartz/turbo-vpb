@@ -1,10 +1,13 @@
 import { h, render } from "preact";
 import TurboVpbContainer from "../components/turbovpb-container";
 import PubSubClient from "../lib/pubsub-client";
-import { signal } from "@preact/signals";
-import { ConnectionStatus } from "../lib/types";
+import { signal, effect, batch } from "@preact/signals";
+import { ConnectionStatus, ContactDetails } from "../lib/types";
 import { importKey, randomId } from "../lib/crypto";
 import { browser } from "webextension-polyfill-ts";
+import integrations from "../lib/vpb-integrations";
+
+console.log("TurboVPB content script loaded");
 
 const serverBase = "http://localhost:8080";
 
@@ -16,6 +19,8 @@ type TabState = {
 
 const status = signal("connectinToServer" as ConnectionStatus);
 const connectUrl = signal(undefined as URL | undefined);
+const currentContact = signal(undefined as ContactDetails | undefined);
+const resultCodes = signal(undefined as string[] | undefined);
 
 const sidebar = document.getElementById("openvpbsidebarcontainer");
 if (sidebar) {
@@ -26,6 +31,25 @@ if (sidebar) {
   );
 } else {
   console.error("Could not find sidebar container");
+}
+
+console.log("watching for new contact");
+const observer = new MutationObserver(checkForNewContact);
+observer.observe(document, {
+  subtree: true,
+  childList: true,
+  attributes: true,
+  characterData: true,
+});
+document.onload = checkForNewContact;
+checkForNewContact();
+
+function checkForNewContact() {
+  console.log("checking for new contact");
+  batch(() => {
+    currentContact.value = integrations.openvpb.scrapeContactDetails();
+    resultCodes.value = integrations.openvpb.scrapeResultCodes();
+  });
 }
 
 async function connect() {
@@ -54,13 +78,33 @@ async function connect() {
   client.onmessage = async (message) => {
     status.value = "connected";
 
+    console.log("received message", message);
+
+    // Send the details as soon as we receive a connect message
     if (message.type === "connect") {
-      await client.send({
-        type: "connectResponse",
-      });
+      await sendContactDetails();
     }
   };
   await client.connect();
+
+  // Send the contact details whenever there is a new contact
+  effect(sendContactDetails);
+
+  async function sendContactDetails() {
+    const contact = currentContact.value;
+    if (!contact) {
+      console.error("no contact details");
+      return;
+    }
+
+    console.log("sending contact details", contact);
+
+    await client.send({
+      type: "contact",
+      contact,
+      resultCodes: resultCodes.value,
+    });
+  }
 
   // Build connect URL
   const encryptionKey = await client.exportEncryptionKey();
