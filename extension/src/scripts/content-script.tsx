@@ -45,7 +45,7 @@ const stats = storedSignal<Stats>("turboVpbStats", {
   startTime: Date.now(),
 });
 
-const sidebar = document.getElementById("openvpbsidebarcontainer");
+const sidebar = vpb.turboVpbContainerLocation();
 if (sidebar) {
   console.log("rendering turbovpb container");
   render(

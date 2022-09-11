@@ -4,6 +4,9 @@ const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i;
 
 export const type = "everyaction";
 
+export const turboVpbContainerLocation = () =>
+  document.getElementsByClassName("grid-half")[0];
+
 export function scrapeContactDetails(): ContactDetails {
   const phoneNumber = (
     (document.getElementById("current-number") &&

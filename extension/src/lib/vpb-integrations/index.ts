@@ -8,6 +8,7 @@ interface VpbIntegration {
   scrapeContactDetails: () => ContactDetails | undefined;
   scrapeResultCodes: () => string[] | undefined;
   markResult(code: string): void;
+  turboVpbContainerLocation(): Element;
 }
 
 const integrations: { [Property in PhonebankType]: VpbIntegration } = {
