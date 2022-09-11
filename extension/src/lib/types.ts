@@ -12,3 +12,10 @@ export type ContactDetails = {
   lastName: string;
   additionalFields: { [key: string]: string };
 };
+
+export type Stats = {
+  calls: number;
+  successfulCalls: number;
+  lastContactLoadTime?: number;
+  startTime: number;
+};

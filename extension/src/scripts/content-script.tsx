@@ -2,7 +2,7 @@ import { h, render } from "preact";
 import TurboVpbContainer from "../components/turbovpb-container";
 import PubSubClient from "../lib/pubsub-client";
 import { signal, effect, batch } from "@preact/signals";
-import { ConnectionStatus, ContactDetails } from "../lib/types";
+import { ConnectionStatus, ContactDetails, Stats } from "../lib/types";
 import { importKey, randomId } from "../lib/crypto";
 import { browser } from "webextension-polyfill-ts";
 import integrations from "../lib/vpb-integrations";
@@ -21,6 +21,8 @@ const status = signal("connectinToServer" as ConnectionStatus);
 const connectUrl = signal(undefined as URL | undefined);
 const currentContact = signal(undefined as ContactDetails | undefined);
 const resultCodes = signal(undefined as string[] | undefined);
+const connectionDetails = signal(loadState());
+const stats = signal(loadStats());
 
 const sidebar = document.getElementById("openvpbsidebarcontainer");
 if (sidebar) {
@@ -47,7 +49,11 @@ checkForNewContact();
 function checkForNewContact() {
   console.log("checking for new contact");
   batch(() => {
-    currentContact.value = integrations.openvpb.scrapeContactDetails();
+    const newContact = integrations.openvpb.scrapeContactDetails();
+    if (currentContact.value && currentContact.value !== newContact) {
+      stats.value.calls++;
+    }
+    currentContact.value = newContact;
     resultCodes.value = integrations.openvpb.scrapeResultCodes();
   });
 }
@@ -57,13 +63,13 @@ async function connect() {
   // the tab was just reloaded. This is important so that we don't reset
   // the connection details once the user may have already scanned the QR
   // code on this tab.
-  const state = loadState();
 
-  const sessionId = state?.sessionId || randomId(16);
   const client = new PubSubClient(
     serverBase,
-    state?.channelId,
-    state?.encryptionKey ? await importKey(state.encryptionKey) : undefined
+    connectionDetails.value?.channelId,
+    connectionDetails.value?.encryptionKey
+      ? await importKey(connectionDetails.value.encryptionKey)
+      : undefined
   );
   client.onopen = () => {
     console.log("connected");
@@ -86,6 +92,15 @@ async function connect() {
     }
   };
   await client.connect();
+  const encryptionKey = await client.exportEncryptionKey();
+  const channelId = client.channelId;
+  const sessionId = connectionDetails.value?.sessionId || randomId(16);
+
+  connectionDetails.value = {
+    encryptionKey,
+    sessionId,
+    channelId,
+  };
 
   // Send the contact details whenever there is a new contact
   effect(sendContactDetails);
@@ -103,12 +118,11 @@ async function connect() {
       type: "contact",
       contact,
       resultCodes: resultCodes.value,
+      stats: stats.value,
     });
   }
 
   // Build connect URL
-  const encryptionKey = await client.exportEncryptionKey();
-  const channelId = client.channelId;
   const url = new URL("/connect", serverBase);
   url.searchParams.set("sessionId", sessionId);
   url.searchParams.set("version", browser.runtime.getManifest().version);
@@ -119,23 +133,39 @@ async function connect() {
   console.log("connect url", url.toString());
 
   connectUrl.value = url;
-
-  saveState({
-    encryptionKey,
-    sessionId,
-    channelId,
-  });
 }
 
 function loadState(): TabState | undefined {
-  const state = window.sessionStorage.getItem("turboVpbState");
+  const state = window.sessionStorage.getItem("turboVpbConnection");
   if (state) {
     return JSON.parse(state);
   }
 }
 
-function saveState(state: TabState) {
-  window.sessionStorage.setItem("turboVpbState", JSON.stringify(state));
+effect(saveState);
+function saveState() {
+  window.sessionStorage.setItem(
+    "turboVpbConnection",
+    JSON.stringify(connectionDetails.value)
+  );
+}
+
+function loadStats(): Stats | undefined {
+  const stats = window.sessionStorage.getItem("turboVpbStats");
+  if (stats) {
+    return JSON.parse(stats);
+  } else {
+    return {
+      calls: 0,
+      successfulCalls: 0,
+      startTime: Date.now(),
+    };
+  }
+}
+
+effect(saveStats);
+function saveStats() {
+  window.sessionStorage.setItem("turboVpbStats", JSON.stringify(stats.value));
 }
 
 connect().catch(console.error);
