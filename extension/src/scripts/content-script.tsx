@@ -7,16 +7,22 @@ import {
   ContactDetails,
   Stats,
   ConnectionDetails,
+  ExtensionSettings,
 } from "../lib/types";
 import { importKey, randomId } from "../lib/crypto";
 import { browser } from "webextension-polyfill-ts";
 import { selectIntegration } from "../lib/vpb-integrations";
 import { sessionStoredSignal } from "../lib/stored-signal";
 
+const DEFAULT_SERVER_URL = "http://localhost:8080";
+
 console.log("TurboVPB content script loaded");
 
-const serverBase = "http://localhost:8080";
 const vpb = selectIntegration();
+const settings = signal({} as ExtensionSettings);
+const serverUrl = computed(
+  () => settings.value.serverUrl || DEFAULT_SERVER_URL
+);
 
 const status = signal("connectinToServer" as ConnectionStatus);
 const connectionDetails = sessionStoredSignal<ConnectionDetails | undefined>(
@@ -29,13 +35,17 @@ const connectUrl = computed(() => {
     return;
   }
 
-  const url = new URL("/connect", serverBase);
-  url.searchParams.set("sessionId", details.sessionId);
-  url.searchParams.set("version", browser.runtime.getManifest().version);
-  url.searchParams.set("userAgent", encodeURIComponent(navigator.userAgent));
-  url.searchParams.set("domain", encodeURIComponent(window.location.host));
-  url.hash = `${details.channelId}&${details.encryptionKey}`;
-  return url;
+  try {
+    const url = new URL("/connect", serverUrl.value);
+    url.searchParams.set("sessionId", details.sessionId);
+    url.searchParams.set("version", browser.runtime.getManifest().version);
+    url.searchParams.set("userAgent", encodeURIComponent(navigator.userAgent));
+    url.searchParams.set("domain", encodeURIComponent(window.location.host));
+    url.hash = `${details.channelId}&${details.encryptionKey}`;
+    return url;
+  } catch (e) {
+    console.error("Invalid server URL", e);
+  }
 });
 const currentContact = signal(undefined as ContactDetails | undefined);
 const resultCodes = signal(undefined as string[] | undefined);
@@ -45,7 +55,31 @@ const stats = sessionStoredSignal<Stats>("turboVpbStats", {
   startTime: Date.now(),
 });
 
+const observer = new MutationObserver(checkForNewContact);
+observer.observe(document, {
+  subtree: true,
+  childList: true,
+  attributes: true,
+  characterData: true,
+});
+document.onload = checkForNewContact;
+checkForNewContact();
+
+function checkForNewContact() {
+  console.log("Checking for new contact");
+  batch(() => {
+    const newContact = vpb.scrapeContactDetails();
+    if (currentContact.value && currentContact.value !== newContact) {
+      stats.value.calls++;
+      stats.value.lastContactLoadTime = Date.now();
+    }
+    currentContact.value = newContact;
+    resultCodes.value = vpb.scrapeResultCodes();
+  });
+}
+
 const sidebar = vpb.turboVpbContainerLocation();
+console.log(sidebar);
 if (sidebar) {
   console.log("rendering turbovpb container");
   render(
@@ -60,33 +94,32 @@ if (sidebar) {
   console.error("Could not find sidebar container");
 }
 
-console.log("watching for new contact");
-const observer = new MutationObserver(checkForNewContact);
-observer.observe(document, {
-  subtree: true,
-  childList: true,
-  attributes: true,
-  characterData: true,
-});
-document.onload = checkForNewContact;
-checkForNewContact();
-
-function checkForNewContact() {
-  console.log("checking for new contact");
-  batch(() => {
-    const newContact = vpb.scrapeContactDetails();
-    if (currentContact.value && currentContact.value !== newContact) {
-      stats.value.calls++;
-      stats.value.lastContactLoadTime = Date.now();
-    }
-    currentContact.value = newContact;
-    resultCodes.value = vpb.scrapeResultCodes();
-  });
-}
-
 async function connect() {
+  // Load the extension settings and keep them updated when they change
+  settings.value = await browser.storage.local.get([
+    "serverUrl",
+    "yourName",
+    "messageTemplates",
+  ]);
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area === "local") {
+      batch(() => {
+        if (changes.serverUrl) {
+          settings.value.serverUrl = changes.serverUrl.newValue;
+        }
+        if (changes.yourName) {
+          settings.value.yourName = changes.yourName.newValue;
+        }
+        if (changes.messageTemplates) {
+          settings.value.messageTemplates = changes.messageTemplates.newValue;
+        }
+      });
+    }
+  });
+  console.log("Loaded settings");
+
   const client = new PubSubClient(
-    serverBase,
+    serverUrl.value,
     connectionDetails.value?.channelId,
     connectionDetails.value?.encryptionKey
       ? await importKey(connectionDetails.value.encryptionKey)
@@ -149,11 +182,13 @@ async function connect() {
 
     console.log("sending contact details", contact);
 
+    // TODO only send a diff of these details after the first message
     await client.send({
       type: "contact",
       contact,
       resultCodes: resultCodes.value,
       stats: stats.value,
+      messageTemplates: settings.value.messageTemplates,
     });
   }
 }

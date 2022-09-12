@@ -47,7 +47,9 @@ export function selectPhonebankType(
 export function selectIntegration(
   url = new URL(window.location.href)
 ): VpbIntegration {
-  return integrations[selectPhonebankType(url)];
+  const type = selectPhonebankType(url);
+  console.log(`Using ${type} integration`);
+  return integrations[type];
 }
 
 export default integrations;
