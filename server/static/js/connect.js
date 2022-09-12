@@ -811,7 +811,7 @@ function createCallResultButtons(resultCodes) {
     for (let result of orderedResultCodes) {
         // Don't display the Texted result code if there are message templates configured
         if (result && result.toLowerCase() === 'texted' && messageTemplates.length > 0) {
-            return
+            continue;
         }
 
         if (!resultCodesTimesUsed[result]) {
