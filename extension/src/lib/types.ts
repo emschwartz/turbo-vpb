@@ -37,3 +37,5 @@ export type ExtensionSettings = {
   messageTemplates?: MessageTemplateDetails[];
   serverUrl?: string;
 };
+
+export type SiteStatus = "enabled" | "disabled" | "unsupported";
