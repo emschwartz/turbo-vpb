@@ -1,6 +1,5 @@
 import browser from "webextension-polyfill";
 import "content-scripts-register-polyfill";
-const TURBOVPB_SHARE_ORIGIN = "https://turbovpb.com/share*";
 
 // const DEFAULT_SERVER_URL = 'https://turbovpb.com'
 const DEFAULT_SERVER_URL = "http://localhost:8080";
@@ -36,15 +35,6 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
     browser.browserAction.openPopup();
   }
 });
-
-async function injectShareScript() {
-  console.log("Registering share integration content script");
-  await browser.contentScripts.register({
-    matches: [TURBOVPB_SHARE_ORIGIN],
-    js: [{ file: "./share-integration.js" }],
-    css: [{ file: "../../node_modules/tingle.js/dist/tingle.css" }],
-  });
-}
 
 // This comes from the mobile page
 async function saveCallRecord({ sessionId, callNumber, timestamp, duration }) {

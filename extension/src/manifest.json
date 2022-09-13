@@ -43,6 +43,10 @@
       "matches": ["http://localhost/test-phonebank*"],
       "js": ["scripts/content-script.tsx"],
       "css": ["scss/main.scss"]
+    },
+    {
+      "matches": ["https://*.turbovpb.com/share*", "http://localhost/share*"],
+      "js": ["scripts/share-integration.js"]
     }
   ]
 }
