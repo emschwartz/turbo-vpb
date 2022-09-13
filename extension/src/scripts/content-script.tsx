@@ -189,6 +189,9 @@ async function connect() {
       resultCodes: resultCodes.value,
       stats: stats.value,
       messageTemplates: settings.value.messageTemplates,
+      extensionVersion: browser.runtime.getManifest().version,
+      extensionUserAgent: navigator.userAgent,
+      extensionPlatform: navigator.platform,
     });
   }
 }

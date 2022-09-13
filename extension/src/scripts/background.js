@@ -1,437 +1,109 @@
-import browser from 'webextension-polyfill'
-import 'content-scripts-register-polyfill'
-import PeerConnection from './peer-connection'
-
-const FINAL_ERRORS = ['browser-incompatible', 'invalid-id', 'invalid-key', 'ssl-unavailable', 'unavailable-id']
-const MAX_RECONNECT_ATTEMPTS = 3
-
-const OPENVPB_REGEX = /https\:\/\/(www\.)?openvpb\.com/i
-const EVERYACTION_REGEX = /https\:\/\/.*\.(everyaction|ngpvan)\.com/i
-const VOTEBUILDER_REGEX = /https\:\/\/(www\.)?votebuilder.com/i
-const BLUEVOTE_REGEX = /https\:\/\/.*\.bluevote.com/i
-const STARTTHEVAN_REGEX = /https\:\/\/(www\.)?startthevan.com/i
-const LOCALHOST_REGEX = /https?\:\/\/localhost/i
-
-const OPENVPB_ORIGIN = 'https://www.openvpb.com/VirtualPhoneBank*'
-const EVERYACTION_ORIGIN = 'https://*.everyaction.com/ContactDetailScript*'
-const VOTEBUILDER_ORIGIN = 'https://www.votebuilder.com/ContactDetailScript*'
-const BLUEVOTE_ORIGIN = 'https://phonebank.bluevote.com/*'
-const STARTTHEVAN_ORIGIN = 'https://www.startthevan.com/ContactDetailScript*'
-const TURBOVPB_SHARE_ORIGIN = 'https://turbovpb.com/share*'
-const LOCALHOST_ORIGIN = 'http://localhost/*'
+import browser from "webextension-polyfill";
+import "content-scripts-register-polyfill";
+const TURBOVPB_SHARE_ORIGIN = "https://turbovpb.com/share*";
 
 // const DEFAULT_SERVER_URL = 'https://turbovpb.com'
-const DEFAULT_SERVER_URL = 'http://localhost:8080'
-
-const peers = {}
-const unregisterContentScripts = {}
+const DEFAULT_SERVER_URL = "http://localhost:8080";
 
 // Stored as:
 //   sessionId -> [ timestamp, duration, result, textedTimestamp ]
-const sessionRecords = {}
-let totalCalls = 0
-let totalTexts = 0
-const TIMESTAMP_INDEX = 0
-const DURATION_INDEX = 1
-const RESULT_INDEX = 2
-const TEXTED_TIMESTAMP_INDEX = 3
+const sessionRecords = {};
+let totalCalls = 0;
+let totalTexts = 0;
+const TIMESTAMP_INDEX = 0;
+const DURATION_INDEX = 1;
+const RESULT_INDEX = 2;
+const TEXTED_TIMESTAMP_INDEX = 3;
 const RESULT_CODES = {
-    Contacted: 1,
-    NotContacted: 2,
-    Texted: 3
-}
-let serverUrl
-
-// Load previously stored statistics and settings
-browser.storage.local.get(['sessionRecords', 'totalCalls', 'totalTexts', 'serverUrl'])
-    .then((fromStorage) => {
-        Object.assign(sessionRecords, fromStorage.sessionRecords || {})
-        totalCalls += (fromStorage.totalCalls || 0)
-        totalTexts += (fromStorage.totalTexts || 0)
-        serverUrl = fromStorage.serverUrl || DEFAULT_SERVER_URL
-    })
-
-// Load content scripts for enabled domains
-browser.permissions.getAll()
-    .then(async ({ origins = [] }) => {
-        try {
-            await injectShareScript()
-        } catch (err) {
-            console.error('Error injecting share script', err)
-        }
-        for (let origin of origins) {
-            if (!origin.startsWith('http')) {
-                continue
-            }
-
-            if (OPENVPB_REGEX.test(origin)) {
-                await enableOrigin(OPENVPB_ORIGIN)
-            } else if (EVERYACTION_REGEX.test(origin)) {
-                await enableOrigin(EVERYACTION_ORIGIN)
-            } else if (VOTEBUILDER_REGEX.test(origin)) {
-                await enableOrigin(VOTEBUILDER_ORIGIN)
-            } else if (BLUEVOTE_REGEX.test(origin)) {
-                await enableOrigin(BLUEVOTE_ORIGIN)
-            } else if (STARTTHEVAN_REGEX.test(origin)) {
-                await enableOrigin(STARTTHEVAN_ORIGIN)
-            } else if (LOCALHOST_REGEX.test(origin)) {
-                await enableOrigin(LOCALHOST_ORIGIN)
-            } else {
-                try {
-                    await enableOrigin(origin)
-                } catch (err) {
-                    console.error(`Error enabling origin: ${origin}`, err)
-                }
-            }
-        }
-    })
-
-// Send messages to tabs if the settings change
-browser.storage.onChanged.addListener(async (changes) => {
-    if (changes.messageTemplates) {
-        const messageTemplates = changes.messageTemplates.newValue
-        for (let tabId in peers) {
-            sendMessage(tabId, {
-                type: 'messageTemplateUpdate',
-                messageTemplates
-            })
-        }
-    }
-
-    if (changes.serverUrl) {
-        serverUrl = changes.serverUrl.newValue
-
-        // Tell all of the tabs to update their connect URLs
-        for (let tabId in peers) {
-            sendMessage(tabId, {
-                type: 'updateConnectUrl'
-            })
-        }
-    }
-})
-
-// Handle messages sent from content scripts
-browser.runtime.onMessage.addListener(async (message, sender) => {
-    if (typeof message !== 'object') {
-        console.log('got message that was not an object', message)
-        return
-    }
-
-    if (message.type === 'connect') {
-        await createPeer(sender.tab.id)
-        if (peers[sender.tab.id].peer.isConnected()) {
-            console.log('letting tab know there is still open connection')
-            await browser.tabs.sendMessage(sender.tab.id, {
-                type: 'peerConnected'
-            })
-        }
-        return peers[sender.tab.id].url
-    } else if (message.type === 'contact') {
-        await createPeer(sender.tab.id)
-        console.log('sending contact to peer', sender.tab.id)
-        const data = message.data
-        data.type = 'contact'
-        sendMessage(sender.tab.id, data)
-    } else if (message.type === 'callResult') {
-        const { callNumber, result } = message
-        await saveCallResult({
-            sessionId: peers[sender.tab.id].sessionId,
-            callNumber,
-            result
-        })
-    } else {
-        console.log('got unexpected message', message)
-    }
-})
-
-// Handle tabs closing
-browser.tabs.onRemoved.addListener(async (tabId) => {
-    if (peers[tabId]) {
-        console.log(`sending disconnect message to peer: ${tabId}`)
-        sendMessage(tabId, {
-            type: 'disconnect'
-        })
-        // TODO only destroy peer after message has been flushed
-        setTimeout(() => {
-            console.log(`destroying peer ${tabId} because the tab was closed`)
-            destroyPeer(tabId)
-        }, 300)
-    }
-})
-
-// browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-//     if (peers[tabId] && !tab.url) {
-//         console.log(`tab ${tabId} navigated to unsupported site, destroying peer`)
-//         sendMessage(tabId, {
-//             type: 'disconnect'
-//         })
-//         // Don't remove the record in case the user navigates back
-//         // The content script will cause the peer to be reconnected
-//         setTimeout(() => peers[tabId].peer.destroy(), 300)
-//     }
-// })
+  Contacted: 1,
+  NotContacted: 2,
+  Texted: 3,
+};
 
 // Run when installed or updated
 browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
-    const { statsStartDate } = await browser.storage.local.get(['statsStartDate'])
-    if (!statsStartDate) {
-        console.log('setting stats start date')
-        await browser.storage.local.set({ statsStartDate: (new Date()).toISOString() })
-    }
+  const { statsStartDate } = await browser.storage.local.get([
+    "statsStartDate",
+  ]);
+  if (!statsStartDate) {
+    console.log("setting stats start date");
+    await browser.storage.local.set({
+      statsStartDate: new Date().toISOString(),
+    });
+  }
 
-    if (typeof browser.browserAction.openPopup === 'function') {
-        browser.browserAction.openPopup()
-    }
-})
-
-// Called when browser is closing
-// This is mostly done to clean up the pubsub channels
-browser.runtime.onSuspend.addListener(async () => {
-    await Promise.all(Object.entries(peers).map(([tabId, record]) => {
-        sendMessage(tabId, {
-            type: 'disconnect'
-        })
-        if (record.peer) {
-            return record.peer.destroy()
-        } else {
-            return Promise.resolve()
-        }
-    }))
-})
-
-async function createPeer(tabId) {
-    if (peers[tabId]) {
-        if (!peers[tabId].peer) {
-            // Duplicate request, currently in the process of connecting
-            return
-        }
-        if (!peers[tabId].peer.destroyed && !peers[tabId].peer.disconnected) {
-            // Already connected
-            return
-        }
-    }
-
-    const peer = await PeerConnection.create(serverUrl)
-    const sessionId = peer.getSessionId()
-    const connectionSecret = await peer.getConnectionSecret()
-    const version = browser.runtime.getManifest().version
-    const userAgent = encodeURIComponent(navigator.userAgent)
-    const tabUrl = (await browser.tabs.get(tabId)).url
-    let domain = ''
-    if (tabUrl) {
-        domain = (new URL(tabUrl)).host
-    }
-    const url = `${serverUrl}/connect?session=${sessionId}&version=${version}${domain ? '&domain=' + encodeURIComponent(domain) : ''}&userAgent=${userAgent}#${connectionSecret}`
-
-    let connectionAttempt = 0
-    peers[tabId] = {
-        peer,
-        url,
-        sessionId
-    }
-    peer.onerror = async (err) => {
-        console.log(`error from peer for tab ${tabId}`, err)
-        await browser.tabs.sendMessage(tabId, {
-            type: 'peerError'
-        })
-
-        if (!err || !FINAL_ERRORS.includes(err.type)) {
-            connectionAttempt += 1
-            if (connectionAttempt++ > MAX_RECONNECT_ATTEMPTS) {
-                console.error('exceeded max number of reconnection attempts')
-                return
-            }
-            await peer.reconnect()
-        }
-    }
-    peer.onconnect = async () => {
-        connectionAttempt = 0
-        try {
-            await browser.tabs.sendMessage(tabId, {
-                type: 'peerConnected'
-            })
-            console.log('requesting contact from content script')
-            await browser.tabs.sendMessage(tabId, {
-                type: 'contactRequest'
-            })
-        } catch (err) {
-            console.error('Error sending contact request to content_script', err)
-            if (err.message === 'tab is null') {
-                console.warn('destroying peer because tab was closed')
-                destroyPeer(tabId)
-            }
-        }
-    }
-    peer.ondisconnect = async () => {
-        await browser.tabs.sendMessage(tabId, {
-            type: 'peerDisconnected'
-        })
-    }
-    peer.onmessage = async (message) => {
-        if (message.type === 'connect') {
-            console.log(`got connect message from peer ${tabId}`)
-            await browser.tabs.sendMessage(tabId, {
-                type: 'contactRequest'
-            })
-        } else if (message.type === 'callResult') {
-            console.log(`peer ${tabId} connection sent call result:`, message)
-            try {
-                await browser.tabs.sendMessage(tabId, {
-                    type: 'callResult',
-                    result: message.result
-                })
-
-                if (message.result.toLowerCase() === 'texted') {
-                    await saveTextRecord({
-                        sessionId,
-                        callNumber: message.callNumber,
-                        timestamp: message.timestamp
-                    })
-
-                }
-            } catch (err) {
-                console.error('Error sending call result to content_script', err)
-            }
-        } else if (message.type === 'callRecord') {
-            await saveCallRecord({
-                sessionId,
-                callNumber: message.callNumber,
-                timestamp: message.timestamp,
-                duration: message.duration
-            })
-        } else if (message.type === 'openOptions') {
-            await browser.runtime.openOptionsPage()
-        } else {
-            console.warn(`got unexpected message type from peer: ${message.type}`)
-        }
-    }
-    await peer.connect()
-}
-
-function destroyPeer(tabId) {
-    if (peers[tabId]) {
-        peers[tabId].peer.destroy()
-        delete peers[tabId]
-    } else {
-        console.warn(`not destroying peer: ${tabId} because it was already destroyed or does not exist`)
-    }
-}
-
-function sendMessage(tabId, message) {
-    if (!peers[tabId]) {
-        return
-    }
-
-    message.extensionVersion = browser.runtime.getManifest().version
-    message.extensionUserAgent = navigator.userAgent
-    message.extensionPlatform = navigator.platform
-
-    peers[tabId].peer.sendMessage(message)
-}
+  if (typeof browser.browserAction.openPopup === "function") {
+    browser.browserAction.openPopup();
+  }
+});
 
 async function injectShareScript() {
-    console.log('Registering share integration content script')
-    await browser.contentScripts.register({
-        matches: [TURBOVPB_SHARE_ORIGIN],
-        js: [
-            { file: './share-integration.js' },
-        ],
-        css: [{ file: '../../node_modules/tingle.js/dist/tingle.css' }]
-    })
-}
-
-function getContentScripts(origin) {
-    if (OPENVPB_REGEX.test(origin) || LOCALHOST_REGEX.test(origin)) {
-        originSpecificJs = { file: './openvpb.js' }
-    } else if (BLUEVOTE_REGEX.test(origin)) {
-        originSpecificJs = { file: './bluevote.js' }
-    } else {
-        // All other possibilities are instances of VAN
-        originSpecificJs = { file: './everyaction.js' }
-    }
-    return [
-        originSpecificJs
-    ]
-}
-
-async function enableOrigin(origin) {
-    console.log(`registering content scripts for ${origin}`)
-    try {
-        const { unregister } = await browser.contentScripts.register({
-            matches: [origin],
-            js: getContentScripts(origin),
-            css: [{ file: '../../node_modules/tingle.js/dist/tingle.css' }]
-        })
-        unregisterContentScripts[origin] = unregister
-    } catch (err) {
-        console.error(`error registering content script for ${origin}`, err)
-    }
-}
-
-async function disableOrigin(origin) {
-    if (typeof unregisterContentScripts[origin] === 'function') {
-        (unregisterContentScripts[origin])()
-        delete unregisterContentScripts[origin]
-        console.log(`disabled content scripts for ${origin}`)
-        return true
-    } else {
-        return false
-    }
+  console.log("Registering share integration content script");
+  await browser.contentScripts.register({
+    matches: [TURBOVPB_SHARE_ORIGIN],
+    js: [{ file: "./share-integration.js" }],
+    css: [{ file: "../../node_modules/tingle.js/dist/tingle.css" }],
+  });
 }
 
 // This comes from the mobile page
 async function saveCallRecord({ sessionId, callNumber, timestamp, duration }) {
-    console.log(`saving call record for session: ${sessionId} call ${callNumber}, duration: ${duration}`)
-    if (!sessionRecords[sessionId]) {
-        sessionRecords[sessionId] = []
-    }
-    if (!sessionRecords[sessionId][callNumber]) {
-        sessionRecords[sessionId][callNumber] = []
-    }
-    sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX] = timestamp
-    sessionRecords[sessionId][callNumber][DURATION_INDEX] = duration
-    totalCalls += 1
+  console.log(
+    `saving call record for session: ${sessionId} call ${callNumber}, duration: ${duration}`
+  );
+  if (!sessionRecords[sessionId]) {
+    sessionRecords[sessionId] = [];
+  }
+  if (!sessionRecords[sessionId][callNumber]) {
+    sessionRecords[sessionId][callNumber] = [];
+  }
+  sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX] = timestamp;
+  sessionRecords[sessionId][callNumber][DURATION_INDEX] = duration;
+  totalCalls += 1;
 
-    // TODO make sure we don't run out of storage space
-    await browser.storage.local.set({ sessionRecords, totalCalls })
+  // TODO make sure we don't run out of storage space
+  await browser.storage.local.set({ sessionRecords, totalCalls });
 }
 
 // This comes from the content script
 async function saveCallResult({ sessionId, callNumber, result }) {
-    console.log(`saving call result for session: ${sessionId} call ${callNumber}, result: ${result}`)
-    if (!sessionRecords[sessionId]) {
-        sessionRecords[sessionId] = []
-    }
-    if (!sessionRecords[sessionId][callNumber]) {
-        sessionRecords[sessionId][callNumber] = []
-    }
-    if (!sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX]) {
-        sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX] = Date.now()
-    }
-    if (!sessionRecords[sessionId][callNumber][RESULT_INDEX]) {
-        sessionRecords[sessionId][callNumber][RESULT_INDEX] = RESULT_CODES[result] || result
-    }
+  console.log(
+    `saving call result for session: ${sessionId} call ${callNumber}, result: ${result}`
+  );
+  if (!sessionRecords[sessionId]) {
+    sessionRecords[sessionId] = [];
+  }
+  if (!sessionRecords[sessionId][callNumber]) {
+    sessionRecords[sessionId][callNumber] = [];
+  }
+  if (!sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX]) {
+    sessionRecords[sessionId][callNumber][TIMESTAMP_INDEX] = Date.now();
+  }
+  if (!sessionRecords[sessionId][callNumber][RESULT_INDEX]) {
+    sessionRecords[sessionId][callNumber][RESULT_INDEX] =
+      RESULT_CODES[result] || result;
+  }
 
-    await browser.storage.local.set({ sessionRecords })
+  await browser.storage.local.set({ sessionRecords });
 }
 
 // This comes from the mobile site
 async function saveTextRecord({ sessionId, callNumber, timestamp }) {
-    console.log(`saving text for session: ${sessionId} call ${callNumber}`)
-    if (!sessionRecords[sessionId]) {
-        sessionRecords[sessionId] = []
-    }
-    if (!sessionRecords[sessionId][callNumber]) {
-        sessionRecords[sessionId][callNumber] = []
-    }
+  console.log(`saving text for session: ${sessionId} call ${callNumber}`);
+  if (!sessionRecords[sessionId]) {
+    sessionRecords[sessionId] = [];
+  }
+  if (!sessionRecords[sessionId][callNumber]) {
+    sessionRecords[sessionId][callNumber] = [];
+  }
 
-    sessionRecords[sessionId][callNumber][RESULT_INDEX] = RESULT_CODES.Texted
-    sessionRecords[sessionId][callNumber][TEXTED_TIMESTAMP_INDEX] = timestamp
-    totalTexts += 1
+  sessionRecords[sessionId][callNumber][RESULT_INDEX] = RESULT_CODES.Texted;
+  sessionRecords[sessionId][callNumber][TEXTED_TIMESTAMP_INDEX] = timestamp;
+  totalTexts += 1;
 
-    await browser.storage.local.set({ sessionRecords, totalTexts })
+  await browser.storage.local.set({ sessionRecords, totalTexts });
 }
 
 function getTotalCalls() {
-    return totalCalls
+  return totalCalls;
 }
