@@ -6,10 +6,10 @@ import {
   LifebuoyIcon,
 } from "@heroicons/react/24/outline";
 import { ChatBubbleLeftRightIcon, QrCodeIcon } from "@heroicons/react/24/solid";
-import "../../scss/main.scss";
 import { batch, signal, computed } from "@preact/signals";
 import { browser } from "webextension-polyfill-ts";
 import SiteStatusIndicator from "./site-status-indicator";
+// import "../../index.css";
 
 const statsStartDate = signal(new Date());
 const totalCalls = signal(0);
@@ -56,9 +56,7 @@ const LeaveReviewButton: FunctionComponent = () => (
     target="_blank"
     title="Finding TurboVPB useful? Please leave a review!"
   >
-    <div class="miniIcon">
-      <StarIcon />
-    </div>
+    <StarIcon class="w-5" />
   </a>
 );
 
@@ -69,9 +67,7 @@ const FeedbackButton: FunctionComponent = () => (
     target="_blank"
     title="Have feedback? Ideas and suggestions welcome!"
   >
-    <div class="miniIcon">
-      <LightBulbIcon />
-    </div>
+    <LightBulbIcon class="w-5" />
   </a>
 );
 
@@ -82,87 +78,75 @@ const HelpButton: FunctionComponent = () => (
     class="text-secondary text-center"
     title="Need help? Email me"
   >
-    <div class="miniIcon">
-      <LifebuoyIcon />
-    </div>
+    <LifebuoyIcon class="w-6" />
   </a>
 );
 
 const NavBar: FunctionComponent = () => (
-  <nav class="navbar navbar-light bg-light">
-    <a href="https://turbovpb.com" target="_blank" class="navbar-brand">
-      <TurboVpbIcon />
-      &nbsp; TurboVPB
+  <nav class="flex flex-row items-center p-3 bg-slate-100">
+    <a
+      href="https://turbovpb.com"
+      target="_blank"
+      class="flex flex-row items-center space-x-2"
+    >
+      <TurboVpbIcon class="w-4" />
+      <div class="text-xl">TurboVPB</div>
     </a>
 
-    <div class="ml-auto">
-      <div class="row">
-        <div class="col pr-1">
-          <LeaveReviewButton />
-        </div>
-        <div class="col px-1">
-          <FeedbackButton />
-        </div>
-        <div class="col pl-1">
-          <HelpButton />
-        </div>
-      </div>
-    </div>
+    <div class="flex-grow"></div>
+
+    <HelpButton />
   </nav>
 );
 
 const CallStats: FunctionComponent = () => (
-  <div class="row text-center rounded-lg">
-    <div class="col">
-      <small class="text-muted">You have made</small>
-      <h4 class="pb-0 display-4">{numCallsString}</h4>
-      <small class="text-muted">with TurboVPB since {startDate}</small>
-      <p>
-        <small class="text-muted">{encouragement}</small>
-      </p>
-    </div>
+  <div class="text-center text-lg pb-4">
+    <small class="text-muted">You have made</small>
+    <h4 class="text-4xl">{numCallsString}</h4>
+    <small class="text-muted">with TurboVPB since {startDate}</small>
+    <p>
+      <small class="text-muted">{encouragement}</small>
+    </p>
   </div>
 );
 
 const Buttons: FunctionComponent = () => (
-  <div class="row mt-4 text-center">
-    <div class="col">
-      <SiteStatusIndicator />
-    </div>
-    <div class="col">
-      <a class="text-muted">
-        <div class="buttonIcon">
-          <QrCodeIcon />
-        </div>
-        <small>
-          Show <br />
-          QR Code
-        </small>
-      </a>
-    </div>
-    <div class="col">
-      <a
-        class="text-dark"
-        href="#"
-        title="Enable 2-click texting in the settings"
-        onClick={openOptions}
-      >
-        <div class="buttonIcon">
-          <ChatBubbleLeftRightIcon />
-        </div>
-        <small>2-Click Texting</small>
-      </a>
-    </div>
+  <div class="inline-grid gap-4 grid-cols-3">
+    <SiteStatusIndicator class="w-20" />
+    <a class="text-muted flex flex-col items-center">
+      <QrCodeIcon class="w-20" />
+      <div>Show QR Code</div>
+    </a>
+    <a
+      class="flex flex-col items-center"
+      href="#"
+      title="Enable 2-click texting in the settings"
+      onClick={openOptions}
+    >
+      <ChatBubbleLeftRightIcon class="w-20" />
+      <div>2-Click Texting</div>
+    </a>
   </div>
+);
+
+const LeaveReview: FunctionComponent = () => (
+  <a
+    class="italic text-center text-sm"
+    href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh"
+    target="_blank"
+  >
+    Finding TurboVPB useful? Please leave a review!
+  </a>
 );
 
 const PopupPage: FunctionComponent = () => {
   return (
-    <div>
+    <div class="container">
       <NavBar />
-      <div class="container-md p-4">
+      <div class="p-6 flex flex-col space-y-3">
         <CallStats />
         <Buttons />
+        <LeaveReview />
       </div>
     </div>
   );

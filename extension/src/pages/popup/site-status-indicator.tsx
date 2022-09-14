@@ -11,7 +11,7 @@ import {
   isVanWithCustomDomain,
   selectPhonebankType,
 } from "../../lib/vpb-integrations";
-import { useEffect } from "preact/hooks";
+import { EffectCallback, useEffect } from "preact/hooks";
 
 const siteStatus = signal("unsupported" as SiteStatus);
 const currentUrl = signal("");
@@ -82,32 +82,38 @@ async function enableSite() {
   }
 }
 
-const SiteStatusIndicator: FunctionComponent = () => {
-  useEffect(() => getSiteStatus() as unknown as () => void, []);
+const SiteStatusIndicator: FunctionComponent<{ class?: string }> = ({
+  class: className,
+}) => {
+  useEffect(getSiteStatus as unknown as EffectCallback);
 
-  if (siteStatus.value === "enabled") {
-    return (
-      <a onClick={disableSite}>
-        <CheckCircleIcon style="color: green;" />
-        Enabled on
-        <br /> this site
+  const { text, icon, onClick } =
+    siteStatus.value === "enabled"
+      ? {
+          text: "Enabled on this site",
+          icon: <CheckCircleIcon style="text-green-700" />,
+          onClick: disableSite,
+        }
+      : siteStatus.value === "disabled"
+      ? {
+          text: "Click to enable",
+          icon: <PlusCircleIcon />,
+          onClick: enableSite,
+        }
+      : {
+          text: "Unsupported site",
+          icon: <XCircleIcon class="text-gray-400" />,
+          onClick: () => {},
+        };
+
+  return (
+    <div class={className}>
+      <a class="flex flex-col items-center" onClick={onClick}>
+        {icon}
+        <div class="text-center">{text}</div>
       </a>
-    );
-  } else if (siteStatus.value === "disabled") {
-    return (
-      <button onClick={enableSite}>
-        <PlusCircleIcon />
-        Click to enable
-      </button>
-    );
-  } else {
-    return (
-      <div>
-        <XCircleIcon />
-        Unsupported site
-      </div>
-    );
-  }
+    </div>
+  );
 };
 
 export default SiteStatusIndicator;
