@@ -1,15 +1,14 @@
-import { h, FunctionComponent } from "preact";
+import { h, FunctionComponent, VNode } from "preact";
 import TurboVpbIcon from "../../components/turbovpb-icon";
 import {
   StarIcon,
-  LightBulbIcon,
-  LifebuoyIcon,
+  QuestionMarkCircleIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
-import { ChatBubbleLeftRightIcon, QrCodeIcon } from "@heroicons/react/24/solid";
+import { QrCodeIcon } from "@heroicons/react/24/solid";
 import { batch, signal, computed } from "@preact/signals";
 import { browser } from "webextension-polyfill-ts";
 import SiteStatusIndicator from "./site-status-indicator";
-// import "../../index.css";
 
 const statsStartDate = signal(new Date());
 const totalCalls = signal(0);
@@ -24,11 +23,8 @@ browser.storage.onChanged.addListener((changes) => {
     totalCalls.value = changes.totalCalls.newValue;
   }
 });
-const numCallsString = computed(
-  () => `${totalCalls.value} call${totalCalls.value === 1 ? "" : "s"}`
-);
 const startDate = computed(() =>
-  statsStartDate.value.toLocaleDateString([], { dateStyle: "long" } as any)
+  statsStartDate.value.toLocaleDateString([], { dateStyle: "medium" } as any)
 );
 const encouragement = computed(() => {
   if (totalCalls.value === 0) {
@@ -60,25 +56,14 @@ const LeaveReviewButton: FunctionComponent = () => (
   </a>
 );
 
-const FeedbackButton: FunctionComponent = () => (
-  <a
-    href="mailto:evan@turbovpb.com?subject=Feedback%20on%20TurboVPB"
-    class="text-secondary text-center"
-    target="_blank"
-    title="Have feedback? Ideas and suggestions welcome!"
-  >
-    <LightBulbIcon class="w-5" />
-  </a>
-);
-
 const HelpButton: FunctionComponent = () => (
   <a
-    href="mailto:evan@turbovpb.com?subject=TurboVPB%20Help&body=Please%20describe%20in%20as%20much%20detail%20as%20you%20can%20what%20you%20were%20doing%20and%20what%20didn't%20work%20or%20didn't%20make%20sense."
+    href="https://join.slack.com/t/turbophonebank/shared_invite/zt-1g3ounuk2-KxWo4negWzH_8W4T3A_Sbg"
     target="_blank"
-    class="text-secondary text-center"
-    title="Need help? Email me"
+    class="text-gray-700"
+    title="Join us on Slack to ask questions or discuss TurboVPB"
   >
-    <LifebuoyIcon class="w-6" />
+    <QuestionMarkCircleIcon class="w-5" />
   </a>
 );
 
@@ -95,18 +80,25 @@ const NavBar: FunctionComponent = () => (
 
     <div class="flex-grow"></div>
 
-    <HelpButton />
+    <div class="flex flex-row space-x-1">
+      <LeaveReviewButton />
+      <HelpButton />
+    </div>
   </nav>
 );
 
 const CallStats: FunctionComponent = () => (
-  <div class="text-center text-lg pb-4">
-    <small class="text-muted">You have made</small>
-    <h4 class="text-4xl">{numCallsString}</h4>
-    <small class="text-muted">with TurboVPB since {startDate}</small>
-    <p>
-      <small class="text-muted">{encouragement}</small>
-    </p>
+  <div>
+    <dl>
+      <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow">
+        <dt class="truncate text-sm font-medium text-gray-500">
+          Calls Since {startDate}
+        </dt>
+        <dd class="mt-1 text-3xl font-semibold tracking-light text-gray-900">
+          {totalCalls.value}
+        </dd>
+      </div>
+    </dl>
   </div>
 );
 
@@ -129,14 +121,18 @@ const Buttons: FunctionComponent = () => (
   </div>
 );
 
-const LeaveReview: FunctionComponent = () => (
-  <a
-    class="italic text-center text-sm"
-    href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh"
-    target="_blank"
+const WhiteButton: FunctionComponent<{
+  text: string;
+  icon: VNode;
+  onClick: () => void;
+}> = ({ text, icon, onClick }) => (
+  <button
+    onClick={onClick}
+    class="inline-flex items-center rounded-md border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
   >
-    Finding TurboVPB useful? Please leave a review!
-  </a>
+    <div class="-ml-1 mr-3 h-6 w-6">{icon}</div>
+    {text}
+  </button>
 );
 
 const PopupPage: FunctionComponent = () => {
@@ -145,8 +141,16 @@ const PopupPage: FunctionComponent = () => {
       <NavBar />
       <div class="p-6 flex flex-col space-y-3">
         <CallStats />
-        <Buttons />
-        <LeaveReview />
+        <WhiteButton
+          text="Open QR Code"
+          icon={<QrCodeIcon />}
+          onClick={() => {}}
+        />
+        <WhiteButton
+          text="2-Click Texting"
+          icon={<ChatBubbleLeftRightIcon />}
+          onClick={openOptions}
+        />
       </div>
     </div>
   );
