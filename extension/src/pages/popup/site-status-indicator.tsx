@@ -1,5 +1,5 @@
 import { h, FunctionComponent } from "preact";
-import { SiteStatus } from "../lib/types";
+import { SiteStatus } from "../../lib/types";
 import {
   XCircleIcon,
   CheckCircleIcon,
@@ -10,7 +10,7 @@ import { batch, signal } from "@preact/signals";
 import {
   isVanWithCustomDomain,
   selectPhonebankType,
-} from "../lib/vpb-integrations";
+} from "../../lib/vpb-integrations";
 import { useEffect } from "preact/hooks";
 
 const siteStatus = signal("unsupported" as SiteStatus);

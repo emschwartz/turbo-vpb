@@ -1,10 +1,10 @@
 import { h, FunctionComponent } from "preact";
 import { ExtensionSettings, MessageTemplateDetails } from "src/lib/types";
-import { batch, effect, signal, useComputed } from "@preact/signals";
+import { batch, effect, signal } from "@preact/signals";
 import { browser } from "webextension-polyfill-ts";
-import MessageTemplate from "../components/message-template";
-
-const SUBSTITUTION_REGEX = /([\[\{\<]+[\w\s]+[\]\}\>])+/g;
+import MessageTemplateList from "./message-template-list";
+import ShareSettingsButton from "./share-settings-button";
+import "../../scss/main.scss";
 
 const serverUrl = signal("");
 const yourName = signal("");
@@ -47,111 +47,6 @@ function setYourName(name: string) {
   yourName.value = name;
 }
 
-function editTemplate(
-  index: number,
-  template: Partial<MessageTemplateDetails>
-) {
-  batch(() => {
-    Object.assign(messageTemplates.value[index], template);
-    messageTemplates.value = [...messageTemplates.value];
-  });
-}
-
-function deleteTemplate(index: number) {
-  messageTemplates.value.splice(index, 1);
-  if (messageTemplates.value.length === 0) {
-    messageTemplates.value.push({
-      label: "",
-      message: "",
-      sendTextedResult: false,
-    });
-  }
-  messageTemplates.value = [...messageTemplates.value];
-}
-
-function addTemplate() {
-  console.log("add template");
-  messageTemplates.value.push({
-    label: "",
-    message: "",
-    sendTextedResult: false,
-  });
-  messageTemplates.value = [...messageTemplates.value];
-}
-
-const MessageTemplateList: FunctionComponent = () => {
-  const showReplacementTextNote = useComputed(
-    () =>
-      messageTemplates.value.length === 1 &&
-      !SUBSTITUTION_REGEX.test(messageTemplates.value[0].message)
-  );
-  return (
-    <div>
-      <h5>Message Templates</h5>
-
-      {showReplacementTextNote.value ? (
-        <div class="alert alert-warning">
-          Note: To use TurboVPB's Automatic Text Replacement, you need to
-          include the field name and the brackets (for example, "Hi [Their
-          Name]...") so that TurboVPB knows where to insert the appropriate
-          values.
-        </div>
-      ) : null}
-
-      {messageTemplates.value.map((messageTemplate, index) => (
-        <MessageTemplate
-          messageTemplate={messageTemplate}
-          editTemplate={(template) => editTemplate(index, template)}
-          deleteTemplate={() => deleteTemplate(index)}
-        />
-      ))}
-
-      <button class="btn btn-primary" onClick={addTemplate}>
-        Add Another Message Template
-      </button>
-    </div>
-  );
-};
-
-const ShareSettingsButton: FunctionComponent = () => {
-  const url = useComputed(() => {
-    let url: URL;
-    try {
-      url = new URL("/share", serverUrl.value);
-    } catch (err) {
-      url = new URL("/share", "https://turbovpb.com");
-    }
-    url.searchParams.append(
-      "messageTemplates",
-      JSON.stringify(messageTemplates.value)
-    );
-    return url.toString();
-  });
-
-  return (
-    <a class="btn btn-primary ml-auto" target="_blank" href={url.value}>
-      <svg
-        width="1em"
-        height="1em"
-        viewBox="0 0 16 16"
-        class="bi bi-box-arrow-up-right mr-1 mb-1"
-        fill="currentColor"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fill-rule="evenodd"
-          d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"
-        />
-        <path
-          fill-rule="evenodd"
-          d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"
-        />
-      </svg>
-      Share Settings
-    </a>
-  );
-};
-
 const RightArrow: FunctionComponent = () => (
   <svg
     width="1em"
@@ -180,7 +75,10 @@ const OptionsPage: FunctionComponent = () => {
           <h4>Text Message Settings</h4>
         </div>
         <div class="col text-right">
-          <ShareSettingsButton />
+          <ShareSettingsButton
+            templates={messageTemplates}
+            serverUrl={serverUrl}
+          />
         </div>
       </div>
       <p>
@@ -242,7 +140,7 @@ const OptionsPage: FunctionComponent = () => {
       </p>
       <br />
 
-      <MessageTemplateList />
+      <MessageTemplateList templates={messageTemplates} />
 
       <div class="row align-items-center my-4">
         <div class="col">
