@@ -1,4 +1,5 @@
 use axum::{http::StatusCode, response::IntoResponse, routing::get_service, Server};
+use futures::try_join;
 use gcp_bigquery_client::Client as BigQueryClient;
 use std::{env, error::Error, net::SocketAddr};
 use tokio::fs;
@@ -6,6 +7,7 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tracing::{debug, error, info};
 
+mod metrics;
 mod pages;
 mod pubsub;
 mod stats;
@@ -54,12 +56,15 @@ async fn main() {
 
     let addr = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], 8080));
     info!("Listening on {}", addr);
-
     let app = api.merge(website).layer(TraceLayer::new_for_http());
-    Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .expect("Error running server on port");
+    let app = Server::bind(&addr).serve(app.into_make_service());
+
+    // Serve the metrics on a different port so they're not publicly exposed
+    let metrics_addr = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], 8081));
+    let metrics = Server::bind(&metrics_addr).serve(metrics::router().into_make_service());
+    info!("Metrics listening on {}", metrics_addr);
+
+    try_join!(app, metrics).expect("Server error");
 }
 
 async fn internal_service_error(_: impl Error) -> impl IntoResponse {

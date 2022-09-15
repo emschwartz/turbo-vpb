@@ -1,3 +1,4 @@
+use crate::metrics::{CHANNEL_DURATION, CONCURRENT_CHANNELS, MESSAGES_PER_CHANNEL, TOTAL_CHANNELS};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Extension, Path};
 use axum::routing::{delete, get};
@@ -5,7 +6,8 @@ use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Json, Router};
 use dashmap::DashMap;
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::broadcast::{channel, Sender};
 use tokio::{select, time::sleep};
 use tracing::{debug, instrument, trace};
@@ -21,6 +23,7 @@ struct Channel {
     /// Keep track of the number of open channel so we can drop the
     /// channel record when the last connection is dropped.
     num_connections: usize,
+    channel_created_at: std::time::Instant,
 }
 
 impl Default for Channel {
@@ -29,6 +32,7 @@ impl Default for Channel {
             extension: channel(CHANNEL_CAPACITY).0,
             browser: channel(CHANNEL_CAPACITY).0,
             num_connections: 0,
+            channel_created_at: Instant::now(),
         }
     }
 }
@@ -74,14 +78,20 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
     debug!("websocket connected");
 
     // Create the channel if it does not already exist
-    let mut channel = state.entry(channel_id.clone()).or_default();
-    channel.num_connections += 1;
+    let (sender, mut receiver) = {
+        let mut channel = state.entry(channel_id.clone()).or_insert_with(|| {
+            TOTAL_CHANNELS.inc();
+            CONCURRENT_CHANNELS.inc();
 
-    let (sender, mut receiver) = match identity {
-        Identity::Extension => (channel.browser.clone(), channel.extension.subscribe()),
-        Identity::Browser => (channel.extension.clone(), channel.browser.subscribe()),
+            Channel::default()
+        });
+        channel.num_connections += 1;
+
+        match identity {
+            Identity::Extension => (channel.browser.clone(), channel.extension.subscribe()),
+            Identity::Browser => (channel.extension.clone(), channel.browser.subscribe()),
+        }
     };
-    drop(channel);
 
     let (mut ws_sink, mut ws_stream) = ws.split();
 
@@ -99,6 +109,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                             // Update the inactivity timer
                             timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
                             trace!("sent message");
+                            MESSAGES_PER_CHANNEL.with_label_values(&[&channel_id]).inc();
                         },
                         Err(err) => debug!("error sending message to websocket: {err}"),
                     }
@@ -124,7 +135,10 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                     Message::Binary(_) => {
                         // Ignore send errors because that just means that the other side is not connected
                         match sender.send(message) {
-                            Ok(_) => trace!("sent message"),
+                            Ok(_) => {
+                                trace!("sent message");
+                                MESSAGES_PER_CHANNEL.with_label_values(&[&channel_id]).inc();
+                            },
                             Err(err) => debug!("error sending message to channel: {err}"),
                         }
                     }
@@ -158,7 +172,12 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
     };
     if num_channel == 0 {
         debug!("removing channel");
-        state.remove(&channel_id);
+        if let Some((_, channel)) = state.remove(&channel_id) {
+            CONCURRENT_CHANNELS.dec();
+            CHANNEL_DURATION
+                .with_label_values(&[&channel_id])
+                .observe(channel.channel_created_at.elapsed().as_secs_f64());
+        }
     }
 }
 

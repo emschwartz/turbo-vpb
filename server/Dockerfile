@@ -32,5 +32,6 @@ COPY --from=builder /usr/src/app/turbovpb-server /usr/app/turbovpb-server
 COPY ./static/ /usr/app/static/
 
 EXPOSE 8080
+EXPOSE 8081
 
 CMD ["/usr/app/turbovpb-server"]
