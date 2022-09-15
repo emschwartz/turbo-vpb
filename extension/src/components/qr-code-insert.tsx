@@ -25,7 +25,18 @@ const QrCodeInsert: FunctionComponent<{
       <div class="flex flex-col items-center space-y-2 m-auto p-2.5 text-gray-700 shadow-sm">
         <TurboVpbLogoAndName />
         <ConnectionStatusBadge status={status.value} />
-        <ConnectQrCode connectUrl={connectUrl} size={200} />
+        <Transition
+          show={status.value !== "connected"}
+          as={Fragment}
+          enter="transition-opacity duration-75"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="transition-opacity duration-150"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <ConnectQrCode connectUrl={connectUrl} size={200} />
+        </Transition>
       </div>
     </div>
   </Transition>
