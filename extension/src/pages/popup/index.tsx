@@ -42,6 +42,7 @@ const encouragement = computed(() => {
 
 function openOptions() {
   browser.runtime.openOptionsPage();
+  window.close();
 }
 
 async function openQrCodeModal() {
