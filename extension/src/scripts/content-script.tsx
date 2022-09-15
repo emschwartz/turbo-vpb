@@ -24,7 +24,7 @@ const serverUrl = computed(
   () => settings.value.serverUrl || DEFAULT_SERVER_URL
 );
 
-const status = signal("connectinToServer" as ConnectionStatus);
+const status = signal("connectingToServer" as ConnectionStatus);
 const connectionDetails = sessionStoredSignal<ConnectionDetails | undefined>(
   "turboVpbConnection",
   undefined
@@ -66,7 +66,6 @@ document.onload = checkForNewContact;
 checkForNewContact();
 
 function checkForNewContact() {
-  console.log("Checking for new contact");
   batch(() => {
     const newContact = vpb.scrapeContactDetails();
     if (currentContact.value && currentContact.value !== newContact) {
@@ -76,6 +75,11 @@ function checkForNewContact() {
     currentContact.value = newContact;
     resultCodes.value = vpb.scrapeResultCodes();
   });
+
+  if (!connectionDetails.value) {
+    console.log("Got contact details, reconnecting to server");
+    connect();
+  }
 }
 
 const sidebar = vpb.turboVpbContainerLocation();
@@ -95,6 +99,12 @@ if (sidebar) {
 }
 
 async function connect() {
+  if (status.value === "connected" || status.value === "waitingForMessage") {
+    console.log("Already connected, not reconnecting");
+    return;
+  }
+
+  console.log("connecting");
   // Load the extension settings and keep them updated when they change
   settings.value = await browser.storage.local.get([
     "serverUrl",
@@ -125,18 +135,32 @@ async function connect() {
       ? await importKey(connectionDetails.value.encryptionKey)
       : undefined
   );
-  client.onopen = () => {
+  let gotMessageSinceLastReconnect = false;
+  client.onopen = async () => {
     console.log("connected");
-    status.value = "waitingForMessage";
+    if (!gotMessageSinceLastReconnect) {
+      status.value = "waitingForMessage";
+    }
+
+    // Send a message to the browser in case we reloaded the page
+    // and the browser page is already open and connected
+    await client.send({
+      type: "connect",
+    });
   };
   client.onclose = () => {
+    console.log("disconnected");
     status.value = "disconnected";
+    gotMessageSinceLastReconnect = false;
   };
   client.onerror = () => {
+    console.log("disconnected");
     status.value = "disconnected";
+    gotMessageSinceLastReconnect = false;
   };
   client.onmessage = async (message) => {
     status.value = "connected";
+    gotMessageSinceLastReconnect = true;
 
     // Send the details as soon as we receive a connect message
     if (message.type === "connect") {
@@ -155,6 +179,7 @@ async function connect() {
   }, 10000);
 
   await client.connect();
+
   const encryptionKey = await client.exportEncryptionKey();
   const channelId = client.channelId;
   const sessionId = connectionDetails.value?.sessionId || randomId(16);
@@ -180,7 +205,7 @@ async function connect() {
       return;
     }
 
-    console.log("sending contact details", contact);
+    console.log("Sending contact details", contact);
 
     // TODO only send a diff of these details after the first message
     await client.send({
@@ -192,6 +217,7 @@ async function connect() {
       extensionVersion: browser.runtime.getManifest().version,
       extensionUserAgent: navigator.userAgent,
       extensionPlatform: navigator.platform,
+      // TODO add last call result
     });
   }
 }

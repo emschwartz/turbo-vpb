@@ -1,5 +1,4 @@
 import { h, FunctionComponent, VNode } from "preact";
-import TurboVpbIcon from "../../components/turbovpb-icon";
 import {
   StarIcon,
   QuestionMarkCircleIcon,
@@ -9,6 +8,7 @@ import { QrCodeIcon } from "@heroicons/react/24/solid";
 import { batch, signal, computed } from "@preact/signals";
 import { browser } from "webextension-polyfill-ts";
 import SiteStatusIndicator from "./site-status-indicator";
+import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
 
 const statsStartDate = signal(new Date());
 const totalCalls = signal(0);
@@ -69,14 +69,7 @@ const HelpButton: FunctionComponent = () => (
 
 const NavBar: FunctionComponent = () => (
   <nav class="flex flex-row items-center p-3 bg-slate-100">
-    <a
-      href="https://turbovpb.com"
-      target="_blank"
-      class="flex flex-row items-center space-x-2"
-    >
-      <TurboVpbIcon class="w-4" />
-      <div class="text-xl">TurboVPB</div>
-    </a>
+    <TurboVpbLogoAndName />
 
     <div class="flex-grow"></div>
 
