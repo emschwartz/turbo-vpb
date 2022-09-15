@@ -44,6 +44,16 @@ function openOptions() {
   browser.runtime.openOptionsPage();
 }
 
+async function openQrCodeModal() {
+  const activeTabs = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  console.log(activeTabs);
+  browser.tabs.sendMessage(activeTabs[0].id, { type: "openQrCodeModal" });
+  window.close();
+}
+
 const LeaveReviewButton: FunctionComponent = () => (
   <a
     href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh"
@@ -137,7 +147,7 @@ const PopupPage: FunctionComponent = () => {
         <WhiteButton
           text="Open QR Code"
           icon={<QrCodeIcon />}
-          onClick={() => {}}
+          onClick={openQrCodeModal}
         />
         <WhiteButton
           text="2-Click Texting"

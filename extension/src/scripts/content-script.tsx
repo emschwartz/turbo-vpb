@@ -1,7 +1,6 @@
-import { h, render } from "preact";
-import TurboVpbContainer from "../components/turbovpb-container";
-import PubSubClient from "../lib/pubsub-client";
+import { render } from "preact";
 import { signal, effect, batch, computed } from "@preact/signals";
+import { browser } from "webextension-polyfill-ts";
 import {
   ConnectionStatus,
   ContactDetails,
@@ -10,9 +9,12 @@ import {
   ExtensionSettings,
 } from "../lib/types";
 import { importKey, randomId } from "../lib/crypto";
-import { browser } from "webextension-polyfill-ts";
+import PubSubClient from "../lib/pubsub-client";
 import { selectIntegration } from "../lib/vpb-integrations";
 import { sessionStoredSignal } from "../lib/stored-signal";
+import QrCodeModal from "../components/qr-code-modal";
+import QrCodeInsert from "../components/qr-code-insert";
+import "../index.css";
 
 const DEFAULT_SERVER_URL = "http://localhost:8080";
 
@@ -54,6 +56,12 @@ const stats = sessionStoredSignal<Stats>("turboVpbStats", {
   successfulCalls: 0,
   startTime: Date.now(),
 });
+const showQrCodeModal = signal(true);
+effect(() => {
+  if (status.value === "connected") {
+    showQrCodeModal.value = false;
+  }
+});
 
 const observer = new MutationObserver(checkForNewContact);
 observer.observe(document, {
@@ -86,17 +94,31 @@ const sidebar = vpb.turboVpbContainerLocation();
 console.log(sidebar);
 if (sidebar) {
   console.log("rendering turbovpb container");
+  // TODO ensure this doesn't render multiple times
   render(
-    <TurboVpbContainer
-      phonebankType={vpb.type}
-      status={status}
-      connectUrl={connectUrl}
-    />,
+    <>
+      <QrCodeInsert
+        hide={showQrCodeModal}
+        status={status}
+        connectUrl={connectUrl}
+      />
+      <QrCodeModal
+        open={showQrCodeModal}
+        status={status}
+        connectUrl={connectUrl}
+      />
+    </>,
     sidebar
   );
 } else {
   console.error("Could not find sidebar container");
 }
+
+browser.runtime.onMessage.addListener((message) => {
+  if (message.type === "openQrCodeModal") {
+    showQrCodeModal.value = true;
+  }
+});
 
 async function connect() {
   if (status.value === "connected" || status.value === "waitingForMessage") {
