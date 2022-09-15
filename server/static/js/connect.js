@@ -327,9 +327,9 @@ async function start() {
             }
 
         }
-        peerManager.onmessage = (data) => {
+        peerManager.onmessage = async (data) => {
             stopConnectionTimeout() // we know we're connected if we got a message
-            handleExtensionMessage(data)
+            await handleExtensionMessage(data)
         }
         peerManager.onreconnecting = (target) => {
             console.log('PeerManager.onreconnecting', target)
@@ -554,7 +554,15 @@ function restartConnectionTimeout() {
     }, CONNECT_TIMEOUT)
 }
 
-function handleExtensionMessage(data) {
+async function handleExtensionMessage(data) {
+    // If we get a connect message from the extension, that means the
+    // page was reloaded so we send a connect message back to let it
+    // know that we're still connected
+    if (data.type === "connect") {
+      console.log("received connect message from extension")
+      return peerManager.sendMessage({ type: "connect" });
+    }
+
     // Automatically saving the call result only works for OpenVPB and EveryAction
     // phone banks that have the Texted result code enabled
     // (On BlueVote, it uses the Not Home code instead)
