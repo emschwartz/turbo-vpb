@@ -21,8 +21,6 @@ struct Channel {
     /// Keep track of the number of open channel so we can drop the
     /// channel record when the last connection is dropped.
     num_connections: usize,
-    /// We store the last message sent by the extension for backwards compatibility.
-    extension_last_message: Option<Message>,
 }
 
 impl Default for Channel {
@@ -31,7 +29,6 @@ impl Default for Channel {
             extension: channel(CHANNEL_CAPACITY).0,
             browser: channel(CHANNEL_CAPACITY).0,
             num_connections: 0,
-            extension_last_message: None,
         }
     }
 }
@@ -88,18 +85,6 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 
     let (mut ws_sink, mut ws_stream) = ws.split();
 
-    // Send the browser the last message we got from the extension
-    if identity == Identity::Browser {
-        if let Some(message) = state
-            .get(&channel_id)
-            .and_then(|channel| channel.extension_last_message.clone())
-        {
-            if let Err(err) = ws_sink.send(message).await {
-                debug!("error sending message to websocket: {err}");
-            }
-        }
-    }
-
     // Handle websocket messages
     let mut timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
     loop {
@@ -137,13 +122,6 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 
                 match message {
                     Message::Binary(_) => {
-                        // Store the last message from the extension for backwards compatibility
-                        if identity == Identity::Extension {
-                            if let Some(mut channel) = state.get_mut(&channel_id) {
-                                channel.extension_last_message = Some(message.clone());
-                            }
-                        }
-
                         // Ignore send errors because that just means that the other side is not connected
                         match sender.send(message) {
                             Ok(_) => trace!("sent message"),
