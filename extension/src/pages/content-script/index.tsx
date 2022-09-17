@@ -7,14 +7,14 @@ import {
   Stats,
   ConnectionDetails,
   ExtensionSettings,
-} from "../lib/types";
-import { importKey, randomId } from "../lib/crypto";
-import PubSubClient from "../lib/pubsub-client";
-import { selectIntegration } from "../lib/vpb-integrations";
-import { sessionStoredSignal } from "../lib/stored-signal";
-import QrCodeModal from "../components/qr-code-modal";
-import QrCodeInsert from "../components/qr-code-insert";
-import "../index.css";
+} from "../../lib/types";
+import { importKey, randomId } from "../../lib/crypto";
+import PubSubClient from "../../lib/pubsub-client";
+import { selectIntegration } from "../../lib/vpb-integrations";
+import { sessionStoredSignal } from "../../lib/stored-signal";
+import QrCodeModal from "../../components/qr-code-modal";
+import QrCodeInsert from "../../components/qr-code-insert";
+import "../../index.css";
 
 const DEFAULT_SERVER_URL = "http://localhost:8080";
 

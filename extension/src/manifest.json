@@ -23,7 +23,7 @@
     "128": "icons/phone-outgoing-blue-128.png"
   },
   "background": {
-    "scripts": ["scripts/background.ts"],
+    "scripts": ["pages/background.ts"],
     "persistent": false
   },
   "browser_action": {
@@ -41,7 +41,7 @@
   "content_scripts": [
     {
       "matches": ["http://localhost/test-phonebank*"],
-      "js": ["scripts/content-script.tsx"],
+      "js": ["pages/content-script/index.tsx"],
       "css": ["scss/main.scss"]
     },
     {
