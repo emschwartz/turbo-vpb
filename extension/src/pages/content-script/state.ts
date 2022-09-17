@@ -21,11 +21,12 @@ export const state = signal({
     "turboVpbConnection",
     undefined
   ),
-  stats: sessionStoredSignal<Stats>("turboVpbStats", {
+  sessionStats: sessionStoredSignal<Stats>("turboVpbStats", {
     calls: 0,
     successfulCalls: 0,
     startTime: Date.now(),
   }),
+  totalCalls: signal(0),
   showQrCodeModal: signal(true),
   resultCodes: undefined as string[] | undefined,
   currentContact: signal(undefined as ContactDetails | undefined),
@@ -65,7 +66,7 @@ export const detailsToSend = computed(() => {
 
     // Don't send the details when these change
     resultCodes: currentState.resultCodes,
-    stats: currentState.stats.value,
+    stats: currentState.sessionStats.value,
     lastCallResult: currentState.lastCallResult,
 
     // Other details to send
@@ -90,9 +91,15 @@ export function setLastCallResult(contacted: boolean, result: string) {
     state.value.lastCallResult = result;
 
     if (contacted) {
-      state.value.stats.value.successfulCalls += 1;
+      state.value.sessionStats.value.successfulCalls += 1;
     }
   });
+}
+
+export function setTotalCalls(totalCalls: number) {
+  const total = state.value.totalCalls;
+  total.value = totalCalls;
+  state.value.totalCalls = total;
 }
 
 export function setContactDetailsAndResultCodes(
@@ -102,9 +109,12 @@ export function setContactDetailsAndResultCodes(
   batch(() => {
     const oldContact = state.value.currentContact.value;
     if (!contactsAreEqual(oldContact, contactDetails)) {
-      state.value.stats.value.calls += 1;
-      state.value.stats.value.lastContactLoadTime = Date.now();
+      console.log("New contact", contactDetails);
+
+      state.value.sessionStats.value.calls += 1;
+      state.value.sessionStats.value.lastContactLoadTime = Date.now();
       state.value.currentContact.value = contactDetails;
+      state.value.totalCalls.value += 1;
     }
 
     state.value.resultCodes = resultCodes;

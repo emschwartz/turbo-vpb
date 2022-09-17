@@ -56,7 +56,7 @@ export function markResult(result: string) {
 export function onCallResult(
   callback: (contacted: boolean, result?: string) => void | Promise<void>
 ) {
-  let result: string | undefined;
+  let result: string | null = null;
 
   // Listen for when the result code radio buttons are selected
   // (but note that the user might click more than one)

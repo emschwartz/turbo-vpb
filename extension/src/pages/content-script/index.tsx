@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { effect } from "@preact/signals";
+import { batch, effect } from "@preact/signals";
 import { browser } from "webextension-polyfill-ts";
 import { importKey } from "../../lib/crypto";
 import PubSubClient from "../../lib/pubsub-client";
@@ -18,6 +18,7 @@ import {
   detailsToSend,
   isConnectedToServer,
   setPubsubClient,
+  setTotalCalls,
 } from "./state";
 import "../../index.css";
 
@@ -33,6 +34,12 @@ effect(() => {
   if (state.value.status.value === "connected") {
     hideQrCodeModal();
   }
+});
+effect(() => {
+  console.log("saving total calls", state.value.totalCalls.value);
+  browser.storage.local
+    .set({ totalCalls: state.value.totalCalls.value })
+    .catch(console.error);
 });
 
 function listenForExtensionMessages() {
@@ -151,11 +158,23 @@ async function connectPubsubClient() {
 }
 
 async function loadSettings() {
-  state.value.settings = await browser.storage.local.get([
+  const stored = await browser.storage.local.get([
     "serverUrl",
     "yourName",
     "messageTemplates",
+    "totalCalls",
   ]);
+  batch(() => {
+    state.value.settings = {
+      serverUrl: stored.serverUrl,
+      yourName: stored.yourName,
+      messageTemplates: stored.messageTemplates,
+    };
+    if (stored.totalCalls) {
+      setTotalCalls(stored.totalCalls);
+    }
+  });
+
   browser.storage.onChanged.addListener((changes, area) => {
     if (area === "local") {
       state.value.settings = {
