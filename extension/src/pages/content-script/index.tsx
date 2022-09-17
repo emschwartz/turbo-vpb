@@ -1,188 +1,114 @@
 import { render } from "preact";
-import { signal, effect, batch, computed } from "@preact/signals";
+import { effect } from "@preact/signals";
 import { browser } from "webextension-polyfill-ts";
-import {
-  ConnectionStatus,
-  ContactDetails,
-  Stats,
-  ConnectionDetails,
-  ExtensionSettings,
-} from "../../lib/types";
-import { importKey, randomId } from "../../lib/crypto";
+import { importKey } from "../../lib/crypto";
 import PubSubClient from "../../lib/pubsub-client";
 import { selectIntegration } from "../../lib/vpb-integrations";
-import { sessionStoredSignal } from "../../lib/stored-signal";
 import QrCodeModal from "../../components/qr-code-modal";
 import QrCodeInsert from "../../components/qr-code-insert";
+import {
+  hideQrCodeModal,
+  setContactDetailsAndResultCodes,
+  setLastCallResult,
+  state,
+  connectUrl,
+  showQrCodeModal,
+  serverUrl,
+  setStatus,
+  detailsToSend,
+  isConnectedToServer,
+  setPubsubClient,
+} from "./state";
 import "../../index.css";
 
-const DEFAULT_SERVER_URL = "http://localhost:8080";
-
-console.log("TurboVPB content script loaded");
-
-const settings = signal({} as ExtensionSettings);
-const serverUrl = computed(
-  () => settings.value.serverUrl || DEFAULT_SERVER_URL
-);
-
-const status = signal("connectingToServer" as ConnectionStatus);
-const connectionDetails = sessionStoredSignal<ConnectionDetails | undefined>(
-  "turboVpbConnection",
-  undefined
-);
-const connectUrl = computed(() => {
-  const details = connectionDetails.value;
-  if (!details) {
-    return;
-  }
-
-  try {
-    const url = new URL("/connect", serverUrl.value);
-    url.searchParams.set("sessionId", details.sessionId);
-    url.searchParams.set("version", browser.runtime.getManifest().version);
-    url.searchParams.set("userAgent", encodeURIComponent(navigator.userAgent));
-    url.searchParams.set("domain", encodeURIComponent(window.location.host));
-    url.hash = `${details.channelId}&${details.encryptionKey}`;
-    return url;
-  } catch (e) {
-    console.error("Invalid server URL", e);
-  }
-});
-const currentContact = signal(undefined as ContactDetails | undefined);
-const lastCallResult = signal(undefined as string | undefined);
-const resultCodes = signal(undefined as string[] | undefined);
-const stats = sessionStoredSignal<Stats>("turboVpbStats", {
-  calls: 0,
-  successfulCalls: 0,
-  startTime: Date.now(),
-});
-const showQrCodeModal = signal(true);
-effect(() => {
-  if (status.value === "connected") {
-    showQrCodeModal.value = false;
-  }
-});
+// Startup routine when the content script is loaded
 const vpb = selectIntegration();
-vpb.onCallResult((contacted, result) => {
-  batch(() => {
-    lastCallResult.value = result;
+console.log(`TurboVPB content script loaded and using ${vpb.type} integration`);
+vpb.onCallResult(setLastCallResult);
+injectSidebar();
+watchForNewContacts();
+listenForExtensionMessages();
+loadSettings().then(connectPubsubClient).catch(console.error);
+effect(() => {
+  if (state.value.status.value === "connected") {
+    hideQrCodeModal();
+  }
+});
 
-    if (contacted) {
-      stats.value.successfulCalls += 1;
+function listenForExtensionMessages() {
+  browser.runtime.onMessage.addListener((message) => {
+    if (message.type === "openQrCodeModal") {
+      showQrCodeModal();
     }
   });
-});
-const detailsToSend = computed(() => ({
-  type: "contact",
-  contact: currentContact.value,
-  resultCodes: resultCodes.value,
-  stats: stats.value,
-  messageTemplates: settings.value.messageTemplates,
-  extensionVersion: browser.runtime.getManifest().version,
-  extensionUserAgent: navigator.userAgent,
-  extensionPlatform: navigator.platform,
-  lastCallResult: lastCallResult.value,
-}));
+}
 
-const observer = new MutationObserver(checkForNewContact);
-observer.observe(document, {
-  subtree: true,
-  childList: true,
-  attributes: true,
-  characterData: true,
-});
-document.onload = checkForNewContact;
-checkForNewContact();
+function watchForNewContacts() {
+  checkForNewContact();
+  const observer = new MutationObserver(checkForNewContact);
+  observer.observe(document, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    characterData: true,
+  });
+  document.onload = checkForNewContact;
+}
 
 function checkForNewContact() {
-  batch(() => {
-    const newContact = vpb.scrapeContactDetails();
-    if (currentContact.value && currentContact.value !== newContact) {
-      stats.value.calls++;
-      stats.value.lastContactLoadTime = Date.now();
-    }
-    currentContact.value = newContact;
-    resultCodes.value = vpb.scrapeResultCodes();
-  });
-
-  if (!connectionDetails.value) {
-    console.log("Got contact details, reconnecting to server");
-    connect();
-  }
-}
-
-const sidebar = vpb.turboVpbContainerLocation();
-console.log(sidebar);
-if (sidebar) {
-  console.log("rendering turbovpb container");
-  // TODO ensure this doesn't render multiple times
-  render(
-    <>
-      <QrCodeInsert
-        hide={showQrCodeModal}
-        status={status}
-        connectUrl={connectUrl}
-      />
-      <QrCodeModal
-        open={showQrCodeModal}
-        status={status}
-        connectUrl={connectUrl}
-      />
-    </>,
-    sidebar
+  setContactDetailsAndResultCodes(
+    vpb.scrapeContactDetails(),
+    vpb.scrapeResultCodes()
   );
-} else {
-  console.error("Could not find sidebar container");
 }
 
-browser.runtime.onMessage.addListener((message) => {
-  if (message.type === "openQrCodeModal") {
-    showQrCodeModal.value = true;
+// Insert the TurboVPB container and modal into the page
+function injectSidebar() {
+  const sidebar = vpb.turboVpbContainerLocation();
+  if (sidebar) {
+    console.log("Rendering turbovpb container");
+    // TODO ensure this doesn't render multiple times
+    render(
+      <>
+        <QrCodeInsert
+          hide={state.value.showQrCodeModal}
+          status={state.value.status}
+          connectUrl={connectUrl}
+        />
+        <QrCodeModal
+          open={state.value.showQrCodeModal}
+          status={state.value.status}
+          connectUrl={connectUrl}
+        />
+      </>,
+      sidebar
+    );
+  } else {
+    console.error("Could not find sidebar container");
   }
-});
+}
 
-async function connect() {
-  if (status.value === "connected" || status.value === "waitingForMessage") {
+// Load the settings from localStorage and connect to the server
+async function connectPubsubClient() {
+  if (isConnectedToServer.value) {
     console.log("Already connected, not reconnecting");
     return;
   }
 
-  console.log("connecting");
-  // Load the extension settings and keep them updated when they change
-  settings.value = await browser.storage.local.get([
-    "serverUrl",
-    "yourName",
-    "messageTemplates",
-  ]);
-  browser.storage.onChanged.addListener((changes, area) => {
-    if (area === "local") {
-      batch(() => {
-        if (changes.serverUrl) {
-          settings.value.serverUrl = changes.serverUrl.newValue;
-        }
-        if (changes.yourName) {
-          settings.value.yourName = changes.yourName.newValue;
-        }
-        if (changes.messageTemplates) {
-          settings.value.messageTemplates = changes.messageTemplates.newValue;
-        }
-      });
-    }
-  });
-  console.log("Loaded settings");
-
   const client = new PubSubClient(
     serverUrl.value,
-    connectionDetails.value?.channelId,
-    connectionDetails.value?.encryptionKey
-      ? await importKey(connectionDetails.value.encryptionKey)
+    state.value.connectionDetails.value?.channelId,
+    state.value.connectionDetails.value?.encryptionKey
+      ? await importKey(state.value.connectionDetails.value.encryptionKey)
       : undefined
   );
   let gotMessageSinceLastReconnect = false;
+
+  // Handle pubsub events
   client.onopen = async () => {
     console.log("connected");
     if (!gotMessageSinceLastReconnect) {
-      status.value = "waitingForMessage";
+      setStatus("waitingForMessage");
     }
 
     // Send a message to the browser in case we reloaded the page
@@ -192,57 +118,54 @@ async function connect() {
     });
   };
   client.onclose = () => {
-    console.log("disconnected");
-    status.value = "disconnected";
+    setStatus("disconnected");
     gotMessageSinceLastReconnect = false;
   };
   client.onerror = () => {
-    console.log("disconnected");
-    status.value = "disconnected";
+    setStatus("disconnected");
     gotMessageSinceLastReconnect = false;
   };
   client.onmessage = async (message) => {
-    status.value = "connected";
+    setStatus("connected");
     gotMessageSinceLastReconnect = true;
 
     // Send the details as soon as we receive a connect message
     if (message.type === "connect") {
-      await sendContactDetails();
+      console.log("Sending contact details in response to connect message");
+      await client.send(detailsToSend.value);
     } else if (message.type === "callResult") {
       vpb.markResult(message.result);
     } else {
       console.error("Unknown message type", message);
     }
   };
-  // Disconnect if there is no contact
-  const contactTimeout = setTimeout(() => {
-    console.log("No contact found, disconnecting from server");
-    connectionDetails.value = undefined;
-    client.close();
-  }, 10000);
 
   await client.connect();
-
-  connectionDetails.value = {
-    encryptionKey: await client.exportEncryptionKey(),
-    sessionId: connectionDetails.value?.sessionId || randomId(16),
-    channelId: client.channelId,
-  };
+  await setPubsubClient(client);
 
   // Send the contact details whenever there is a new contact
   effect(() => {
-    if (!!currentContact.value) {
-      clearTimeout(contactTimeout);
-    }
-    sendContactDetails();
+    console.log("Sending contact details");
+    client.send(detailsToSend.value);
   });
-
-  async function sendContactDetails() {
-    console.log("Sending contact details", detailsToSend.value);
-
-    // TODO only send a diff of these details after the first message
-    await client.send(detailsToSend.value);
-  }
 }
 
-connect().catch(console.error);
+async function loadSettings() {
+  state.value.settings = await browser.storage.local.get([
+    "serverUrl",
+    "yourName",
+    "messageTemplates",
+  ]);
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area === "local") {
+      state.value.settings = {
+        serverUrl:
+          changes.serverUrl?.newValue || state.value.settings?.serverUrl,
+        yourName: changes.yourName?.newValue || state.value.settings?.yourName,
+        messageTemplates:
+          changes.messageTemplates?.newValue ||
+          state.value.settings?.messageTemplates,
+      };
+    }
+  });
+}
