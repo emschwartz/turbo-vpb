@@ -84,6 +84,31 @@ export function markResult(result: string) {
   }
 }
 
+export function onCallResult(
+  callback: (contacted: boolean, result?: string) => void | Promise<void>
+) {
+  let result: string | undefined;
+
+  // Listen for when the result code radio buttons are selected
+  // (but note that the user might click more than one)
+  for (const radioUnit of document.querySelectorAll("li.radio-unit")) {
+    const resultCode = radioUnit.querySelector(".radio-label").textContent;
+    const radioButton = radioUnit.querySelector(
+      'input[type="radio"]'
+    ) as HTMLInputElement;
+    radioButton?.addEventListener("click", () => (result = resultCode));
+  }
+
+  const cancelButton =
+    document.getElementById("contactresultscancelbutton") ||
+    document.getElementById("contactResultsCancelButton");
+  cancelButton?.addEventListener("click", () => (result = null));
+
+  saveNextButton()?.addEventListener("click", () =>
+    callback(result === null, result)
+  );
+}
+
 function couldntReachButton() {
   return (
     document.getElementById("displaycontactresultsbutton") ||
@@ -93,9 +118,9 @@ function couldntReachButton() {
 
 function saveNextButton() {
   return (
-    document.getElementById("openvpbsavenextbutton") ||
-    document.getElementById("openVpbSaveNextButton") ||
     document.getElementById("contactresultssavenextbutton") ||
-    document.getElementById("contactResultsSaveNextButton")
+    document.getElementById("contactResultsSaveNextButton") ||
+    document.getElementById("openvpbsavenextbutton") ||
+    document.getElementById("openVpbSaveNextButton")
   );
 }

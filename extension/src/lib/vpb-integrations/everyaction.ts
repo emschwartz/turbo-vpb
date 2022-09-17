@@ -78,6 +78,27 @@ export function markResult(result: string) {
   }
 }
 
+export function onCallResult(
+  callback: (contacted: boolean, result: string) => void | Promise<void>
+) {
+  let result: string | null = null;
+
+  // Listen for when the result code radio buttons are selected
+  // (but note that the user might click more than one)
+  for (const element of document.getElementsByClassName("script-result")) {
+    const resultCode = element.textContent;
+    const button = element.querySelector(
+      'input[name="resultCodeId"]'
+    ) as HTMLInputElement;
+    button?.addEventListener("click", () => (result = resultCode));
+  }
+
+  const cancelButton = document.getElementById("cancel-has-made-contact");
+  cancelButton?.addEventListener("click", () => (result = null));
+
+  saveNextButton()?.addEventListener("click", () => callback(!result, result));
+}
+
 function couldntReachButton() {
   return (
     document.getElementById("switch") ||

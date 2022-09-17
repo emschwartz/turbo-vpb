@@ -53,6 +53,27 @@ export function markResult(result: string) {
   }
 }
 
+export function onCallResult(
+  callback: (contacted: boolean, result?: string) => void | Promise<void>
+) {
+  let result: string | undefined;
+
+  // Listen for when the result code radio buttons are selected
+  // (but note that the user might click more than one)
+  for (const element of nonContactRadioButtons()) {
+    const resultCode = element?.parentNode?.textContent;
+    const button = element.querySelector(
+      'input[name="resultCodeId"]'
+    ) as HTMLInputElement;
+    button?.addEventListener("click", () => (result = resultCode));
+  }
+
+  const cancelButton = document.querySelector(".clearNonContact");
+  cancelButton?.addEventListener("click", () => (result = null));
+
+  saveNextButton()?.addEventListener("click", () => callback(!result, result));
+}
+
 function nonContactRadioButtons(): HTMLInputElement[] {
   const nonContactResultContainer =
     document.querySelector(".non-contact-top") ||

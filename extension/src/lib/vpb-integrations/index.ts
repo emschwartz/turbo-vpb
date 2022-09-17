@@ -10,6 +10,9 @@ interface VpbIntegration {
   scrapeResultCodes: () => string[] | undefined;
   markResult(code: string): void;
   turboVpbContainerLocation(): Element;
+  onCallResult(
+    callback: (contacted: boolean, result?: string) => void | Promise<void>
+  ): void;
 }
 
 const integrations: { [Property in PhonebankType]: VpbIntegration } = {

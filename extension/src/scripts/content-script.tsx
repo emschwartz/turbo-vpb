@@ -20,7 +20,6 @@ const DEFAULT_SERVER_URL = "http://localhost:8080";
 
 console.log("TurboVPB content script loaded");
 
-const vpb = selectIntegration();
 const settings = signal({} as ExtensionSettings);
 const serverUrl = computed(
   () => settings.value.serverUrl || DEFAULT_SERVER_URL
@@ -50,6 +49,7 @@ const connectUrl = computed(() => {
   }
 });
 const currentContact = signal(undefined as ContactDetails | undefined);
+const lastCallResult = signal(undefined as string | undefined);
 const resultCodes = signal(undefined as string[] | undefined);
 const stats = sessionStoredSignal<Stats>("turboVpbStats", {
   calls: 0,
@@ -61,6 +61,16 @@ effect(() => {
   if (status.value === "connected") {
     showQrCodeModal.value = false;
   }
+});
+const vpb = selectIntegration();
+vpb.onCallResult((contacted, result) => {
+  batch(() => {
+    lastCallResult.value = result;
+
+    if (contacted) {
+      stats.value.successfulCalls += 1;
+    }
+  });
 });
 
 const observer = new MutationObserver(checkForNewContact);
@@ -239,7 +249,7 @@ async function connect() {
       extensionVersion: browser.runtime.getManifest().version,
       extensionUserAgent: navigator.userAgent,
       extensionPlatform: navigator.platform,
-      // TODO add last call result
+      lastCallResult: lastCallResult.value,
     });
   }
 }
