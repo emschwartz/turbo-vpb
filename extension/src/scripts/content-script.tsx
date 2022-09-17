@@ -72,6 +72,17 @@ vpb.onCallResult((contacted, result) => {
     }
   });
 });
+const detailsToSend = computed(() => ({
+  type: "contact",
+  contact: currentContact.value,
+  resultCodes: resultCodes.value,
+  stats: stats.value,
+  messageTemplates: settings.value.messageTemplates,
+  extensionVersion: browser.runtime.getManifest().version,
+  extensionUserAgent: navigator.userAgent,
+  extensionPlatform: navigator.platform,
+  lastCallResult: lastCallResult.value,
+}));
 
 const observer = new MutationObserver(checkForNewContact);
 observer.observe(document, {
@@ -212,14 +223,10 @@ async function connect() {
 
   await client.connect();
 
-  const encryptionKey = await client.exportEncryptionKey();
-  const channelId = client.channelId;
-  const sessionId = connectionDetails.value?.sessionId || randomId(16);
-
   connectionDetails.value = {
-    encryptionKey,
-    sessionId,
-    channelId,
+    encryptionKey: await client.exportEncryptionKey(),
+    sessionId: connectionDetails.value?.sessionId || randomId(16),
+    channelId: client.channelId,
   };
 
   // Send the contact details whenever there is a new contact
@@ -231,26 +238,10 @@ async function connect() {
   });
 
   async function sendContactDetails() {
-    const contact = currentContact.value;
-    if (!contact) {
-      console.error("no contact details");
-      return;
-    }
-
-    console.log("Sending contact details", contact);
+    console.log("Sending contact details", detailsToSend.value);
 
     // TODO only send a diff of these details after the first message
-    await client.send({
-      type: "contact",
-      contact,
-      resultCodes: resultCodes.value,
-      stats: stats.value,
-      messageTemplates: settings.value.messageTemplates,
-      extensionVersion: browser.runtime.getManifest().version,
-      extensionUserAgent: navigator.userAgent,
-      extensionPlatform: navigator.platform,
-      lastCallResult: lastCallResult.value,
-    });
+    await client.send(detailsToSend.value);
   }
 }
 
