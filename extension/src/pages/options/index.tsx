@@ -1,9 +1,8 @@
-import { h, FunctionComponent } from "preact";
+import { FunctionComponent } from "preact";
 import { ExtensionSettings, MessageTemplateDetails } from "src/lib/types";
-import { batch, effect, Signal, signal } from "@preact/signals";
+import { batch, effect, signal } from "@preact/signals";
 import { browser } from "webextension-polyfill-ts";
 import MessageTemplateList from "./message-template-list";
-import ShareSettingsButton from "./share-settings-button";
 import "../../index.css";
 import { InformationCircleIcon } from "@heroicons/react/24/solid";
 

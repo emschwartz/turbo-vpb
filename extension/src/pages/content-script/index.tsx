@@ -38,7 +38,10 @@ effect(() => {
 effect(() => {
   console.log("saving total calls", state.value.totalCalls.value);
   browser.storage.local
-    .set({ totalCalls: state.value.totalCalls.value })
+    .set({
+      totalCalls: state.value.totalCalls.value,
+      dailyCalls: state.value.dailyCalls.value,
+    })
     .catch(console.error);
 });
 
@@ -163,6 +166,7 @@ async function loadSettings() {
     "yourName",
     "messageTemplates",
     "totalCalls",
+    "dailyCalls",
   ]);
   batch(() => {
     state.value.settings = {
@@ -172,6 +176,9 @@ async function loadSettings() {
     };
     if (stored.totalCalls) {
       setTotalCalls(stored.totalCalls);
+    }
+    if (stored.dailyCalls) {
+      state.value.dailyCalls.value = stored.dailyCalls;
     }
   });
 

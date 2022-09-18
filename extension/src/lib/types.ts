@@ -20,6 +20,10 @@ export type Stats = {
   startTime: number;
 };
 
+// This represents the date (YYYY-MM-DD) and the number of calls made on that day
+export type DailyCallStats = [string, number];
+export type DailyCallHistory = DailyCallStats[];
+
 export type ConnectionDetails = {
   encryptionKey: string;
   sessionId: string;

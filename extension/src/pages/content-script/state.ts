@@ -5,6 +5,7 @@ import {
   ConnectionDetails,
   ConnectionStatus,
   ContactDetails,
+  DailyCallHistory,
   ExtensionSettings,
   Stats,
 } from "../../lib/types";
@@ -27,6 +28,7 @@ export const state = signal({
     startTime: Date.now(),
   }),
   totalCalls: signal(0),
+  dailyCalls: signal([] as DailyCallHistory),
   showQrCodeModal: signal(true),
   resultCodes: undefined as string[] | undefined,
   currentContact: signal(undefined as ContactDetails | undefined),
@@ -107,6 +109,8 @@ export function setContactDetailsAndResultCodes(
   resultCodes: string[]
 ) {
   batch(() => {
+    state.value.resultCodes = resultCodes;
+
     const oldContact = state.value.currentContact.value;
     if (!contactsAreEqual(oldContact, contactDetails)) {
       console.log("New contact", contactDetails);
@@ -115,9 +119,24 @@ export function setContactDetailsAndResultCodes(
       state.value.sessionStats.value.lastContactLoadTime = Date.now();
       state.value.currentContact.value = contactDetails;
       state.value.totalCalls.value += 1;
-    }
 
-    state.value.resultCodes = resultCodes;
+      // Keep track of the last month's daily call stats
+      const date = new Date().toLocaleDateString();
+      const dailyCalls = state.value.dailyCalls;
+      let todaysRecord = dailyCalls.value[dailyCalls.value.length - 1];
+      // Add a new record for today if it doesn't exist
+      if (!todaysRecord || todaysRecord[0] !== date) {
+        todaysRecord = [date, 0];
+        dailyCalls.value.push(todaysRecord);
+
+        // Limit it to 31 days of records
+        if (dailyCalls.value.length > 31) {
+          dailyCalls.value.shift();
+        }
+      }
+      todaysRecord[1] += 1;
+      state.value.dailyCalls = dailyCalls;
+    }
   });
 }
 
