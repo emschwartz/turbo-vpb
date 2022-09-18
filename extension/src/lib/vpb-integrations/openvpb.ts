@@ -47,6 +47,25 @@ export function scrapeContactDetails(): ContactDetails {
   }
 }
 
+// The result codes are in the following format:
+/*
+<ul class="radio-list contact-results">
+  <li class="radio-unit">
+    <input
+      id="result-1"
+      class="radio"
+      name="script-contact-result"
+      type="radio"
+      aria-labelledby="result-1-label"
+      value="1"
+    />
+
+    <label id="result-1-label" class="radio-label" for="result-1">
+      Not Home
+    </label>
+  </li>
+</ul>
+*/
 export function scrapeResultCodes(): string[] | undefined {
   const button = couldntReachButton();
   if (!button) {
@@ -93,10 +112,7 @@ export function onCallResult(
   // (but note that the user might click more than one)
   for (const radioUnit of document.querySelectorAll("li.radio-unit")) {
     const resultCode = radioUnit.querySelector(".radio-label").textContent;
-    const radioButton = radioUnit.querySelector(
-      'input[type="radio"]'
-    ) as HTMLInputElement;
-    radioButton?.addEventListener("click", () => (result = resultCode));
+    radioUnit?.addEventListener("click", () => (result = resultCode));
   }
 
   const cancelButton =
