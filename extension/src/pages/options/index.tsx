@@ -48,27 +48,6 @@ function setYourName(name: string) {
   yourName.value = name;
 }
 
-const TextMessageSettings: FunctionComponent = () => (
-  <div class="space-y-8 divide-gray-200">
-    <div>
-      <h3 class="text-lg leading-6 font-medium text-gray-900">
-        Text Message Settings
-      </h3>
-      <p class="mt-1 text-sm leading-5 text-gray-500">
-        Create message templates below to enable 2-click texting. Buttons to
-        send each message will appear on TurboVPB on your phone.
-      </p>
-
-      <p class="mt-2">
-        <ShareSettingsButton
-          templates={messageTemplates}
-          serverUrl={serverUrl}
-        />
-      </p>
-    </div>
-  </div>
-);
-
 const TextReplacement: FunctionComponent = () => (
   <div>
     <div>
@@ -76,8 +55,9 @@ const TextReplacement: FunctionComponent = () => (
         Automatic Text Replacement
       </h3>
       <p className="mt-1 text-sm text-gray-500">
-        TurboVPB automatically personalizes your messages by replacing keywords
-        from your message templates with your name and the contact's details.
+        TurboVPB automatically personalizes your text messages by replacing
+        keywords from your message templates with your name and the contact's
+        details.
       </p>
     </div>
 
@@ -158,11 +138,9 @@ const AdvancedSettings: FunctionComponent = () => (
 const OptionsPage: FunctionComponent = () => {
   return (
     <div class="container p-8 space-y-8 divide-gray-200">
-      <TextMessageSettings />
-
       <TextReplacement />
 
-      <MessageTemplateList templates={messageTemplates} />
+      <MessageTemplateList templates={messageTemplates} serverUrl={serverUrl} />
 
       <hr />
 
