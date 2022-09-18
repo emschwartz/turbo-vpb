@@ -1,20 +1,31 @@
-import { h, FunctionComponent } from "preact";
+import { FunctionComponent } from "preact";
 import { MessageTemplateDetails } from "src/lib/types";
+import { TrashIcon, XMarkIcon } from "@heroicons/react/20/solid";
 
-const DeleteIcon: FunctionComponent = () => (
-  <svg
-    width=".8em"
-    height=".8em"
-    viewBox="0 0 16 16"
-    class="bi bi-trash-fill"
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      fill-rule="evenodd"
-      d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5a.5.5 0 0 0-1 0v7a.5.5 0 0 0 1 0v-7z"
-    />
-  </svg>
+const SelectTexted: FunctionComponent<{
+  selectTexted: boolean;
+  editTemplate: (template: Partial<MessageTemplateDetails>) => void;
+}> = ({ selectTexted, editTemplate }) => (
+  <div className="relative flex items-start mt-2">
+    <div
+      className="flex h-5 items-center"
+      onClick={() => editTemplate({ sendTextedResult: !selectTexted })}
+    >
+      <input
+        id="select-texted"
+        aria-describedby="select-texted-description"
+        name="select-texted"
+        type="checkbox"
+        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        checked={selectTexted}
+      />
+    </div>
+    <div className="ml-3 text-sm">
+      <span id="select-texted-description" className="text-gray-700">
+        Select <b>Texted</b> result code when sending this message
+      </span>
+    </div>
+  </div>
 );
 
 const MessageTemplate: FunctionComponent<{
@@ -23,56 +34,44 @@ const MessageTemplate: FunctionComponent<{
   deleteTemplate: () => void;
 }> = ({ messageTemplate, editTemplate, deleteTemplate }) => {
   return (
-    <div class="card pt-2 px-2 mb-3 bg-light">
-      <div class="form-row">
-        <div class="col">
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Message Label (e.g. Didn't Get Through Message, More Info, etc.)"
-            value={messageTemplate.label as any as string}
-            onInput={(e) =>
-              editTemplate({ label: (e.target as HTMLInputElement).value })
-            }
-          />
-        </div>
-        <div class="col-auto">
-          <button
-            type="button btn-sm align-middle"
-            class="close"
-            aria-label="Delete message template"
-            onClick={deleteTemplate}
-          >
-            <DeleteIcon />
-          </button>
-        </div>
-      </div>
-      <textarea
-        class="form-control"
-        rows={4}
-        placeholder="Message Contents
-(for example: Hi [Their Name], this is [Your Name] from...)"
-        onInput={(e) =>
-          editTemplate({ message: (e.target as HTMLTextAreaElement).value })
-        }
-      >
-        {messageTemplate.message}
-      </textarea>
-      <div class="form-group form-check form-check-inline">
+    <div class="">
+      <div class="relative mt-1 -space-y-px rounded-md bg-white shadow-sm">
         <input
-          type="checkbox"
-          class="form-check-input"
-          checked={messageTemplate.sendTextedResult as any as boolean}
-          onInput={(e) =>
-            editTemplate({
-              sendTextedResult: (e.target as HTMLInputElement).checked,
-            })
-          }
+          type="text"
+          name="template-label"
+          class="relative block w-full rounded-md rounded-b-none border-gray-300 bg-transparent focus:z-10 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          placeholder="Template label to appear on TurboVPB button"
+          value={messageTemplate.label}
+          onInput={(e) => editTemplate({ label: e.currentTarget.value })}
         />
-        <label class="form-check-label">
-          Select <code>Texted</code> result code and load next contact after
-          sending?
-        </label>
+        <button
+          class="absolute inset-y-0 right-0 pr-3 flex items-center"
+          onClick={deleteTemplate}
+          title="Delete template"
+        >
+          <TrashIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
+        </button>
+      </div>
+      <div class="relative rounded-md -space-y-px rounded-t-none border border-gray-300 px-3 py-2 focus-within:z-10 focus-within:border-indigo-600 focus-within:ring-1 focus-within:ring-indigo-600">
+        <textarea
+          class="block w-full border-0 p-0 text-gray-900 placeholder-gray-500 focus:ring-0"
+          rows={3}
+          placeholder={
+            "Message Contents\n\nHi [Their Name], this is [Your Name] from..."
+          }
+          onInput={(e) =>
+            editTemplate({ message: (e.target as HTMLTextAreaElement).value })
+          }
+        >
+          {messageTemplate.message}
+        </textarea>
+      </div>
+
+      <div class="mt-2 mb-4">
+        <SelectTexted
+          editTemplate={editTemplate}
+          selectTexted={messageTemplate.sendTextedResult}
+        />
       </div>
     </div>
   );

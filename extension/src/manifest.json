@@ -36,13 +36,12 @@
   },
   "options_ui": {
     "page": "static/options.html",
-    "browser_style": true
+    "browser_style": false
   },
   "content_scripts": [
     {
       "matches": ["http://localhost/test-phonebank*"],
-      "js": ["pages/content-script/index.tsx"],
-      "css": ["scss/main.scss"]
+      "js": ["pages/content-script/index.tsx"]
     },
     {
       "matches": ["https://*.turbovpb.com/share*", "http://localhost/share*"],
