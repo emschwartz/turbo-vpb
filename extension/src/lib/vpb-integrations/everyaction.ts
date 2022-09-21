@@ -56,28 +56,31 @@ export function scrapeContactDetails(): ContactDetails {
   }
 }
 
-export function scrapeResultCodes(): string[] | undefined {
-  const resultCodes = Object.keys(getResultCodes());
+export async function scrapeResultCodes(): Promise<string[] | undefined> {
+  const resultCodes = Object.keys(await getResultCodes());
   cancelButton()?.click();
   return resultCodes;
 }
 
-export function markResult(resultCode: string) {
-  const element = getResultCodes()[resultCode];
+export async function markResult(resultCode: string) {
+  const element = await getResultCodes()[resultCode];
   if (element) {
     const input = element.querySelector(
       "input[type='radio']"
     ) as HTMLInputElement;
     input.click();
     console.log("Marked result:", resultCode);
-    setTimeout(() => saveNextButton().click(), 10);
+    await sleep();
+    saveNextButton().click();
   } else {
     console.warn("Result code not found:", resultCode);
   }
 }
 
-function getResultCodes(): { [key: string]: HTMLElement } {
+async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
   couldntReachButton()?.click();
+  await sleep();
+
   const elements = Array.from(document.getElementsByClassName("script-result"));
   const results = {};
 
@@ -88,24 +91,29 @@ function getResultCodes(): { [key: string]: HTMLElement } {
   return results;
 }
 
-export function onCallResult(
+export async function onCallResult(
   callback: (contacted: boolean, result: string) => void | Promise<void>
 ) {
   let result: string | null = null;
 
   // Listen for when the result code radio buttons are selected
   // (but note that the user might click more than one)
-  const resultCodes = getResultCodes();
+  const resultCodes = await getResultCodes();
   for (const resultCode in resultCodes) {
     resultCodes[resultCode].addEventListener(
       "click",
       () => (result = resultCode)
     );
   }
+  cancelButton()?.click();
 
   cancelButton()?.addEventListener("click", () => (result = null));
 
   saveNextButton()?.addEventListener("click", () => callback(!result, result));
+}
+
+async function sleep() {
+  await new Promise((resolve) => setTimeout(resolve, 10));
 }
 
 function couldntReachButton() {

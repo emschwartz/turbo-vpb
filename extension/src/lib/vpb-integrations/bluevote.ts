@@ -29,7 +29,7 @@ export function scrapeContactDetails(): ContactDetails | undefined {
   }
 }
 
-export function scrapeResultCodes(): string[] | undefined {
+export async function scrapeResultCodes(): Promise<string[] | undefined> {
   const elements = nonContactRadioButtons();
   if (elements.length === 0) {
     console.error("Could not find Result Codes");
@@ -38,7 +38,7 @@ export function scrapeResultCodes(): string[] | undefined {
   return elements.map((e) => e.value);
 }
 
-export function markResult(result: string) {
+export async function markResult(result: string) {
   let resultCode = result.toLowerCase();
   if (resultCode !== "texted") {
     resultCode = "not home";
@@ -47,7 +47,8 @@ export function markResult(result: string) {
     for (let radioUnit of nonContactRadioButtons()) {
       if (radioUnit.parentNode.textContent.toLowerCase() === resultCode) {
         radioUnit.click();
-        setTimeout(() => saveNextButton().click(), 1);
+        await sleep();
+        saveNextButton().click();
         return;
       }
     }
@@ -57,7 +58,7 @@ export function markResult(result: string) {
   }
 }
 
-export function onCallResult(
+export async function onCallResult(
   callback: (contacted: boolean, result?: string) => void | Promise<void>
 ) {
   let result: string | null = null;
@@ -76,6 +77,10 @@ export function onCallResult(
   cancelButton?.addEventListener("click", () => (result = null));
 
   saveNextButton()?.addEventListener("click", () => callback(!result, result));
+}
+
+async function sleep() {
+  await new Promise((resolve) => setTimeout(resolve, 10));
 }
 
 function nonContactRadioButtons(): HTMLInputElement[] {

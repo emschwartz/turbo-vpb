@@ -6,6 +6,9 @@ export const type = "openvpb";
 
 export function turboVpbContainerLocation() {
   const container = document.getElementById("openvpbsidebarcontainer");
+  if (!container) {
+    return;
+  }
   const div = document.createElement("div");
   container.append(div);
   return div;
@@ -73,14 +76,41 @@ export function scrapeContactDetails(): ContactDetails {
   </li>
 </ul>
 */
-export function scrapeResultCodes(): string[] | undefined {
-  const resultCodes = Object.keys(getResultCodes());
+export async function scrapeResultCodes(): Promise<string[] | undefined> {
+  const resultCodes = Object.keys(await getResultCodes());
   cancelButton()?.click();
   return resultCodes;
 }
 
-function getResultCodes(): { [key: string]: HTMLElement } {
+export async function markResult(resultCode: string) {
+  const resultCodes = await getResultCodes();
+  const li = resultCodes[resultCode];
+  const input = li.querySelector("input[type='radio']") as HTMLInputElement;
+  input.click();
+  await sleep();
+  saveNextButton().click();
+}
+
+export async function onCallResult(
+  callback: (contacted: boolean, result?: string) => void | Promise<void>
+) {
+  saveNextButton().addEventListener("click", () => {
+    const selectedRadioButton = document.querySelector(
+      ".contact-results input[type=radio]:checked"
+    );
+    console.log("selectedRadioButton", selectedRadioButton);
+    if (selectedRadioButton) {
+      callback(false, selectedRadioButton.parentNode.textContent.trim());
+    } else {
+      callback(true);
+    }
+  });
+}
+
+async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
   couldntReachButton()?.click();
+
+  await sleep();
 
   const elements = document.querySelectorAll(".contact-results li");
   const resultCodes = {};
@@ -93,31 +123,8 @@ function getResultCodes(): { [key: string]: HTMLElement } {
   return resultCodes;
 }
 
-export function markResult(resultCode: string) {
-  const li = getResultCodes()[resultCode];
-  const input = li.querySelector("input[type='radio']") as HTMLInputElement;
-  input.click();
-  setTimeout(() => saveNextButton().click(), 1);
-}
-
-export function onCallResult(
-  callback: (contacted: boolean, result?: string) => void | Promise<void>
-) {
-  let result: string | null = null;
-
-  // Listen for when the result code radio buttons are selected
-  // (but note that the user might click more than one)
-  const resultCodes = getResultCodes();
-  for (const resultCode in resultCodes) {
-    resultCodes[resultCode].addEventListener(
-      "click",
-      () => (result = resultCode)
-    );
-  }
-
-  cancelButton()?.addEventListener("click", () => (result = null));
-
-  saveNextButton()?.addEventListener("click", () => callback(!result, result));
+async function sleep() {
+  await new Promise((resolve) => setTimeout(resolve, 10));
 }
 
 function couldntReachButton() {

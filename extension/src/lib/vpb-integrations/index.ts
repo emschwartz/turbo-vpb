@@ -7,12 +7,12 @@ import { browser } from "webextension-polyfill-ts";
 interface VpbIntegration {
   type: PhonebankType;
   scrapeContactDetails: () => ContactDetails | undefined;
-  scrapeResultCodes: () => string[] | undefined;
-  markResult(code: string): void;
+  scrapeResultCodes: () => Promise<string[] | undefined>;
+  markResult(code: string): Promise<void>;
   turboVpbContainerLocation(): Element;
   onCallResult(
     callback: (contacted: boolean, result?: string) => void | Promise<void>
-  ): void;
+  ): Promise<void>;
 }
 
 const integrations: { [Property in PhonebankType]: VpbIntegration } = {
