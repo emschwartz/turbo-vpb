@@ -88,23 +88,62 @@ export async function markResult(resultCode: string) {
   const input = li.querySelector("input[type='radio']") as HTMLInputElement;
   input.click();
   await sleep();
-  saveNextButton().click();
+  saveNextButton()?.click();
 }
 
-export async function onCallResult(
+export function onCallResult(
   callback: (contacted: boolean, result?: string) => void | Promise<void>
 ) {
-  saveNextButton().addEventListener("click", () => {
+  // Determine which call result is selected
+  const handler = () => {
     const selectedRadioButton = document.querySelector(
       ".contact-results input[type=radio]:checked"
     );
-    console.log("selectedRadioButton", selectedRadioButton);
-    if (selectedRadioButton) {
-      callback(false, selectedRadioButton.parentNode.textContent.trim());
+    const resultCode = (
+      selectedRadioButton as HTMLInputElement
+    )?.labels[0].textContent.trim();
+    if (resultCode) {
+      callback(false, resultCode);
     } else {
       callback(true);
     }
-  });
+  };
+  // When the Couldn't Reach button is clicked, add the event listener
+  // to the separate save result button that appears
+  const setupContactResultsButton = async () => {
+    await sleep();
+    const buttons = [
+      document.getElementById("contactresultssavenextbutton"),
+      document.getElementById("contactresultstryalternatephone"),
+    ];
+    for (const button of buttons) {
+      setupButton(handler, button);
+    }
+    // If the call result is unselected again, the other buttons will
+    // be re-rendered so we need to set the whole thing up again
+    cancelButton()?.addEventListener("click", async () => {
+      await sleep();
+      onCallResult(callback);
+    });
+  };
+  // Add an event listener and add a marker class so we don't accidentally
+  // add multiple event listeners
+  // (this is somewhat confusing because various elements on the page are
+  // removed and re-rendered at various points)
+  const setupButton = (handler: () => void, button?: HTMLElement) => {
+    const markerClass = "turbovpb-click-handler";
+
+    if (button && !button.classList.contains(markerClass)) {
+      button.classList.add(markerClass);
+      button.addEventListener("click", handler);
+    }
+  };
+
+  // This button is always visiable
+  setupButton(handler, document.getElementById("openvpbsavenextbutton"));
+
+  // Wait for the Couldn't Reach button to be pressed to set up the other listeners
+  setupButton(setupContactResultsButton, couldntReachButton());
 }
 
 async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {

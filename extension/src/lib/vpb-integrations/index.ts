@@ -12,7 +12,7 @@ interface VpbIntegration {
   turboVpbContainerLocation(): Element;
   onCallResult(
     callback: (contacted: boolean, result?: string) => void | Promise<void>
-  ): Promise<void>;
+  ): void;
 }
 
 const integrations: { [Property in PhonebankType]: VpbIntegration } = {

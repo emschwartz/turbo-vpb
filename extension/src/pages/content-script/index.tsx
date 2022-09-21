@@ -26,7 +26,6 @@ import "../../index.css";
 // Startup routine when the content script is loaded
 const vpb = selectIntegration();
 console.log(`TurboVPB content script loaded and using ${vpb.type} integration`);
-vpb.onCallResult(setLastCallResult);
 watchForSidebar();
 watchForResultCodes();
 watchForNewContacts();
@@ -48,8 +47,15 @@ effect(() => {
 });
 // Send the contact details whenever there is a new contact
 effect(() => {
-  console.log("Sending contact details", detailsToSend.value);
-  state.pubsubClient.value?.send(detailsToSend.value);
+  if (state.pubsubClient.value) {
+    console.log("Sending contact details", detailsToSend.value);
+    state.pubsubClient.value?.send(detailsToSend.value);
+  }
+
+  vpb.onCallResult(setLastCallResult);
+});
+effect(() => {
+  console.log(state.sessionStats.value);
 });
 
 function listenForExtensionMessages() {

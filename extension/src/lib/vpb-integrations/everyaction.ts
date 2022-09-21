@@ -63,7 +63,8 @@ export async function scrapeResultCodes(): Promise<string[] | undefined> {
 }
 
 export async function markResult(resultCode: string) {
-  const element = await getResultCodes()[resultCode];
+  const resultCodes = await getResultCodes();
+  const element = resultCodes[resultCode];
   if (element) {
     const input = element.querySelector(
       "input[type='radio']"
@@ -73,7 +74,7 @@ export async function markResult(resultCode: string) {
     await sleep();
     saveNextButton().click();
   } else {
-    console.warn("Result code not found:", resultCode);
+    console.warn("Result code not found:", resultCode, resultCodes);
   }
 }
 
@@ -91,25 +92,28 @@ async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
   return results;
 }
 
-export async function onCallResult(
-  callback: (contacted: boolean, result: string) => void | Promise<void>
+export function onCallResult(
+  callback: (contacted: boolean, result?: string) => void | Promise<void>
 ) {
-  let result: string | null = null;
+  const markerClass = "turbovpb-click-handler";
+  const saveNext = saveNextButton();
+  if (saveNext && !saveNext.classList.contains(markerClass)) {
+    saveNext.classList.add(markerClass);
 
-  // Listen for when the result code radio buttons are selected
-  // (but note that the user might click more than one)
-  const resultCodes = await getResultCodes();
-  for (const resultCode in resultCodes) {
-    resultCodes[resultCode].addEventListener(
-      "click",
-      () => (result = resultCode)
-    );
+    saveNextButton().addEventListener("click", () => {
+      const selectedRadioButton = document.querySelector(
+        ".script-result input[type=radio]:checked"
+      );
+      const callResult = selectedRadioButton?.parentNode.textContent
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      if (callResult) {
+        callback(false, callResult);
+      } else {
+        callback(true);
+      }
+    });
   }
-  cancelButton()?.click();
-
-  cancelButton()?.addEventListener("click", () => (result = null));
-
-  saveNextButton()?.addEventListener("click", () => callback(!result, result));
 }
 
 async function sleep() {

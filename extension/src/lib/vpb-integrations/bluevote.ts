@@ -58,7 +58,7 @@ export async function markResult(result: string) {
   }
 }
 
-export async function onCallResult(
+export function onCallResult(
   callback: (contacted: boolean, result?: string) => void | Promise<void>
 ) {
   let result: string | null = null;

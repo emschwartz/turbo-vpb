@@ -15,7 +15,13 @@ export const sessionStoredSignal = <T>(
   let previous: T;
   try {
     previous = JSON.parse(sessionStorage.getItem(sessionStorageKey));
-  } catch (err) {}
+  } catch (err) {
+    console.error(
+      "Error loading value from session storage:",
+      sessionStorageKey,
+      err
+    );
+  }
 
   const s = signal(previous || defaultValue);
 

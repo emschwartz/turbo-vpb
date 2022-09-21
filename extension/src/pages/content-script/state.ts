@@ -65,8 +65,6 @@ export const detailsToSend = computed(() => {
     contact: state.currentContact.value,
     messageTemplates: state.settings.value?.messageTemplates,
     resultCodes: state.resultCodes.value,
-
-    // Don't send the details when these change
     stats: state.sessionStats.value,
     lastCallResult: state.lastCallResult.value,
 
@@ -86,13 +84,40 @@ export function hideQrCodeModal() {
 }
 
 export function setLastCallResult(contacted: boolean, result: string) {
-  console.log("Last call result:", contacted ? "Contacted" : result);
-  batch(() => {
-    state.lastCallResult.value = result;
+  const resultCode = contacted ? "Contacted" : result;
+  console.log("Last call result:", resultCode);
 
-    if (contacted) {
-      state.sessionStats.value.successfulCalls += 1;
+  // Update the statistics
+  batch(() => {
+    state.lastCallResult.value = resultCode;
+
+    const sessionStats = state.sessionStats.value;
+    state.sessionStats.value = {
+      successfulCalls: sessionStats.successfulCalls + (contacted ? 1 : 0),
+      calls: sessionStats.calls + 1,
+      lastContactLoadTime: Date.now(),
+      startTime: sessionStats.startTime,
+    };
+    console.log(state, state.sessionStats, state.sessionStats.value);
+
+    state.totalCalls.value += 1;
+
+    // Keep track of the last month's daily call stats
+    const date = new Date().toLocaleDateString();
+    const dailyCalls = state.dailyCalls;
+    let todaysRecord = dailyCalls.value[dailyCalls.value.length - 1];
+    // Add a new record for today if it doesn't exist
+    if (!todaysRecord || todaysRecord[0] !== date) {
+      todaysRecord = [date, 0];
+      dailyCalls.value.push(todaysRecord);
+
+      // Limit it to 31 days of records
+      if (dailyCalls.value.length > 31) {
+        dailyCalls.value.shift();
+      }
     }
+    todaysRecord[1] += 1;
+    state.dailyCalls = dailyCalls;
   });
 }
 
@@ -111,27 +136,6 @@ export function setContactDetails(contactDetails: ContactDetails) {
       console.log("New contact", contactDetails);
 
       state.currentContact.value = contactDetails;
-
-      state.sessionStats.value.calls += 1;
-      state.sessionStats.value.lastContactLoadTime = Date.now();
-      state.totalCalls.value += 1;
-
-      // Keep track of the last month's daily call stats
-      const date = new Date().toLocaleDateString();
-      const dailyCalls = state.dailyCalls;
-      let todaysRecord = dailyCalls.value[dailyCalls.value.length - 1];
-      // Add a new record for today if it doesn't exist
-      if (!todaysRecord || todaysRecord[0] !== date) {
-        todaysRecord = [date, 0];
-        dailyCalls.value.push(todaysRecord);
-
-        // Limit it to 31 days of records
-        if (dailyCalls.value.length > 31) {
-          dailyCalls.value.shift();
-        }
-      }
-      todaysRecord[1] += 1;
-      state.dailyCalls = dailyCalls;
     }
   });
 }
