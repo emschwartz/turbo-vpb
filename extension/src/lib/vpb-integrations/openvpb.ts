@@ -8,9 +8,12 @@ export const turboVpbContainerLocation = () =>
   document.getElementById("openvpbsidebarcontainer");
 
 export function scrapeContactDetails(): ContactDetails {
+  dismissFirstCallPopup();
+
   const phoneNumber = (
     document.getElementById("openVpbPhoneLink") ||
     document.getElementById("openvpbphonelink") ||
+    document.getElementById("openvpb-phone-link-current") ||
     Array.from(document.getElementsByTagName("a")).find(
       (a) =>
         a.href.startsWith("tel:") &&
@@ -76,9 +79,13 @@ export function scrapeResultCodes(): string[] | undefined {
   const elements = document.querySelectorAll(
     "input[name='script-contact-result']"
   );
-  return Array.from(elements)
+  const resultCodes = Array.from(elements)
     .map((element) => (element as HTMLInputElement).labels[0].innerText)
     .filter((code) => !!code);
+
+  cancelButton()?.click();
+
+  return resultCodes;
 }
 
 export function markResult(result: string) {
@@ -115,10 +122,7 @@ export function onCallResult(
     radioUnit?.addEventListener("click", () => (result = resultCode));
   }
 
-  const cancelButton =
-    document.getElementById("contactresultscancelbutton") ||
-    document.getElementById("contactResultsCancelButton");
-  cancelButton?.addEventListener("click", () => (result = null));
+  cancelButton()?.addEventListener("click", () => (result = null));
 
   saveNextButton()?.addEventListener("click", () => callback(!result, result));
 }
@@ -130,11 +134,24 @@ function couldntReachButton() {
   );
 }
 
+function cancelButton() {
+  return (
+    document.getElementById("contactresultscancelbutton") ||
+    document.getElementById("contactResultsCancelButton")
+  );
+}
+
 function saveNextButton() {
   return (
     document.getElementById("contactresultssavenextbutton") ||
     document.getElementById("contactResultsSaveNextButton") ||
     document.getElementById("openvpbsavenextbutton") ||
-    document.getElementById("openVpbSaveNextButton")
+    document.getElementById("openVpbSaveNextButton") ||
+    document.getElementById("contactresultstryalternatephone")
   );
+}
+
+function dismissFirstCallPopup() {
+  const nextCall = document.getElementById("firstcallmodalnextcallbutton");
+  nextCall?.click();
 }
