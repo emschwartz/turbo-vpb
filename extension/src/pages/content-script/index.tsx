@@ -48,6 +48,11 @@ effect(() => {
     })
     .catch(console.error);
 });
+// Send the contact details whenever there is a new contact
+effect(() => {
+  console.log("Sending contact details", detailsToSend.value);
+  state.value.pubsubClient?.send(detailsToSend.value);
+});
 
 function listenForExtensionMessages() {
   browser.runtime.onMessage.addListener((message) => {
@@ -77,7 +82,8 @@ function watchForSidebar() {
 function watchForResultCodes() {
   const interval = setInterval(() => {
     const resultCodes = vpb.scrapeResultCodes();
-    if (resultCodes) {
+    if (resultCodes && resultCodes.length > 0) {
+      console.log("Scraped result codes", resultCodes);
       setResultCodes(resultCodes);
       clearInterval(interval);
     }
@@ -168,12 +174,6 @@ async function connectPubsubClient() {
 
   await client.connect();
   await setPubsubClient(client);
-
-  // Send the contact details whenever there is a new contact
-  effect(() => {
-    console.log("Sending contact details");
-    client.send(detailsToSend.value);
-  });
 }
 
 async function loadSettings() {

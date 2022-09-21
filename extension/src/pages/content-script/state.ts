@@ -30,7 +30,7 @@ export const state = signal({
   totalCalls: signal(0),
   dailyCalls: signal([] as DailyCallHistory),
   showQrCodeModal: signal(true),
-  resultCodes: undefined as string[] | undefined,
+  resultCodes: signal(undefined as string[] | undefined),
   currentContact: signal(undefined as ContactDetails | undefined),
   lastCallResult: undefined as string | undefined,
 });
@@ -64,10 +64,10 @@ export const detailsToSend = computed(() => {
     type: "contact",
     // Send the details whenever these change
     contact: currentState.currentContact.value,
+    messageTemplates: state.value.settings?.messageTemplates,
+    resultCodes: state.value.resultCodes.value,
 
     // Don't send the details when these change
-    messageTemplates: currentState.settings.messageTemplates,
-    resultCodes: currentState.resultCodes,
     stats: currentState.sessionStats.value,
     lastCallResult: currentState.lastCallResult,
 
@@ -76,6 +76,7 @@ export const detailsToSend = computed(() => {
     extensionUserAgent: navigator.userAgent,
     extensionPlatform: navigator.platform,
   };
+  console.log("Details changed", details);
   return details;
 });
 
@@ -107,7 +108,7 @@ export const totalCalls = computed(() => state.value.totalCalls.value);
 export const dailyCalls = computed(() => state.value.dailyCalls.value);
 
 export function setResultCodes(resultCodes: string[]) {
-  state.value.resultCodes = resultCodes;
+  state.value.resultCodes.value = resultCodes;
 }
 
 export function setContactDetails(contactDetails: ContactDetails) {

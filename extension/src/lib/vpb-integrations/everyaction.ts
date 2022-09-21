@@ -48,34 +48,35 @@ export function scrapeContactDetails(): ContactDetails {
 }
 
 export function scrapeResultCodes(): string[] | undefined {
-  const button = couldntReachButton();
-  if (!button) {
-    return;
-  }
-  button.click();
-
-  const elements = Array.from(document.getElementsByClassName("script-result"));
-  return elements.map((element) => element.textContent);
+  const resultCodes = Object.keys(getResultCodes());
+  cancelButton()?.click();
+  return resultCodes;
 }
 
-export function markResult(result: string) {
-  const resultCode = result.toLowerCase();
-  try {
-    couldntReachButton().click();
-    const textedResult = Array.from(
-      document.querySelectorAll('input[name="resultCodeId"]')
-    ).filter(
-      (node) => node.parentNode.textContent.toLowerCase() === resultCode
-    )[0];
-    if (textedResult) {
-      (textedResult as HTMLInputElement).click();
-      setTimeout(() => saveNextButton().click(), 1);
-    } else {
-      console.warn("Result code not found:", result);
-    }
-  } catch (err) {
-    console.error(err);
+export function markResult(resultCode: string) {
+  const element = getResultCodes()[resultCode];
+  if (element) {
+    const input = element.querySelector(
+      "input[type='radio']"
+    ) as HTMLInputElement;
+    input.click();
+    console.log("Marked result:", resultCode);
+    setTimeout(() => saveNextButton().click(), 10);
+  } else {
+    console.warn("Result code not found:", resultCode);
   }
+}
+
+function getResultCodes(): { [key: string]: HTMLElement } {
+  couldntReachButton()?.click();
+  const elements = Array.from(document.getElementsByClassName("script-result"));
+  const results = {};
+
+  for (const element of elements) {
+    const resultCode = element.textContent.replace(/\s{2,}/g, " ").trim();
+    results[resultCode] = element;
+  }
+  return results;
 }
 
 export function onCallResult(
@@ -93,8 +94,7 @@ export function onCallResult(
     button?.addEventListener("click", () => (result = resultCode));
   }
 
-  const cancelButton = document.getElementById("cancel-has-made-contact");
-  cancelButton?.addEventListener("click", () => (result = null));
+  cancelButton()?.addEventListener("click", () => (result = null));
 
   saveNextButton()?.addEventListener("click", () => callback(!result, result));
 }
@@ -104,6 +104,10 @@ function couldntReachButton() {
     document.getElementById("switch") ||
     document.querySelector("button.btn.btn-warning")
   );
+}
+
+function cancelButton() {
+  return document.getElementById("cancel-has-made-contact");
 }
 
 function saveNextButton() {
