@@ -39,7 +39,7 @@ const MessageTemplate: FunctionComponent<{
         <input
           type="text"
           name="template-label"
-          class="relative block w-full rounded-md rounded-b-none border-gray-300 bg-transparent focus:z-10 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          class="relative block w-full rounded-md rounded-b-none border-gray-300 bg-transparent focus:z-10 focus:border-blue-500 focus:ring-blue-500"
           placeholder="Template label to appear on TurboVPB button"
           value={messageTemplate.label}
           onInput={(e) => editTemplate({ label: e.currentTarget.value })}
@@ -52,7 +52,7 @@ const MessageTemplate: FunctionComponent<{
           <TrashIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
         </button>
       </div>
-      <div class="relative rounded-md -space-y-px rounded-t-none border border-gray-300 px-3 py-2 focus-within:z-10 focus-within:border-indigo-600 focus-within:ring-1 focus-within:ring-indigo-600">
+      <div class="relative rounded-md -space-y-px rounded-t-none border border-gray-300 px-3 py-2 focus-within:z-10 focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600">
         <textarea
           class="block w-full border-0 p-0 text-gray-900 placeholder-gray-500 focus:ring-0"
           rows={3}

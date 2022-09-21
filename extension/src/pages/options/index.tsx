@@ -136,7 +136,7 @@ const AdvancedSettings: FunctionComponent = () => (
 
 const OptionsPage: FunctionComponent = () => {
   return (
-    <div class="container p-8 space-y-8 divide-gray-200">
+    <div class="container p-8 space-y-8 divide-gray-200 mx-auto">
       <TextReplacement />
 
       <MessageTemplateList templates={messageTemplates} serverUrl={serverUrl} />
