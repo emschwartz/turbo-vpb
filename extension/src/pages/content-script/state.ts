@@ -64,9 +64,9 @@ export const detailsToSend = computed(() => {
     type: "contact",
     // Send the details whenever these change
     contact: currentState.currentContact.value,
-    messageTemplates: currentState.settings.messageTemplates,
 
     // Don't send the details when these change
+    messageTemplates: currentState.settings.messageTemplates,
     resultCodes: currentState.resultCodes,
     stats: currentState.sessionStats.value,
     lastCallResult: currentState.lastCallResult,
@@ -76,7 +76,6 @@ export const detailsToSend = computed(() => {
     extensionUserAgent: navigator.userAgent,
     extensionPlatform: navigator.platform,
   };
-  console.log(details);
   return details;
 });
 
@@ -104,13 +103,15 @@ export function setTotalCalls(totalCalls: number) {
   state.value.totalCalls = total;
 }
 
-export function setContactDetailsAndResultCodes(
-  contactDetails: ContactDetails,
-  resultCodes: string[]
-) {
-  batch(() => {
-    state.value.resultCodes = resultCodes;
+export const totalCalls = computed(() => state.value.totalCalls.value);
+export const dailyCalls = computed(() => state.value.dailyCalls.value);
 
+export function setResultCodes(resultCodes: string[]) {
+  state.value.resultCodes = resultCodes;
+}
+
+export function setContactDetails(contactDetails: ContactDetails) {
+  batch(() => {
     const oldContact = state.value.currentContact.value;
     if (!contactsAreEqual(oldContact, contactDetails)) {
       console.log("New contact", contactDetails);

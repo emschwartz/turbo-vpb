@@ -29,7 +29,7 @@ export function selectPhonebankType(
 ): PhonebankType | undefined {
   const url = new URL(currentUrl);
   if (
-    url.hostname === "openvpb.com" ||
+    url.hostname.endsWith("openvpb.com") ||
     // The test phonebank uses the same style as OpenVPB
     (url.hostname.endsWith("turbovpb.com") &&
       url.pathname.startsWith("/test-phonebank")) ||

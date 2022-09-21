@@ -56,6 +56,7 @@ export default class PubSubClient {
 
     // Wait for the first connection to make sure we can actually connect
     await new Promise((resolve, reject) => {
+      const ws = this.ws;
       function errorHandler({ message }) {
         removeListeners();
         reject(new Error(message));
@@ -65,13 +66,13 @@ export default class PubSubClient {
         reject(new Error("WebSocket closed before it was opened"));
       }
       function removeListeners() {
-        this.ws.removeEventListener("open", resolve);
-        this.ws.removeEventListener("error", errorHandler);
-        this.ws.removeEventListener("close", closeHandler);
+        ws.removeEventListener("open", resolve);
+        ws.removeEventListener("error", errorHandler);
+        ws.removeEventListener("close", closeHandler);
       }
-      this.ws.addEventListener("open", resolve);
-      this.ws.addEventListener("error", errorHandler);
-      this.ws.addEventListener("close", closeHandler);
+      ws.addEventListener("open", resolve);
+      ws.addEventListener("error", errorHandler);
+      ws.addEventListener("close", closeHandler);
     });
   }
 

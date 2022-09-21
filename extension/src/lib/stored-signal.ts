@@ -12,15 +12,18 @@ export const sessionStoredSignal = <T>(
   defaultValue: T
 ) => {
   // Load the previous value from storage
-  const previous: T = JSON.parse(
-    window.sessionStorage.getItem(sessionStorageKey)
-  );
+  let previous: T;
+  try {
+    previous = JSON.parse(sessionStorage.getItem(sessionStorageKey));
+  } catch (err) {}
 
   const s = signal(previous || defaultValue);
 
   // Save the value when it changes
   effect(() => {
-    window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(s.value));
+    if (s.value) {
+      window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(s.value));
+    }
   });
 
   return s;

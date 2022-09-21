@@ -8,7 +8,7 @@ import QrCodeModal from "../../components/qr-code-modal";
 import QrCodeInsert from "../../components/qr-code-insert";
 import {
   hideQrCodeModal,
-  setContactDetailsAndResultCodes,
+  setContactDetails,
   setLastCallResult,
   state,
   connectUrl,
@@ -19,6 +19,9 @@ import {
   isConnectedToServer,
   setPubsubClient,
   setTotalCalls,
+  setResultCodes,
+  totalCalls,
+  dailyCalls,
 } from "./state";
 import "../../index.css";
 
@@ -26,7 +29,8 @@ import "../../index.css";
 const vpb = selectIntegration();
 console.log(`TurboVPB content script loaded and using ${vpb.type} integration`);
 vpb.onCallResult(setLastCallResult);
-injectSidebar();
+watchForSidebar();
+watchForResultCodes();
 watchForNewContacts();
 listenForExtensionMessages();
 loadSettings().then(connectPubsubClient).catch(console.error);
@@ -39,8 +43,8 @@ effect(() => {
   console.log("saving total calls", state.value.totalCalls.value);
   browser.storage.local
     .set({
-      totalCalls: state.value.totalCalls.value,
-      dailyCalls: state.value.dailyCalls.value,
+      totalCalls: totalCalls.value,
+      dailyCalls: dailyCalls.value,
     })
     .catch(console.error);
 });
@@ -55,31 +59,41 @@ function listenForExtensionMessages() {
 
 function watchForNewContacts() {
   checkForNewContact();
-  const observer = new MutationObserver(checkForNewContact);
-  observer.observe(document, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-    characterData: true,
-  });
-  document.onload = checkForNewContact;
+  setInterval(checkForNewContact, 500);
 }
 
 function checkForNewContact() {
-  setContactDetailsAndResultCodes(
-    vpb.scrapeContactDetails(),
-    vpb.scrapeResultCodes()
-  );
+  setContactDetails(vpb.scrapeContactDetails());
+}
+
+function watchForSidebar() {
+  const interval = setInterval(() => {
+    if (injectSidebar()) {
+      clearInterval(interval);
+    }
+  }, 200);
+}
+
+function watchForResultCodes() {
+  const interval = setInterval(() => {
+    const resultCodes = vpb.scrapeResultCodes();
+    if (resultCodes) {
+      setResultCodes(resultCodes);
+      clearInterval(interval);
+    }
+  }, 200);
 }
 
 // Insert the TurboVPB container and modal into the page
-function injectSidebar() {
+function injectSidebar(): boolean {
   const sidebar = vpb.turboVpbContainerLocation();
   if (sidebar) {
     console.log("Rendering turbovpb container");
+    const div = document.createElement("div");
+    sidebar.append(div);
     // TODO ensure this doesn't render multiple times
     render(
-      <>
+      <div key="qr-code-insert">
         <QrCodeInsert
           hide={state.value.showQrCodeModal}
           status={state.value.status}
@@ -90,11 +104,12 @@ function injectSidebar() {
           status={state.value.status}
           connectUrl={connectUrl}
         />
-      </>,
-      sidebar
+      </div>,
+      div
     );
+    return true;
   } else {
-    console.error("Could not find sidebar container");
+    return false;
   }
 }
 
