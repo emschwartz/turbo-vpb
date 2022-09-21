@@ -92,9 +92,11 @@ function watchForResultCodes() {
 
 // Insert the TurboVPB container and modal into the page
 function injectSidebar(): boolean {
+  if (document.getElementById("turbovpb-insert")) {
+    return;
+  }
   const parent = vpb.turboVpbContainerLocation();
-  const insert = document.getElementById("turbovpb-insert");
-  if (parent && !insert) {
+  if (parent) {
     console.log("Rendering turbovpb container");
     // TODO ensure this doesn't render multiple times
     render(

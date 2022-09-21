@@ -60,7 +60,7 @@ export const connectUrl = computed(() => {
 
 export const detailsToSend = computed(() => {
   const currentState = state.peek();
-  const details = {
+  return {
     type: "contact",
     // Send the details whenever these change
     contact: currentState.currentContact.value,
@@ -76,8 +76,6 @@ export const detailsToSend = computed(() => {
     extensionUserAgent: navigator.userAgent,
     extensionPlatform: navigator.platform,
   };
-  console.log("Details changed", details);
-  return details;
 });
 
 export function showQrCodeModal() {
@@ -89,6 +87,7 @@ export function hideQrCodeModal() {
 }
 
 export function setLastCallResult(contacted: boolean, result: string) {
+  console.log("Last call result:", contacted ? "Contacted" : result);
   batch(() => {
     state.value.lastCallResult = result;
 

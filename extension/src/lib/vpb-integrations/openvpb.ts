@@ -74,44 +74,30 @@ export function scrapeContactDetails(): ContactDetails {
 </ul>
 */
 export function scrapeResultCodes(): string[] | undefined {
-  const button = couldntReachButton();
-  if (!button) {
-    return;
-  }
-  button.click();
-
-  const elements = document.querySelectorAll(
-    "input[name='script-contact-result']"
-  );
-  const resultCodes = Array.from(elements)
-    .map((element) => (element as HTMLInputElement).labels[0].innerText)
-    .filter((code) => !!code);
-
+  const resultCodes = Object.keys(getResultCodes());
   cancelButton()?.click();
-
   return resultCodes;
 }
 
-export function markResult(result: string) {
-  const resultCode = result.toLowerCase();
-  try {
-    couldntReachButton().click();
-    for (let radioUnit of document.querySelectorAll("li.radio-unit")) {
-      if (
-        resultCode ===
-        radioUnit.querySelector(".radio-label").textContent.toLowerCase()
-      ) {
-        (
-          radioUnit.querySelector('input[type="radio"]') as HTMLInputElement
-        ).click();
-        setTimeout(() => saveNextButton().click(), 1);
-        return;
-      }
+function getResultCodes(): { [key: string]: HTMLElement } {
+  couldntReachButton()?.click();
+
+  const elements = document.querySelectorAll(".contact-results li");
+  const resultCodes = {};
+  for (const element of elements) {
+    const resultCode = element.textContent.trim();
+    if (resultCode) {
+      resultCodes[resultCode] = element;
     }
-    console.warn("Result code not found:", result);
-  } catch (err) {
-    console.error(err);
   }
+  return resultCodes;
+}
+
+export function markResult(resultCode: string) {
+  const li = getResultCodes()[resultCode];
+  const input = li.querySelector("input[type='radio']") as HTMLInputElement;
+  input.click();
+  setTimeout(() => saveNextButton().click(), 1);
 }
 
 export function onCallResult(
@@ -121,9 +107,12 @@ export function onCallResult(
 
   // Listen for when the result code radio buttons are selected
   // (but note that the user might click more than one)
-  for (const radioUnit of document.querySelectorAll("li.radio-unit")) {
-    const resultCode = radioUnit.querySelector(".radio-label").textContent;
-    radioUnit?.addEventListener("click", () => (result = resultCode));
+  const resultCodes = getResultCodes();
+  for (const resultCode in resultCodes) {
+    resultCodes[resultCode].addEventListener(
+      "click",
+      () => (result = resultCode)
+    );
   }
 
   cancelButton()?.addEventListener("click", () => (result = null));

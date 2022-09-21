@@ -6,6 +6,9 @@ export const type = "everyaction";
 
 export function turboVpbContainerLocation() {
   const grid = document.getElementsByClassName("grid-half")[0];
+  if (!grid) {
+    return;
+  }
   const div = document.createElement("div");
   div.className =
     "col-lg-6 col-md-6 col-sm-12 margin-right-tiny panel panel-details panel-default";
@@ -92,12 +95,12 @@ export function onCallResult(
 
   // Listen for when the result code radio buttons are selected
   // (but note that the user might click more than one)
-  for (const element of document.getElementsByClassName("script-result")) {
-    const resultCode = element.textContent;
-    const button = element.querySelector(
-      'input[name="resultCodeId"]'
-    ) as HTMLInputElement;
-    button?.addEventListener("click", () => (result = resultCode));
+  const resultCodes = getResultCodes();
+  for (const resultCode in resultCodes) {
+    resultCodes[resultCode].addEventListener(
+      "click",
+      () => (result = resultCode)
+    );
   }
 
   cancelButton()?.addEventListener("click", () => (result = null));
