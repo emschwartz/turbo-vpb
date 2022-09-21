@@ -4,8 +4,12 @@ const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i;
 
 export const type = "openvpb";
 
-export const turboVpbContainerLocation = () =>
-  document.getElementById("openvpbsidebarcontainer");
+export function turboVpbContainerLocation() {
+  const container = document.getElementById("openvpbsidebarcontainer");
+  const div = document.createElement("div");
+  container.append(div);
+  return div;
+}
 
 export function scrapeContactDetails(): ContactDetails {
   dismissFirstCallPopup();

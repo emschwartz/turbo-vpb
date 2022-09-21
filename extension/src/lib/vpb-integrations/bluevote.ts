@@ -2,8 +2,12 @@ import { ContactDetails } from "../types";
 
 export const type = "bluevote";
 
-export const turboVpbContainerLocation = () =>
-  document.querySelector(".caller-info");
+export function turboVpbContainerLocation() {
+  const container = document.querySelector(".caller-info");
+  const div = document.createElement("div");
+  container.append(div);
+  return div;
+}
 
 export function scrapeContactDetails(): ContactDetails | undefined {
   const phoneNumber = (

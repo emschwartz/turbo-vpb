@@ -4,8 +4,14 @@ const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i;
 
 export const type = "everyaction";
 
-export const turboVpbContainerLocation = () =>
-  document.getElementsByClassName("grid-half")[0];
+export function turboVpbContainerLocation() {
+  const grid = document.getElementsByClassName("grid-half")[0];
+  const div = document.createElement("div");
+  div.className =
+    "col-lg-6 col-md-6 col-sm-12 margin-right-tiny panel panel-details panel-default";
+  grid.append(div);
+  return div;
+}
 
 export function scrapeContactDetails(): ContactDetails {
   const phoneNumber = (

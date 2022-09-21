@@ -92,12 +92,10 @@ function watchForResultCodes() {
 
 // Insert the TurboVPB container and modal into the page
 function injectSidebar(): boolean {
-  const sidebar = vpb.turboVpbContainerLocation();
+  const parent = vpb.turboVpbContainerLocation();
   const insert = document.getElementById("turbovpb-insert");
-  if (sidebar && !insert) {
+  if (parent && !insert) {
     console.log("Rendering turbovpb container");
-    const div = document.createElement("div");
-    sidebar.append(div);
     // TODO ensure this doesn't render multiple times
     render(
       <div id="turbovpb-insert">
@@ -112,7 +110,7 @@ function injectSidebar(): boolean {
           connectUrl={connectUrl}
         />
       </div>,
-      div
+      parent
     );
     return true;
   } else {
