@@ -87,13 +87,14 @@ function watchForResultCodes() {
 // Insert the TurboVPB container and modal into the page
 function injectSidebar(): boolean {
   const sidebar = vpb.turboVpbContainerLocation();
-  if (sidebar) {
+  const insert = document.getElementById("turbovpb-insert");
+  if (sidebar && !insert) {
     console.log("Rendering turbovpb container");
     const div = document.createElement("div");
     sidebar.append(div);
     // TODO ensure this doesn't render multiple times
     render(
-      <div key="qr-code-insert">
+      <div id="turbovpb-insert">
         <QrCodeInsert
           hide={state.value.showQrCodeModal}
           status={state.value.status}

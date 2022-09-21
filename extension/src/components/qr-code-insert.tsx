@@ -22,21 +22,12 @@ const QrCodeInsert: FunctionComponent<{
     leaveTo="opacity-0"
   >
     <div class="flex flex-row flex-shrink m-2">
-      <div class="grid grid-cols-1 items-center space-y-2 mx-auto my-2 py-2.5 px-3 text-gray-700 bg-white rounded-md shadow-sm">
+      <div class="grid grid-cols-1 place-items-center space-y-2 mx-auto my-2 py-2.5 px-3 text-gray-700 bg-white rounded-md shadow-sm">
         <TurboVpbLogoAndName />
         <ConnectionStatusBadge status={status.value} />
-        <Transition
-          show={status.value !== "connected"}
-          as={Fragment}
-          enter="transition-opacity duration-75"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="transition-opacity duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
+        {status.value !== "connected" ? (
           <ConnectQrCode connectUrl={connectUrl} size={200} />
-        </Transition>
+        ) : null}
       </div>
     </div>
   </Transition>

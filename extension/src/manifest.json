@@ -40,7 +40,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*/*"],
+      "matches": [
+        "https://www.openvpb.com/VirtualPhoneBank*",
+        "https://*.everyaction.com/ContactDetailScript*",
+        "https://www.votebuilder.com/ContactDetailScript*",
+        "https://phonebank.bluevote.com/*"
+      ],
       "js": ["pages/content-script/index.tsx"]
     },
     {
