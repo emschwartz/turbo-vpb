@@ -14,9 +14,9 @@ import { randomId } from "../../lib/crypto";
 
 const DEFAULT_SERVER_URL = "http://localhost:8080";
 
-export const state = signal({
-  settings: undefined as ExtensionSettings | undefined,
-  pubsubClient: undefined as PubSubClient | undefined,
+export const state = {
+  settings: signal(undefined as ExtensionSettings | undefined),
+  pubsubClient: signal(undefined as PubSubClient | undefined),
   status: signal("connectingToServer" as ConnectionStatus),
   connectionDetails: sessionStoredSignal<ConnectionDetails | undefined>(
     "turboVpbConnection",
@@ -32,15 +32,15 @@ export const state = signal({
   showQrCodeModal: signal(true),
   resultCodes: signal(undefined as string[] | undefined),
   currentContact: signal(undefined as ContactDetails | undefined),
-  lastCallResult: undefined as string | undefined,
-});
+  lastCallResult: signal(undefined as string | undefined),
+};
 
 export const serverUrl = computed(
-  () => state.value.settings?.serverUrl || DEFAULT_SERVER_URL
+  () => state.settings.value?.serverUrl || DEFAULT_SERVER_URL
 );
 
 export const connectUrl = computed(() => {
-  const details = state.value.connectionDetails.value;
+  const details = state.connectionDetails.value;
   if (!details) {
     return;
   }
@@ -59,17 +59,16 @@ export const connectUrl = computed(() => {
 });
 
 export const detailsToSend = computed(() => {
-  const currentState = state.peek();
   return {
     type: "contact",
     // Send the details whenever these change
-    contact: currentState.currentContact.value,
-    messageTemplates: state.value.settings?.messageTemplates,
-    resultCodes: state.value.resultCodes.value,
+    contact: state.currentContact.value,
+    messageTemplates: state.settings.value?.messageTemplates,
+    resultCodes: state.resultCodes.value,
 
     // Don't send the details when these change
-    stats: currentState.sessionStats.value,
-    lastCallResult: currentState.lastCallResult,
+    stats: state.sessionStats.value,
+    lastCallResult: state.lastCallResult.value,
 
     // Other details to send
     extensionVersion: browser.runtime.getManifest().version,
@@ -79,51 +78,47 @@ export const detailsToSend = computed(() => {
 });
 
 export function showQrCodeModal() {
-  state.value.showQrCodeModal.value = true;
+  state.showQrCodeModal.value = true;
 }
 
 export function hideQrCodeModal() {
-  state.value.showQrCodeModal.value = false;
+  state.showQrCodeModal.value = false;
 }
 
 export function setLastCallResult(contacted: boolean, result: string) {
   console.log("Last call result:", contacted ? "Contacted" : result);
   batch(() => {
-    state.value.lastCallResult = result;
+    state.lastCallResult.value = result;
 
     if (contacted) {
-      state.value.sessionStats.value.successfulCalls += 1;
+      state.sessionStats.value.successfulCalls += 1;
     }
   });
 }
 
 export function setTotalCalls(totalCalls: number) {
-  const total = state.value.totalCalls;
-  total.value = totalCalls;
-  state.value.totalCalls = total;
+  state.totalCalls.value = totalCalls;
 }
 
-export const totalCalls = computed(() => state.value.totalCalls.value);
-export const dailyCalls = computed(() => state.value.dailyCalls.value);
-
 export function setResultCodes(resultCodes: string[]) {
-  state.value.resultCodes.value = resultCodes;
+  state.resultCodes.value = resultCodes;
 }
 
 export function setContactDetails(contactDetails: ContactDetails) {
   batch(() => {
-    const oldContact = state.value.currentContact.value;
-    if (!contactsAreEqual(oldContact, contactDetails)) {
+    const oldContact = state.currentContact.value;
+    if (contactDetails && !contactsAreEqual(oldContact, contactDetails)) {
       console.log("New contact", contactDetails);
 
-      state.value.sessionStats.value.calls += 1;
-      state.value.sessionStats.value.lastContactLoadTime = Date.now();
-      state.value.currentContact.value = contactDetails;
-      state.value.totalCalls.value += 1;
+      state.currentContact.value = contactDetails;
+
+      state.sessionStats.value.calls += 1;
+      state.sessionStats.value.lastContactLoadTime = Date.now();
+      state.totalCalls.value += 1;
 
       // Keep track of the last month's daily call stats
       const date = new Date().toLocaleDateString();
-      const dailyCalls = state.value.dailyCalls;
+      const dailyCalls = state.dailyCalls;
       let todaysRecord = dailyCalls.value[dailyCalls.value.length - 1];
       // Add a new record for today if it doesn't exist
       if (!todaysRecord || todaysRecord[0] !== date) {
@@ -136,7 +131,7 @@ export function setContactDetails(contactDetails: ContactDetails) {
         }
       }
       todaysRecord[1] += 1;
-      state.value.dailyCalls = dailyCalls;
+      state.dailyCalls = dailyCalls;
     }
   });
 }
@@ -145,10 +140,10 @@ export async function setPubsubClient(client: PubSubClient) {
   const encryptionKey = await client.exportEncryptionKey();
 
   batch(() => {
-    state.value.pubsubClient = client;
-    state.value.connectionDetails.value = {
+    state.pubsubClient.value = client;
+    state.connectionDetails.value = {
       encryptionKey,
-      sessionId: state.value.connectionDetails.value?.sessionId || randomId(16),
+      sessionId: state.connectionDetails.value?.sessionId || randomId(16),
       channelId: client.channelId,
     };
   });
@@ -156,7 +151,7 @@ export async function setPubsubClient(client: PubSubClient) {
 
 export function setStatus(status: ConnectionStatus) {
   console.log(status);
-  state.value.status.value = status;
+  state.status.value = status;
 }
 
 function contactsAreEqual(a: ContactDetails, b: ContactDetails) {
@@ -169,6 +164,6 @@ function contactsAreEqual(a: ContactDetails, b: ContactDetails) {
 
 export const isConnectedToServer = computed(
   () =>
-    state.value.status.value === "connected" ||
-    state.value.status.value === "waitingForMessage"
+    state.status.value === "connected" ||
+    state.status.value === "waitingForMessage"
 );

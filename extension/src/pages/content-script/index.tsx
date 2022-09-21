@@ -20,8 +20,6 @@ import {
   setPubsubClient,
   setTotalCalls,
   setResultCodes,
-  totalCalls,
-  dailyCalls,
 } from "./state";
 import "../../index.css";
 
@@ -35,23 +33,23 @@ watchForNewContacts();
 listenForExtensionMessages();
 loadSettings().then(connectPubsubClient).catch(console.error);
 effect(() => {
-  if (state.value.status.value === "connected") {
+  if (state.status.value === "connected") {
     hideQrCodeModal();
   }
 });
 effect(() => {
-  console.log("saving total calls", state.value.totalCalls.value);
+  console.log("saving total calls", state.totalCalls.value);
   browser.storage.local
     .set({
-      totalCalls: totalCalls.value,
-      dailyCalls: dailyCalls.value,
+      totalCalls: state.totalCalls.value,
+      dailyCalls: state.dailyCalls.value,
     })
     .catch(console.error);
 });
 // Send the contact details whenever there is a new contact
 effect(() => {
   console.log("Sending contact details", detailsToSend.value);
-  state.value.pubsubClient?.send(detailsToSend.value);
+  state.pubsubClient.value?.send(detailsToSend.value);
 });
 
 function listenForExtensionMessages() {
@@ -80,8 +78,8 @@ function watchForSidebar() {
 }
 
 function watchForResultCodes() {
-  const interval = setInterval(() => {
-    const resultCodes = vpb.scrapeResultCodes();
+  const interval = setInterval(async () => {
+    const resultCodes = await vpb.scrapeResultCodes();
     if (resultCodes && resultCodes.length > 0) {
       console.log("Scraped result codes", resultCodes);
       setResultCodes(resultCodes);
@@ -102,13 +100,13 @@ function injectSidebar(): boolean {
     render(
       <div id="turbovpb-insert">
         <QrCodeInsert
-          hide={state.value.showQrCodeModal}
-          status={state.value.status}
+          hide={state.showQrCodeModal}
+          status={state.status}
           connectUrl={connectUrl}
         />
         <QrCodeModal
-          open={state.value.showQrCodeModal}
-          status={state.value.status}
+          open={state.showQrCodeModal}
+          status={state.status}
           connectUrl={connectUrl}
         />
       </div>,
@@ -129,9 +127,9 @@ async function connectPubsubClient() {
 
   const client = new PubSubClient(
     serverUrl.value,
-    state.value.connectionDetails.value?.channelId,
-    state.value.connectionDetails.value?.encryptionKey
-      ? await importKey(state.value.connectionDetails.value.encryptionKey)
+    state.connectionDetails.value?.channelId,
+    state.connectionDetails.value?.encryptionKey
+      ? await importKey(state.connectionDetails.value.encryptionKey)
       : undefined
   );
   let gotMessageSinceLastReconnect = false;
@@ -161,12 +159,15 @@ async function connectPubsubClient() {
     setStatus("connected");
     gotMessageSinceLastReconnect = true;
 
+    console.log("Received message:", message);
+
     // Send the details as soon as we receive a connect message
     if (message.type === "connect") {
       console.log("Sending contact details in response to connect message");
       await client.send(detailsToSend.value);
     } else if (message.type === "callResult") {
-      vpb.markResult(message.result);
+      console.log("Marking result:", message.result);
+      await vpb.markResult(message.result);
     } else {
       console.error("Unknown message type", message);
     }
@@ -185,7 +186,7 @@ async function loadSettings() {
     "dailyCalls",
   ]);
   batch(() => {
-    state.value.settings = {
+    state.settings.value = {
       serverUrl: stored.serverUrl,
       yourName: stored.yourName,
       messageTemplates: stored.messageTemplates,
@@ -194,19 +195,19 @@ async function loadSettings() {
       setTotalCalls(stored.totalCalls);
     }
     if (stored.dailyCalls) {
-      state.value.dailyCalls.value = stored.dailyCalls;
+      state.dailyCalls.value = stored.dailyCalls;
     }
   });
 
   browser.storage.onChanged.addListener((changes, area) => {
     if (area === "local") {
-      state.value.settings = {
+      state.settings.value = {
         serverUrl:
-          changes.serverUrl?.newValue || state.value.settings?.serverUrl,
-        yourName: changes.yourName?.newValue || state.value.settings?.yourName,
+          changes.serverUrl?.newValue || state.settings.value?.serverUrl,
+        yourName: changes.yourName?.newValue || state.settings.value?.yourName,
         messageTemplates:
           changes.messageTemplates?.newValue ||
-          state.value.settings?.messageTemplates,
+          state.settings.value?.messageTemplates,
       };
     }
   });
