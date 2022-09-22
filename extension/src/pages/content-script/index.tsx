@@ -47,7 +47,7 @@ effect(() => {
 });
 // Send the contact details whenever there is a new contact
 effect(() => {
-  if (state.pubsubClient.value) {
+  if (state.pubsubClient.value && detailsToSend.value) {
     console.log("Sending contact details", detailsToSend.value);
     state.pubsubClient.value?.send(detailsToSend.value);
   }
@@ -163,6 +163,7 @@ async function connectPubsubClient() {
   };
   client.onmessage = async (message) => {
     setStatus("connected");
+    hideQrCodeModal();
     gotMessageSinceLastReconnect = true;
 
     console.log("Received message:", message);

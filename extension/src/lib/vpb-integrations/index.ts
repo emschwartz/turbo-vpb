@@ -54,7 +54,6 @@ export function selectPhonebankType(
  */
 export function selectIntegration(url = window.location.href): VpbIntegration {
   const type = selectPhonebankType(url);
-  console.log(`Using ${type} integration`);
   return integrations[type || "everyaction"];
 }
 
@@ -66,7 +65,6 @@ export async function isVanWithCustomDomain(tabId: number): Promise<boolean> {
     const result = await browser.tabs.executeScript(tabId, {
       code: `(document.querySelector(".van-header") || document.querySelector(".van-inner")) !== null`,
     });
-    console.log("isVanWithCustomDomain result", result);
     return Array.isArray(result) && result[0] === true;
   } catch (err) {
     throw new Error(`Error checking if tab is VAN with custom domain: ${err}`);

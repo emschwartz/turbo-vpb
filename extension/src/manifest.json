@@ -8,13 +8,12 @@
   "permissions": [
     "storage",
     "activeTab",
-    "https://www.openvpb.com/VirtualPhoneBank*",
-    "https://*.everyaction.com/ContactDetailScript*",
-    "https://www.votebuilder.com/ContactDetailScript*",
+    "https://www.openvpb.com/*",
+    "https://*.everyaction.com/*",
+    "https://www.votebuilder.com/*",
     "https://phonebank.bluevote.com/*",
     "*://*.turbovpb.com/*",
-    "ws://localhost/*",
-    "http://localhost/test-phonebank*"
+    "ws://localhost/*"
   ],
   "optional_permissions": ["<all_urls>"],
   "icons": {
@@ -44,12 +43,17 @@
         "https://www.openvpb.com/VirtualPhoneBank*",
         "https://*.everyaction.com/ContactDetailScript*",
         "https://www.votebuilder.com/ContactDetailScript*",
-        "https://phonebank.bluevote.com/*"
+        "https://phonebank.bluevote.com/*",
+        "https://*/ContactDetailScript*",
+        "http://localhost/test-phonebank*"
       ],
       "js": ["pages/content-script/index.tsx"]
     },
     {
-      "matches": ["https://*.turbovpb.com/share*", "http://localhost/share*"],
+      "matches": [
+        "https://turbovpb.com/share*",
+        "https://*.turbovpb.com/share*"
+      ],
       "js": ["scripts/share-integration.js"]
     }
   ]

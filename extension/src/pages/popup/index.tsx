@@ -1,14 +1,15 @@
-import { FunctionComponent, VNode } from "preact";
+import { FunctionComponent } from "preact";
 import {
   StarIcon,
   QuestionMarkCircleIcon,
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
-import { QrCodeIcon } from "@heroicons/react/24/solid";
 import { batch, signal, computed } from "@preact/signals";
 import { browser } from "webextension-polyfill-ts";
-import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
 import { DailyCallHistory } from "../../lib/types";
+import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
+import SiteStatusIndicator from "./site-status-indicator";
+import WhiteButton from "./white-button";
 
 const statsStartDate = signal(new Date());
 const totalCalls = signal(0);
@@ -38,32 +39,9 @@ const callsToday = computed(() => {
   const date = new Date().toLocaleDateString();
   return todaysRecord && todaysRecord[0] === date ? todaysRecord[1] : 0;
 });
-const encouragement = computed(() => {
-  if (totalCalls.value === 0) {
-    return "Login to a phonebank to start calling!";
-  } else if (totalCalls.value < 10) {
-    return "Keep it up!";
-  } else if (totalCalls.value < 100) {
-    return "You're doing great!";
-  } else if (totalCalls.value < 1000) {
-    return "Keep up the amazing work!";
-  } else {
-    return "Wow. You're incredible. Keep it up!";
-  }
-});
 
 function openOptions() {
   browser.runtime.openOptionsPage();
-  window.close();
-}
-
-async function openQrCodeModal() {
-  const activeTabs = await browser.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
-  console.log(activeTabs);
-  browser.tabs.sendMessage(activeTabs[0].id, { type: "openQrCodeModal" });
   window.close();
 }
 
@@ -124,33 +102,13 @@ const CallStats: FunctionComponent = () => (
   </div>
 );
 
-const WhiteButton: FunctionComponent<{
-  text: string;
-  icon: VNode;
-  title?: string;
-  onClick: () => void;
-}> = ({ text, icon, onClick, title }) => (
-  <button
-    onClick={onClick}
-    title={title}
-    class="inline-flex items-center rounded-md border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-  >
-    <div class="-ml-1 mr-3 h-6 w-6">{icon}</div>
-    {text}
-  </button>
-);
-
 const PopupPage: FunctionComponent = () => {
   return (
     <div class="container">
       <NavBar />
       <div class="p-6 flex flex-col space-y-3">
         <CallStats />
-        <WhiteButton
-          text="Open QR Code"
-          icon={<QrCodeIcon />}
-          onClick={openQrCodeModal}
-        />
+        <SiteStatusIndicator />
         <WhiteButton
           text="2-Click Texting"
           title="Open extension settings to configure 2-Click Texting"

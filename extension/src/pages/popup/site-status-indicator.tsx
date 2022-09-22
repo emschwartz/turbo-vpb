@@ -1,119 +1,89 @@
-import { h, FunctionComponent } from "preact";
-import { SiteStatus } from "../../lib/types";
-import {
-  XCircleIcon,
-  CheckCircleIcon,
-  PlusCircleIcon,
-} from "@heroicons/react/24/outline";
-import { browser, Tabs } from "webextension-polyfill-ts";
 import { batch, signal } from "@preact/signals";
+import { FunctionComponent } from "preact";
+import { browser } from "webextension-polyfill-ts";
 import {
-  isVanWithCustomDomain,
-  selectPhonebankType,
-} from "../../lib/vpb-integrations";
-import { EffectCallback, useEffect } from "preact/hooks";
+  PlusCircleIcon,
+  XCircleIcon,
+  QrCodeIcon,
+} from "@heroicons/react/24/outline";
+import { isVanWithCustomDomain } from "../../lib/vpb-integrations";
+import WhiteButton from "./white-button";
 
-const siteStatus = signal("unsupported" as SiteStatus);
-const currentUrl = signal("");
-async function getSiteStatus() {
-  console.log("Checking site status");
-  let activeTab: Tabs.Tab;
-  try {
-    const [tab] = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    activeTab = tab;
-  } catch (err) {
-    throw new Error(`Error getting activeTab: ${err.message}`);
-  }
+const tabStatus = signal("enabled" as "enabled" | "disabled" | "unsupported");
+const domain = signal(undefined as string | undefined);
 
-  if (activeTab?.url) {
-    let enabled: boolean;
-    try {
-      enabled = await browser.permissions.contains({
-        origins: [activeTab.url],
-      });
-    } catch (err) {
-      throw new Error(
-        `Error checking permissions for URL: ${activeTab.url} ${err.message}`
-      );
-    }
-
-    let status: SiteStatus;
-    if (enabled) {
-      status = "enabled";
-    } else if (selectPhonebankType(activeTab.url)) {
-      status = "disabled";
-    } else if (activeTab.id && (await isVanWithCustomDomain(activeTab.id))) {
-      status = "disabled";
-    } else {
-      status = "unsupported";
-    }
-    console.log("Site status", status);
-    batch(() => {
-      siteStatus.value = status;
-      currentUrl.value = activeTab.url;
-    });
-  } else {
-    console.log("No current tab");
-  }
-}
-getSiteStatus().catch(console.error);
-
-async function disableSite() {
-  const removed = await browser.permissions.remove({
-    origins: [currentUrl.value],
-    permissions: [],
+async function checkCurrentTab() {
+  const activeTab = await getActiveTab();
+  const origin = urlToOrigin(activeTab.url);
+  const enabled = await browser.permissions.contains({
+    origins: [origin],
   });
-  if (removed) {
-    siteStatus.value = "disabled";
+  console.log(activeTab.url, await browser.permissions.getAll());
+  let isVan = false;
+  if (!enabled) {
+    isVan = await isVanWithCustomDomain(activeTab.id);
   }
+
+  batch(() => {
+    tabStatus.value = enabled ? "enabled" : isVan ? "disabled" : "unsupported";
+    domain.value = new URL(activeTab.url).hostname.replace(/^www\./, "");
+  });
+}
+checkCurrentTab();
+browser.permissions.onAdded.addListener(checkCurrentTab);
+
+async function openQrCodeModal() {
+  browser.tabs.sendMessage((await getActiveTab()).id, {
+    type: "openQrCodeModal",
+  });
+  window.close();
 }
 
-async function enableSite() {
-  if (currentUrl.value) {
-    const granted = await browser.permissions.request({
-      origins: [currentUrl.value],
-    });
-    if (granted) {
-      siteStatus.value = "enabled";
-    }
-  }
+async function getActiveTab() {
+  const activeTabs = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  return activeTabs[0];
 }
 
-const SiteStatusIndicator: FunctionComponent<{ class?: string }> = ({
-  class: className,
-}) => {
-  useEffect(getSiteStatus as unknown as EffectCallback);
+async function requestPermission() {
+  const url = (await getActiveTab()).url;
+  const origin = urlToOrigin(url);
+  console.log("Requesting permission for:", origin);
+  const result = await browser.permissions.request({ origins: [origin] });
+  console.log("Permission request ", result ? "granted" : "denied");
+  return result;
+}
 
-  const { text, icon, onClick } =
-    siteStatus.value === "enabled"
-      ? {
-          text: "Enabled on this site",
-          icon: <CheckCircleIcon style="text-green-700" />,
-          onClick: disableSite,
-        }
-      : siteStatus.value === "disabled"
-      ? {
-          text: "Click to enable",
-          icon: <PlusCircleIcon />,
-          onClick: enableSite,
-        }
-      : {
-          text: "Unsupported site",
-          icon: <XCircleIcon class="text-gray-400" />,
-          onClick: () => {},
-        };
+function urlToOrigin(url: string) {
+  return new URL("/*", url).toString();
+}
 
-  return (
-    <div class={className}>
-      <a class="flex flex-col items-center" onClick={onClick}>
-        {icon}
-        <div class="text-center">{text}</div>
-      </a>
-    </div>
+const SiteStatusIndicator: FunctionComponent = () =>
+  tabStatus.value === "enabled" ? (
+    <WhiteButton
+      text="Open QR Code"
+      icon={<QrCodeIcon />}
+      onClick={openQrCodeModal}
+    />
+  ) : tabStatus.value === "disabled" ? (
+    <WhiteButton
+      text={`Enable on ${domain.value || "this site"}`}
+      icon={<PlusCircleIcon />}
+      onClick={requestPermission}
+    />
+  ) : (
+    <button
+      title={`TurboVPB is not available on ${domain}`}
+      class="inline-flex items-center rounded-md border border-gray-300 bg-gray-100 px-6 py-3 text-base font-medium text-gray-700 shadow-sm focus:outline-none"
+      disabled
+    >
+      <div class="-ml-1 mr-3 h-6 w-6 flex-shrink-0">
+        <XCircleIcon class="bg-inherit" />
+      </div>
+      Unsupported Site
+    </button>
   );
-};
 
 export default SiteStatusIndicator;
