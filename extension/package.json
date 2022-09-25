@@ -39,7 +39,6 @@
     "react-qr-code": "^2.0.7",
     "reconnecting-websocket": "^4.4.0",
     "tingle.js": "^0.16.0",
-    "webext-dynamic-content-scripts": "^8.1.1",
     "webextension-polyfill-ts": "^0.26.0"
   },
   "alias": {

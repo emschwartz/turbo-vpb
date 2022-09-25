@@ -6,6 +6,7 @@
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "target": "es2017",
+    "module": "es2020",
     "jsx": "react-jsx",
     "moduleResolution": "Node",
     "jsxImportSource": "preact",
