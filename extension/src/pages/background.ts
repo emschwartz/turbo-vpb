@@ -13,6 +13,7 @@ const css = new URL("../index.css", import.meta.url).pathname.slice(1);
 
 // Inject scripts when permissions are changed
 browser.permissions.onAdded.addListener(async (changes) => {
+  console.log("Permissions added", changes);
   if (changes.origins) {
     await browser.contentScripts.register({
       js: [{ file: contentScript }],
@@ -21,7 +22,8 @@ browser.permissions.onAdded.addListener(async (changes) => {
       matches: changes.origins,
     });
 
-    const tabs = await browser.tabs.query({ url: changes.origins });
+    const tabs = await browser.tabs.query({});
+    console.log("Injecting into tabs", tabs);
     await injectIntoExistingTabs(tabs);
 
     console.log("Registered content scripts for origins:", changes.origins);
@@ -29,27 +31,37 @@ browser.permissions.onAdded.addListener(async (changes) => {
 });
 
 // Also inject the script when new tabs are created/updated
-browser.tabs.onUpdated.addListener(async (_tabId, _changeInfo, tab) => {
-  if (tab.url) {
-    await injectIntoExistingTabs([tab]);
-    console.log("Injected content script into tab:", tab.url);
-  }
+browser.tabs.onUpdated.addListener((_tabId, _changeInfo, tab) => {
+  console.log("Tab updated", tab.id, tab.url);
+  injectIntoExistingTabs([tab]);
 });
 
 async function injectIntoExistingTabs(tabs: Tabs.Tab[]) {
+  console.log(await browser.permissions.getAll());
   for (const tab of tabs) {
-    if (tab.id) {
-      // Don't inject into TurboVPB share pages
-      if (tab.url.includes("/share")) {
-        return;
-      }
+    // Don't inject into TurboVPB share pages
+    if (!tab.id || tab.url?.includes("/share")) {
+      continue;
+    }
 
-      await browser.tabs.executeScript(tab.id, {
-        file: contentScript,
-      });
-      await browser.tabs.insertCSS(tab.id, {
-        file: css,
-      });
+    try {
+      await Promise.all([
+        browser.tabs.insertCSS(tab.id, {
+          file: css,
+        }),
+        browser.tabs.executeScript(tab.id, {
+          file: contentScript,
+        }),
+      ]);
+
+      console.log("Injected content script into tab:", tab.id, tab.url);
+    } catch (err) {
+      console.error(
+        "Failed to inject content script into tab:",
+        tab.id,
+        tab.url,
+        err
+      );
     }
   }
 }

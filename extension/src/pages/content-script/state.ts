@@ -12,7 +12,7 @@ import {
 import { browser } from "webextension-polyfill-ts";
 import { randomId } from "../../lib/crypto";
 
-const DEFAULT_SERVER_URL = "http://localhost:8080";
+const DEFAULT_SERVER_URL = "https://next.turbovpb.com";
 
 export const state = {
   settings: signal(undefined as ExtensionSettings | undefined),

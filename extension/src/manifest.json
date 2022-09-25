@@ -12,8 +12,7 @@
     "https://*.everyaction.com/*",
     "https://www.votebuilder.com/*",
     "https://phonebank.bluevote.com/*",
-    "*://*.turbovpb.com/*",
-    "ws://localhost/*"
+    "*://*.turbovpb.com/*"
   ],
   "optional_permissions": ["<all_urls>"],
   "icons": {
