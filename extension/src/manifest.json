@@ -1,30 +1,31 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "TurboVPB",
-  "version": "0.9.6",
+  "version": "0.10.0",
   "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
   "author": "Evan Schwartz",
   "homepage_url": "https://turbovpb.com",
   "permissions": [
     "storage",
     "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
     "https://www.openvpb.com/*",
     "https://*.everyaction.com/*",
     "https://www.votebuilder.com/*",
     "https://phonebank.bluevote.com/*",
     "*://*.turbovpb.com/*"
   ],
-  "optional_permissions": ["<all_urls>"],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
   "icons": {
     "48": "icons/phone-outgoing-blue-48.png",
     "96": "icons/phone-outgoing-blue-96.png",
     "128": "icons/phone-outgoing-blue-128.png"
   },
-  "background": {
-    "scripts": ["pages/background.ts"],
-    "persistent": true
-  },
-  "browser_action": {
+  "action": {
     "default_icon": {
       "16": "icons/phone-outgoing-blue-16.png",
       "32": "icons/phone-outgoing-blue-32.png"
@@ -43,16 +44,22 @@
         "https://*.everyaction.com/ContactDetailScript*",
         "https://www.votebuilder.com/ContactDetailScript*",
         "https://phonebank.bluevote.com/*",
-        "https://*/ContactDetailScript*"
+        "https://*/ContactDetailScript*",
+        "https://*.turbovpb.com/test-phonebank",
+        "http://localhost:8080/test-phonebank"
       ],
-      "js": ["pages/content-script/index.tsx"]
+      "js": [
+        "pages/content-script/index.tsx"
+      ]
     },
     {
       "matches": [
         "https://turbovpb.com/share*",
         "https://*.turbovpb.com/share*"
       ],
-      "js": ["scripts/share-integration.js"]
+      "js": [
+        "scripts/share-integration.js"
+      ]
     }
   ]
 }

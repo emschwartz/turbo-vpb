@@ -1,7 +1,7 @@
 import { FunctionComponent } from "preact";
 import { ExtensionSettings, MessageTemplateDetails } from "src/lib/types";
 import { batch, effect, signal } from "@preact/signals";
-import { browser } from "webextension-polyfill-ts";
+import browser from "webextension-polyfill";
 import MessageTemplateList from "./message-template-list";
 import "../../index.css";
 import { InformationCircleIcon } from "@heroicons/react/24/solid";

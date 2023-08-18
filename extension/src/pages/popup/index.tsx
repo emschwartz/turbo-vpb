@@ -5,7 +5,7 @@ import {
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { batch, signal, computed } from "@preact/signals";
-import { browser } from "webextension-polyfill-ts";
+import browser from "webextension-polyfill";
 import { DailyCallHistory } from "../../lib/types";
 import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
 import SiteStatusIndicator from "./site-status-indicator";

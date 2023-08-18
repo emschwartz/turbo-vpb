@@ -9,7 +9,7 @@ import {
   ExtensionSettings,
   Stats,
 } from "../../lib/types";
-import { browser } from "webextension-polyfill-ts";
+import browser from "webextension-polyfill";
 import { randomId } from "../../lib/crypto";
 
 const DEFAULT_SERVER_URL = "https://next.turbovpb.com";

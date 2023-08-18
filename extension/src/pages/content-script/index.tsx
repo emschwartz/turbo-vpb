@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { batch, effect } from "@preact/signals";
-import { browser } from "webextension-polyfill-ts";
+import browser from "webextension-polyfill";
 import { importKey } from "../../lib/crypto";
 import PubSubClient from "../../lib/pubsub-client";
 import { selectIntegration } from "../../lib/vpb-integrations";
