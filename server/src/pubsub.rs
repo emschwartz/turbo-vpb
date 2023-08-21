@@ -1,4 +1,4 @@
-use crate::metrics::{CHANNEL_DURATION, CONCURRENT_CHANNELS, MESSAGES_PER_CHANNEL, TOTAL_CHANNELS};
+use crate::metrics::{CHANNEL_DURATION, CONCURRENT_CHANNELS, TOTAL_CHANNELS, TOTAL_MESSAGES};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Extension, Path};
 use axum::routing::{delete, get};
@@ -44,6 +44,15 @@ enum Identity {
     Browser,
 }
 
+impl Identity {
+    fn as_str(self) -> &'static str {
+        match self {
+            Identity::Extension => "extension",
+            Identity::Browser => "browser",
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct Status {
     status: &'static str,
@@ -80,8 +89,10 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
     // Create the channel if it does not already exist
     let (sender, mut receiver) = {
         let mut channel = state.entry(channel_id.clone()).or_insert_with(|| {
-            TOTAL_CHANNELS.inc();
-            CONCURRENT_CHANNELS.inc();
+            TOTAL_CHANNELS.with_label_values(&[identity.as_str()]).inc();
+            CONCURRENT_CHANNELS
+                .with_label_values(&[identity.as_str()])
+                .inc();
 
             Channel::default()
         });
@@ -109,7 +120,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                             // Update the inactivity timer
                             timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
                             trace!("sent message");
-                            MESSAGES_PER_CHANNEL.with_label_values(&[&channel_id]).inc();
+                            TOTAL_MESSAGES.with_label_values(&[identity.as_str()]).inc();
                         },
                         Err(err) => debug!("error sending message to websocket: {err}"),
                     }
@@ -137,7 +148,6 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                         match sender.send(message) {
                             Ok(_) => {
                                 trace!("sent message");
-                                MESSAGES_PER_CHANNEL.with_label_values(&[&channel_id]).inc();
                             },
                             Err(err) => debug!("error sending message to channel: {err}"),
                         }
@@ -173,7 +183,9 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
     if num_channel == 0 {
         debug!("removing channel");
         if let Some((_, channel)) = state.remove(&channel_id) {
-            CONCURRENT_CHANNELS.dec();
+            CONCURRENT_CHANNELS
+                .with_label_values(&[identity.as_str()])
+                .dec();
             CHANNEL_DURATION
                 .with_label_values(&[&channel_id])
                 .observe(channel.channel_created_at.elapsed().as_secs_f64());
