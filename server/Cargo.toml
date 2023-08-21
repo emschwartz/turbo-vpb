@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = { version = "0.5", default-features = false, features = [
+axum = { version = "0.6.20", default-features = false, features = [
     "http1",
     "json",
     "ws",

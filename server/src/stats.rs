@@ -1,4 +1,4 @@
-use axum::extract::{Extension, Path};
+use axum::extract::{Path, State};
 use axum::{http::StatusCode, routing::post, Json, Router};
 use gcp_bigquery_client::model::table_data_insert_all_request::TableDataInsertAllRequest;
 use gcp_bigquery_client::Client as BigQueryClient;
@@ -14,7 +14,7 @@ const SUBMISSION_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Keep track of the requests we're batching up to send to BigQuery
 #[derive(Clone, Default)]
-struct State {
+struct ServerState {
     calls: Arc<Mutex<TableDataInsertAllRequest>>,
     texts: Arc<Mutex<TableDataInsertAllRequest>>,
 }
@@ -39,12 +39,12 @@ struct BigQueryCallRecord {
 
 /// Panics if run outside of a Tokio Runtime
 pub fn router(bigquery: BigQueryClient) -> Router {
-    let state = State::default();
+    let state = ServerState::default();
 
     let router = Router::new()
         .route("/api/stats/sessions/:session_id/calls", post(post_call))
         .route("/api/stats/sessions/:session_id/texts", post(post_text))
-        .layer(Extension(state.clone()));
+        .with_state(state.clone());
 
     // Start a background task to submit stats to BigQuery on an interval
     tokio::spawn(async move {
@@ -93,8 +93,8 @@ struct CallRecord {
 #[instrument(skip(state))]
 async fn post_call(
     Path(session_id): Path<String>,
+    State(state): State<ServerState>,
     Json(call): Json<CallRecord>,
-    Extension(state): Extension<State>,
 ) -> Result<(), StatusCode> {
     let record = BigQueryCallRecord {
         call,
@@ -119,7 +119,7 @@ async fn post_call(
 #[instrument(skip(state))]
 async fn post_text(
     Path(session_id): Path<String>,
-    Extension(state): Extension<State>,
+    State(state): State<ServerState>,
 ) -> Result<(), StatusCode> {
     let record = BigQueryRecord {
         session_id,
