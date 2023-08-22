@@ -54,13 +54,13 @@ async fn main() {
         }
     }
 
-    let addr = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], 8080));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
     info!("Listening on {}", addr);
     let app = api.merge(website).layer(TraceLayer::new_for_http());
     let app = Server::bind(&addr).serve(app.into_make_service());
 
     // Serve the metrics on a different port so they're not publicly exposed
-    let metrics_addr = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], 8081));
+    let metrics_addr = SocketAddr::from(([0, 0, 0, 0], 8081));
     let metrics = Server::bind(&metrics_addr).serve(metrics::router().into_make_service());
     info!("Metrics listening on {}", metrics_addr);
 

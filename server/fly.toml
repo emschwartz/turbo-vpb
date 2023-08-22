@@ -17,41 +17,18 @@ processes = []
 port = 8081
 path = "/metrics"
 
-[[services]]
+[http_service]
   internal_port = 8080
-  processes = ["app"]
-  protocol = "tcp"
-  script_checks = []
-  [services.concurrency]
-    hard_limit = 5000
-    soft_limit = 4000
-    type = "connections"
-
-  [[services.ports]]
-    force_https = true
-    handlers = ["http"]
-    port = 80
-
-  [[services.ports]]
-    handlers = ["tls", "http"]
-    port = 443
-
-  # Check the website being served
-  [[services.http_checks]]
-    interval = "10s"
-    grace_period = "5s"
-    method = "get"
-    path = "/"
-    protocol = "http"
-    restart_limit = 0
-    timeout = "5s"
-
-  # Check the API
-  [[services.http_checks]]
-    interval = "10s"
-    grace_period = "5s"
-    method = "get"
-    path = "/api/status"
-    protocol = "http"
-    restart_limit = 0
-    timeout = "5s"
+  force_https = true
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/"
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/api/status"
