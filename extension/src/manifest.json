@@ -37,6 +37,10 @@
     "page": "static/options.html",
     "browser_style": false
   },
+  "background": {
+    "service_worker": "pages/service_worker.ts",
+    "type": "module"
+  },
   "content_scripts": [
     {
       "matches": [
