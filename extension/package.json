@@ -1,10 +1,11 @@
 {
   "name": "turbovpb-extension",
   "version": "1.0.0",
+  "type": "module",
   "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
   "scripts": {
-    "start": "parcel watch src/manifest.json --host localhost --config @parcel/config-webextension",
-    "build": "rm -rf dist && parcel build src/manifest.json --config @parcel/config-webextension"
+    "dev": "vite dev",
+    "build": "vite build"
   },
   "repository": {
     "type": "git",
@@ -18,14 +19,16 @@
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "homepage": "https://github.com/emschwartz/turbo-vpb#readme",
   "devDependencies": {
-    "@parcel/config-webextension": "^2.9.3",
+    "@preact/preset-vite": "^2.5.0",
     "@tailwindcss/forms": "^0.5.4",
     "@types/webextension-polyfill": "0.10.1",
-    "parcel": "^2.9.3",
+    "autoprefixer": "^10.4.15",
     "postcss": "^8.4.28",
     "prettier": "^3.0.2",
     "tailwindcss": "^3.3.3",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "vite": "^4.4.9",
+    "vite-plugin-web-extension": "^3.2.0"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
@@ -44,10 +47,5 @@
     "react/jsx-runtime": "preact/jsx-runtime",
     "react/jsx-dev-runtime": "preact/jsx-runtime",
     "preact/jsx-dev-runtime": "preact/jsx-runtime"
-  },
-  "@parcel/bundler-default": {
-    "minBundles": 10000000,
-    "minBundleSize": 3000,
-    "maxParallelRequests": 20
   }
 }

@@ -21,24 +21,25 @@
     "*://*/*"
   ],
   "icons": {
-    "48": "icons/phone-outgoing-blue-48.png",
-    "96": "icons/phone-outgoing-blue-96.png",
-    "128": "icons/phone-outgoing-blue-128.png"
+    "48": "phone-outgoing-blue-48.png",
+    "96": "phone-outgoing-blue-96.png",
+    "128": "phone-outgoing-blue-128.png"
   },
   "action": {
     "default_icon": {
-      "16": "icons/phone-outgoing-blue-16.png",
-      "32": "icons/phone-outgoing-blue-32.png"
+      "16": "phone-outgoing-blue-16.png",
+      "32": "phone-outgoing-blue-32.png"
     },
     "default_title": "TurboVPB",
-    "default_popup": "static/popup.html"
+    "default_popup": "popup.html"
   },
   "options_ui": {
-    "page": "static/options.html",
+    "page": "options.html",
     "browser_style": false
   },
   "background": {
-    "service_worker": "pages/service_worker.ts",
+    "{{chrome}}.service_worker": "src/pages/service_worker.ts",
+    "{{firefox}}.scripts": ["src/pages/service_worker.ts"],
     "type": "module"
   },
   "content_scripts": [
@@ -53,7 +54,7 @@
         "http://localhost:8080/test-phonebank"
       ],
       "js": [
-        "pages/content-script/index.tsx"
+        "src/pages/content-script/index.tsx"
       ]
     },
     {
@@ -62,11 +63,11 @@
         "https://*.turbovpb.com/share*"
       ],
       "js": [
-        "scripts/share-integration.js"
+        "src/scripts/share-integration.js"
       ]
     }
   ],
-  "browser_specific_settings": {
+  "{{firefox}}.browser_specific_settings": {
     "gecko": {
       "id": "{5ac6de74-7640-4236-a7ed-e19b356b666b}"
     }

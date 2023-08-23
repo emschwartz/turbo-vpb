@@ -10,6 +10,7 @@ import { DailyCallHistory } from "../../lib/types";
 import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
 import SiteStatusIndicator from "./site-status-indicator";
 import WhiteButton from "./white-button";
+import "../../index.css"
 
 const statsStartDate = signal(new Date());
 const totalCalls = signal(0);
