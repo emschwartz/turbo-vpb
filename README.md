@@ -1,15 +1,10 @@
-# ![TurboVPB Logo](./extension/icons/phone-outgoing-blue.svg) TurboVPB
+# ![TurboVPB Logo](./extension/public/phone-outgoing-blue.svg) TurboVPB
 
 [TurboVPB](https://turbovpb.com) is a free browser extension that speeds up phone banking with EveryAction's Open Virtual Phone Bank (OpenVPB), VAN, VoteBuilder, and BlueVote.
 
 Get the extension at [turbovpb.com](https://turbovpb.com).
 
 :star: _If you find TurboVPB helpful, please leave a review in the [Chrome Web Store](https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh) or [Mozilla Add-Ons](https://addons.mozilla.org/en-US/firefox/addon/turbovpb/) to help others find it too!_ :star:
-
-## Code Overview
-
-- [`server`](./server) - the TurboVPB API and website
-- [`extension`](./extension) - source code of the extension
 
 ## Technical Details
 
@@ -29,18 +24,6 @@ The encryption key is passed to the static mobile site in the URL fragment/hash 
 In addition, the extension generates a random PubSub channel ID, which is also communicated to the mobile page in the connection URL.
 
 ## Thanks
-
-### Open Source
-
-Major thanks to the following open source projects that made this possible:
-
-- [Tingle](https://tingle.robinparisi.com/)'s plain vanilla modal plugin
-- [kjua](https://larsjung.de/kjua/)'s QR code generator
-- Mozilla's [Web Extension polyfill](https://github.com/mozilla/webextension-polyfill)
-
-And thanks to all of the people who work on Web standards like WebSockets, WebRTC, and Web Crypto.
-
-### Sponsored Services
 
 TurboVPB would have been much more difficult (and expensive) to build and run without the sponsored open source plans from:
 
