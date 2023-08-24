@@ -17,7 +17,7 @@
     "https://phonebank.bluevote.com/*",
     "*://*.turbovpb.com/*"
   ],
-  "optional_host_permissions": [
+  "{{chrome}}.optional_host_permissions": [
     "*://*/*"
   ],
   "icons": {
