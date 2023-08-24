@@ -5,9 +5,10 @@
 Requirements:
 
 - Node.js
+- [`pnpm`](https://pnpm.io/installation)
 
 To build the extension:
 
-1. `npm install`
-2. `npm run build`
-3. `zip -rj turbovpb.zip dist`
+1. `pnpm install`
+2. `pnpm build` (or `pnpm build:firefox`)
+3. `cd dist && zip -r ../turbovpb.zip *`

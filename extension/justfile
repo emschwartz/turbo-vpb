@@ -2,7 +2,7 @@ set fallback
 
 # build the extension in development mode and open it in a browser
 dev browser='chrome':
-    TARGET={{browser}} npm run dev
+    TARGET={{browser}} pnpm dev
 alias d := dev
 alias dc := dev
 # alias for `dev firefox`
@@ -10,7 +10,7 @@ df: (dev 'firefox')
 
 # build the extension
 build browser='chrome':
-    TARGET={{browser}} npm run build
+    TARGET={{browser}} pnpm build
 # alias for `build chrome`
 bc: (build 'chrome')
 # alias for `build firefox`
