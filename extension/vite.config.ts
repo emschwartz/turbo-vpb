@@ -5,6 +5,11 @@ import preact from '@preact/preset-vite';
 export default defineConfig({
   plugins: [
     preact(),
-    webExtension()
+    webExtension({
+        browser: process.env.TARGET || "chrome",
+        webExtConfig: {
+            startUrl: "http://localhost:8080/test-phonebank"
+        }
+    })
   ],
 });

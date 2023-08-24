@@ -5,7 +5,8 @@
   "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build"
+    "build": "vite build",
+    "build:firefox": "TARGET=firefox vite build"
   },
   "repository": {
     "type": "git",

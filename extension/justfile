@@ -1,0 +1,23 @@
+set fallback
+
+# build the extension in development mode and open it in a browser
+dev browser='chrome':
+    TARGET={{browser}} npm run dev
+alias d := dev
+alias dc := dev
+# alias for `dev firefox`
+df: (dev 'firefox')
+
+# build the extension
+build browser='chrome':
+    TARGET={{browser}} npm run build
+# alias for `build chrome`
+bc: (build 'chrome')
+# alias for `build firefox`
+bf: (build 'firefox')
+
+# package the extension for upload
+package browser='chrome': (build browser)
+    (rm turbovpb-{{browser}}.zip || true) && cd dist && zip -r9 ../turbovpb-{{browser}}.zip *
+pc: (package 'chrome')
+pf: (package 'firefox')

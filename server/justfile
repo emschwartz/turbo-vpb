@@ -1,0 +1,19 @@
+run:
+    cargo run
+alias r := run
+
+build:
+    cargo build
+alias b := build
+
+# deploy server to fly.io
+deploy:
+    fly deploy
+
+docker-build:
+    docker build -t turbovpb-server .
+
+# build and run the server in a docker container
+docker-run: docker-build
+    docker run -e RUST_LOG=trace -p 8080:8080 -p 8081:8081 -it --rm turbovpb-server
+alias dr := docker-run
