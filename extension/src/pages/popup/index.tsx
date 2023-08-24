@@ -10,7 +10,7 @@ import { DailyCallHistory } from "../../lib/types";
 import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
 import SiteStatusIndicator from "./site-status-indicator";
 import WhiteButton from "./white-button";
-import "../../index.css"
+import "../../index.css";
 
 const statsStartDate = signal(new Date());
 const totalCalls = signal(0);
@@ -33,7 +33,7 @@ browser.storage.onChanged.addListener((changes) => {
   }
 });
 const startDate = computed(() =>
-  statsStartDate.value.toLocaleDateString([], { dateStyle: "medium" } as any)
+  statsStartDate.value.toLocaleDateString([], { dateStyle: "medium" } as any),
 );
 const callsToday = computed(() => {
   const todaysRecord = dailyCalls.value[dailyCalls.value.length - 1];

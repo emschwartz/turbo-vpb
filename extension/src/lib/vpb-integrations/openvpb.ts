@@ -25,7 +25,7 @@ export function scrapeContactDetails(): ContactDetails {
       (a) =>
         a.href.startsWith("tel:") &&
         !DESIGNATED_CONTACT_REGEX.test(a.parentElement.id) &&
-        !DESIGNATED_CONTACT_REGEX.test(a.parentElement.parentElement.id)
+        !DESIGNATED_CONTACT_REGEX.test(a.parentElement.parentElement.id),
     ) ||
     {}
   ).innerText;
@@ -92,12 +92,12 @@ export async function markResult(resultCode: string) {
 }
 
 export function onCallResult(
-  callback: (contacted: boolean, result?: string) => void | Promise<void>
+  callback: (contacted: boolean, result?: string) => void | Promise<void>,
 ) {
   // Determine which call result is selected
   const handler = () => {
     const selectedRadioButton = document.querySelector(
-      ".contact-results input[type=radio]:checked"
+      ".contact-results input[type=radio]:checked",
     );
     const resultCode = (
       selectedRadioButton as HTMLInputElement

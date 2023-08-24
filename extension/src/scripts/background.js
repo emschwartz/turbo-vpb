@@ -39,7 +39,7 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
 // This comes from the mobile page
 async function saveCallRecord({ sessionId, callNumber, timestamp, duration }) {
   console.log(
-    `saving call record for session: ${sessionId} call ${callNumber}, duration: ${duration}`
+    `saving call record for session: ${sessionId} call ${callNumber}, duration: ${duration}`,
   );
   if (!sessionRecords[sessionId]) {
     sessionRecords[sessionId] = [];
@@ -58,7 +58,7 @@ async function saveCallRecord({ sessionId, callNumber, timestamp, duration }) {
 // This comes from the content script
 async function saveCallResult({ sessionId, callNumber, result }) {
   console.log(
-    `saving call result for session: ${sessionId} call ${callNumber}, result: ${result}`
+    `saving call result for session: ${sessionId} call ${callNumber}, result: ${result}`,
   );
   if (!sessionRecords[sessionId]) {
     sessionRecords[sessionId] = [];

@@ -26,14 +26,14 @@ batch(() =>
       if (settings.messageTemplates?.length > 0) {
         messageTemplates.value = settings.messageTemplates;
       }
-    })
+    }),
 );
 effect(() => {
   const settings: ExtensionSettings = {
     serverUrl: serverUrl.value,
     yourName: yourName.value,
     messageTemplates: messageTemplates.value.filter(
-      (template) => !!template.label && !!template.message
+      (template) => !!template.label && !!template.message,
     ),
   };
   console.log("Saving settings", settings);

@@ -11,7 +11,7 @@ interface VpbIntegration {
   markResult(code: string): Promise<void>;
   turboVpbContainerLocation(): Element;
   onCallResult(
-    callback: (contacted: boolean, result?: string) => void | Promise<void>
+    callback: (contacted: boolean, result?: string) => void | Promise<void>,
   ): void;
 }
 
@@ -25,7 +25,7 @@ const integrations: { [Property in PhonebankType]: VpbIntegration } = {
  * Try to determine the phonebank type based on the current URL
  */
 export function selectPhonebankType(
-  currentUrl = window.location.href
+  currentUrl = window.location.href,
 ): PhonebankType | undefined {
   const url = new URL(currentUrl);
   if (

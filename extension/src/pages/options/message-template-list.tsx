@@ -8,7 +8,7 @@ import ShareSettingsButton from "./share-settings-button";
 function editTemplate(
   templates: Signal<MessageTemplateDetails[]>,
   index: number,
-  template: Partial<MessageTemplateDetails>
+  template: Partial<MessageTemplateDetails>,
 ) {
   batch(() => {
     Object.assign(templates.value[index], template);
@@ -18,7 +18,7 @@ function editTemplate(
 
 function deleteTemplate(
   templates: Signal<MessageTemplateDetails[]>,
-  index: number
+  index: number,
 ) {
   templates.value.splice(index, 1);
   if (templates.value.length === 0) {

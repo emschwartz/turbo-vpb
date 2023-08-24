@@ -9,7 +9,7 @@ import { signal, effect } from "@preact/signals";
  */
 export const sessionStoredSignal = <T>(
   sessionStorageKey: string,
-  defaultValue: T
+  defaultValue: T,
 ) => {
   // Load the previous value from storage
   let previous: T;
@@ -19,7 +19,7 @@ export const sessionStoredSignal = <T>(
     console.error(
       "Error loading value from session storage:",
       sessionStorageKey,
-      err
+      err,
     );
   }
 

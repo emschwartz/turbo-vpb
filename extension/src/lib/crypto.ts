@@ -15,7 +15,7 @@ export async function generateKey() {
       length: ENCRYPTION_KEY_LENGTH,
     },
     true,
-    ["encrypt", "decrypt"]
+    ["encrypt", "decrypt"],
   );
 }
 
@@ -45,11 +45,11 @@ export async function encrypt(encryptionKey: CryptoKey, message: any) {
         iv,
       },
       encryptionKey,
-      buffer
-    )
+      buffer,
+    ),
   );
   const payload = new Uint8Array(
-    ciphertext.byteLength + ENCRYPTION_IV_BYTE_LENGTH
+    ciphertext.byteLength + ENCRYPTION_IV_BYTE_LENGTH,
   );
   payload.set(ciphertext, 0);
   payload.set(iv, ciphertext.byteLength);
@@ -58,7 +58,7 @@ export async function encrypt(encryptionKey: CryptoKey, message: any) {
 
 export async function decrypt<T>(
   encryptionKey: CryptoKey,
-  arrayBuffer: ArrayBuffer
+  arrayBuffer: ArrayBuffer,
 ): Promise<T> {
   const payload = new Uint8Array(arrayBuffer);
   const ciphertext = payload.slice(0, 0 - ENCRYPTION_IV_BYTE_LENGTH);
@@ -69,7 +69,7 @@ export async function decrypt<T>(
       iv,
     },
     encryptionKey,
-    ciphertext
+    ciphertext,
   );
   const string = new TextDecoder().decode(plaintext);
   return JSON.parse(string);

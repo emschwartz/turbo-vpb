@@ -28,7 +28,7 @@ export default function () {
   const [toSend, toReceive] = new Uint8Array(
     identity === "extension"
       ? [extensionMessage, browserMessage]
-      : [browserMessage, extensionMessage]
+      : [browserMessage, extensionMessage],
   );
   const res = ws.connect(url, null, (socket) => {
     if (identity === "browser") {

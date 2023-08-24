@@ -13,7 +13,7 @@ export function scrapeContactDetails(): ContactDetails | undefined {
   const phoneNumber = (
     document.getElementById("main-phone") ||
     Array.from(document.getElementsByTagName("a")).find((a) =>
-      a.href.startsWith("tel:")
+      a.href.startsWith("tel:"),
     ) ||
     {}
   ).innerText;
@@ -59,7 +59,7 @@ export async function markResult(result: string) {
 }
 
 export function onCallResult(
-  callback: (contacted: boolean, result?: string) => void | Promise<void>
+  callback: (contacted: boolean, result?: string) => void | Promise<void>,
 ) {
   let result: string | null = null;
 
@@ -68,7 +68,7 @@ export function onCallResult(
   for (const element of nonContactRadioButtons()) {
     const resultCode = element?.parentNode?.textContent;
     const button = element.querySelector(
-      'input[name="resultCodeId"]'
+      'input[name="resultCodeId"]',
     ) as HTMLInputElement;
     button?.addEventListener("click", () => (result = resultCode));
   }
@@ -89,7 +89,7 @@ function nonContactRadioButtons(): HTMLInputElement[] {
     document.querySelector(".question.disposition");
   if (nonContactResultContainer) {
     return Array.from(
-      nonContactResultContainer.querySelectorAll('input[type="radio"]')
+      nonContactResultContainer.querySelectorAll('input[type="radio"]'),
     ) as HTMLInputElement[];
   } else {
     return [];
@@ -100,7 +100,7 @@ function saveNextButton() {
   return (
     document.getElementById("btnSave") ||
     document.querySelector(
-      'input[type="button"][value="Save Data / Next Call"]'
+      'input[type="button"][value="Save Data / Next Call"]',
     )
   );
 }

@@ -16,7 +16,7 @@ const ShareSettingsButton: FunctionComponent<{
     }
     url.searchParams.append(
       "messageTemplates",
-      JSON.stringify(templates.value)
+      JSON.stringify(templates.value),
     );
     return url.toString();
   });

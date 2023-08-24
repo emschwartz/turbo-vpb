@@ -24,7 +24,7 @@ export function scrapeContactDetails(): ContactDetails {
       (a) =>
         a.href.startsWith("tel:") &&
         !DESIGNATED_CONTACT_REGEX.test(a.parentElement.id) &&
-        !DESIGNATED_CONTACT_REGEX.test(a.parentElement.parentElement.id)
+        !DESIGNATED_CONTACT_REGEX.test(a.parentElement.parentElement.id),
     ) ||
     {}
   ).textContent;
@@ -67,7 +67,7 @@ export async function markResult(resultCode: string) {
   const element = resultCodes[resultCode];
   if (element) {
     const input = element.querySelector(
-      "input[type='radio']"
+      "input[type='radio']",
     ) as HTMLInputElement;
     input.click();
     console.log("Marked result:", resultCode);
@@ -93,7 +93,7 @@ async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
 }
 
 export function onCallResult(
-  callback: (contacted: boolean, result?: string) => void | Promise<void>
+  callback: (contacted: boolean, result?: string) => void | Promise<void>,
 ) {
   const markerClass = "turbovpb-click-handler";
   const saveNext = saveNextButton();
@@ -102,7 +102,7 @@ export function onCallResult(
 
     saveNextButton().addEventListener("click", () => {
       const selectedRadioButton = document.querySelector(
-        ".script-result input[type=radio]:checked"
+        ".script-result input[type=radio]:checked",
       );
       const callResult = selectedRadioButton?.parentNode.textContent
         .replace(/\s{2,}/g, " ")
@@ -134,7 +134,7 @@ function cancelButton() {
 function saveNextButton() {
   return (
     document.getElementById(
-      "ctl00_ContentPlaceHolderVANPage_scriptSectionbtnSaveNextHH"
+      "ctl00_ContentPlaceHolderVANPage_scriptSectionbtnSaveNextHH",
     ) || document.querySelector('input.btn[type="submit"]')
   );
 }

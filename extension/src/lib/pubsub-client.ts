@@ -14,7 +14,7 @@ export default class PubSubClient {
   constructor(
     serverBase: string,
     channelId = randomId(16),
-    encryptionKey?: CryptoKey
+    encryptionKey?: CryptoKey,
   ) {
     this.channelId = channelId;
     this.encryptionKey = encryptionKey;

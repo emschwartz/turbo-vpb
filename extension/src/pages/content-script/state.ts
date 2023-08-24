@@ -20,7 +20,7 @@ export const state = {
   status: signal("connectingToServer" as ConnectionStatus),
   connectionDetails: sessionStoredSignal<ConnectionDetails | undefined>(
     "turboVpbConnection",
-    undefined
+    undefined,
   ),
   sessionStats: sessionStoredSignal<Stats>("turboVpbStats", {
     calls: 0,
@@ -36,7 +36,7 @@ export const state = {
 };
 
 export const serverUrl = computed(
-  () => state.settings.value?.serverUrl || DEFAULT_SERVER_URL
+  () => state.settings.value?.serverUrl || DEFAULT_SERVER_URL,
 );
 
 export const connectUrl = computed(() => {
@@ -169,5 +169,5 @@ function contactsAreEqual(a: ContactDetails, b: ContactDetails) {
 export const isConnectedToServer = computed(
   () =>
     state.status.value === "connected" ||
-    state.status.value === "waitingForMessage"
+    state.status.value === "waitingForMessage",
 );

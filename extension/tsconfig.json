@@ -1,12 +1,6 @@
 {
-  "include": [
-    "src/**/*.tsx",
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
+  "include": ["src/**/*.tsx", "src/**/*.ts"],
+  "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "target": "es2017",
     "module": "es2020",
@@ -16,12 +10,8 @@
     "skipLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "react": [
-        "./node_modules/preact/compat"
-      ],
-      "react-dom": [
-        "./node_modules/preact/compat"
-      ]
+      "react": ["./node_modules/preact/compat"],
+      "react-dom": ["./node_modules/preact/compat"]
     },
     "allowSyntheticDefaultImports": true
   }

@@ -116,7 +116,7 @@ function injectSidebar(): boolean {
           connectUrl={connectUrl}
         />
       </div>,
-      parent
+      parent,
     );
     return true;
   } else {
@@ -136,7 +136,7 @@ async function connectPubsubClient() {
     state.connectionDetails.value?.channelId,
     state.connectionDetails.value?.encryptionKey
       ? await importKey(state.connectionDetails.value.encryptionKey)
-      : undefined
+      : undefined,
   );
   let gotMessageSinceLastReconnect = false;
 
