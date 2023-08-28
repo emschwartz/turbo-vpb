@@ -9,6 +9,15 @@ import {
 import { isVanWithCustomDomain } from "../../lib/vpb-integrations";
 import WhiteButton from "./white-button";
 
+const SUPPORTED_DOMAINS = [
+  "openvpb.com",
+  ".everyaction.com",
+  "votebuilder.com",
+  "phonebank.bluevote.com",
+  ".turbovpb.com",
+  "localhost:8080",
+];
+
 const tabStatus = signal("enabled" as "enabled" | "disabled" | "unsupported");
 const origin = signal(undefined as string | undefined);
 const domain = signal(undefined as string | undefined);
@@ -23,10 +32,18 @@ async function checkCurrentTab() {
   if (!enabled) {
     isVan = await isVanWithCustomDomain(activeTab.id);
   }
+  const hostname = new URL(activeTab.url).hostname.replace(/^www\./, "");
+  const supported = SUPPORTED_DOMAINS.some((domain) =>
+    hostname.endsWith(domain),
+  );
 
   batch(() => {
-    tabStatus.value = enabled ? "enabled" : isVan ? "disabled" : "unsupported";
-    domain.value = new URL(activeTab.url).hostname.replace(/^www\./, "");
+    tabStatus.value = enabled
+      ? "enabled"
+      : supported || isVan
+      ? "disabled"
+      : "unsupported";
+    domain.value = hostname;
     origin.value = tabOrigin;
   });
 }

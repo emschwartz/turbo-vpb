@@ -105,7 +105,7 @@ const CallStats: FunctionComponent = () => (
 
 const PopupPage: FunctionComponent = () => {
   return (
-    <div class="container">
+    <div class="container w-64">
       <NavBar />
       <div class="p-6 flex flex-col space-y-3">
         <CallStats />

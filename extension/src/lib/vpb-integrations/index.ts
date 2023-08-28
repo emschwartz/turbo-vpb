@@ -62,10 +62,13 @@ export function selectIntegration(url = window.location.href): VpbIntegration {
  */
 export async function isVanWithCustomDomain(tabId: number): Promise<boolean> {
   try {
-    const result = await browser.tabs.executeScript(tabId, {
-      code: `(document.querySelector(".van-header") || document.querySelector(".van-inner")) !== null`,
+    const result = await browser.scripting.executeScript({
+      target: { tabId },
+      func: () =>
+        (document.querySelector(".van-header") ||
+          document.querySelector(".van-inner")) !== null,
     });
-    return Array.isArray(result) && result[0] === true;
+    return Array.isArray(result) && (result[0] as any) === true;
   } catch (err) {
     throw new Error(`Error checking if tab is VAN with custom domain: ${err}`);
   }
