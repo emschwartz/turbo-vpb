@@ -6,29 +6,35 @@ kill_timeout = 5
 processes = []
 
 [env]
-  RUST_LOG = "turbovpb_server=debug"
-  RUST_BACKTRACE = "1"
+RUST_LOG = "turbovpb_server=info"
+RUST_BACKTRACE = "1"
 
 [experimental]
-  allowed_public_ports = []
-  auto_rollback = true
+allowed_public_ports = []
+auto_rollback = true
 
 [metrics]
 port = 8081
 path = "/metrics"
 
 [http_service]
-  internal_port = 8080
-  force_https = true
+internal_port = 8080
+force_https = true
+
+[http_service.concurrency]
+type = "connections"
+hard_limit = 100000
+
 [[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  timeout = "5s"
-  path = "/"
+grace_period = "10s"
+interval = "30s"
+method = "GET"
+timeout = "5s"
+path = "/"
+
 [[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  timeout = "5s"
-  path = "/api/status"
+grace_period = "10s"
+interval = "30s"
+method = "GET"
+timeout = "5s"
+path = "/api/status"
