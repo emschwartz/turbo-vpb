@@ -1,5 +1,5 @@
 run:
-    cargo run
+    RUST_LOG=turbovpb_server=trace cargo run
 alias r := run
 
 build:
