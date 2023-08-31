@@ -15,5 +15,5 @@ docker-build:
 
 # build and run the server in a docker container
 docker-run: docker-build
-    docker run -e RUST_LOG=trace -p 8080:8080 -p 8081:8081 -it --rm turbovpb-server
+    docker run -e RUST_LOG=turbovpb_server=trace -p 8080:8080 -p 8081:8081 -it --rm turbovpb-server
 alias dr := docker-run
