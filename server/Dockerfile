@@ -20,18 +20,15 @@ RUN --mount=type=cache,target=/usr/src/app/target \
 
 FROM debian:bookworm-slim
 
-RUN useradd -ms /bin/bash app
-
 # Install the root certificates
 RUN apt-get update && \
     apt-get install --no-install-recommends -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Set the working directory so the server can find the static files
-USER app
 WORKDIR /usr/app
 
 COPY --from=builder /usr/src/app/turbovpb-server /usr/app/turbovpb-server
 COPY static /usr/app/static/
 
-CMD ./turbovpb-server
+CMD /usr/app/turbovpb-server
