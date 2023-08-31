@@ -1,4 +1,4 @@
-use axum::extract::{Path, State};
+use axum::extract::{Extension, Path};
 use axum::{http::StatusCode, routing::post, Json, Router};
 use gcp_bigquery_client::model::table_data_insert_all_request::TableDataInsertAllRequest;
 use gcp_bigquery_client::Client as BigQueryClient;
@@ -93,7 +93,7 @@ struct CallRecord {
 #[instrument(skip(state))]
 async fn post_call(
     Path(session_id): Path<String>,
-    State(state): State<ServerState>,
+    Extension(state): Extension<ServerState>,
     Json(call): Json<CallRecord>,
 ) -> Result<(), StatusCode> {
     let record = BigQueryCallRecord {
@@ -119,7 +119,7 @@ async fn post_call(
 #[instrument(skip(state))]
 async fn post_text(
     Path(session_id): Path<String>,
-    State(state): State<ServerState>,
+    Extension(state): Extension<ServerState>,
 ) -> Result<(), StatusCode> {
     let record = BigQueryRecord {
         session_id,

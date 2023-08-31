@@ -1,6 +1,6 @@
 use crate::metrics::{CHANNEL_DURATION, CONCURRENT_CHANNELS, TOTAL_CHANNELS, TOTAL_MESSAGES};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::{Path, State};
+use axum::extract::{Extension, Path};
 use axum::routing::{delete, get};
 use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Json, Router};
 use dashmap::DashMap;
@@ -81,13 +81,13 @@ pub fn router() -> Router {
             get(ws_handler).post(post_channel),
         )
         .route("/api/channels/:channel_id", delete(delete_channel))
-        .with_state(Default::default())
+        .layer(Extension(ChannelState::default()))
 }
 
 async fn ws_handler(
     Path((channel_id, identity)): Path<(String, Identity)>,
     ws: WebSocketUpgrade,
-    State(state): State<ChannelState>,
+    Extension(state): Extension<ChannelState>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |ws| websocket(channel_id, identity, ws, state.clone()))
 }
@@ -229,7 +229,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 #[instrument(skip(state))]
 async fn delete_channel(
     Path(channel_id): Path<String>,
-    State(state): State<ChannelState>,
+    Extension(state): Extension<ChannelState>,
 ) -> impl IntoResponse {
     debug!("deleting channel");
     state.remove(&channel_id);
@@ -238,7 +238,7 @@ async fn delete_channel(
 #[instrument(skip(state, body))]
 async fn post_channel(
     Path((channel_id, identity)): Path<(String, Identity)>,
-    State(state): State<ChannelState>,
+    Extension(state): Extension<ChannelState>,
     body: Bytes,
 ) -> impl IntoResponse {
     if let Some(channel) = state.get(&channel_id) {
