@@ -24,6 +24,7 @@ tokio = { version = "1.20", default-features = false, features = [
     "macros",
     "parking_lot",
     "rt-multi-thread",
+    "sync",
     "time",
 ] }
 tower-http = { version = "0.4", features = ["compression-full", "fs", "trace"] }
