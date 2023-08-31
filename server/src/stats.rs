@@ -44,6 +44,9 @@ pub fn router(bigquery: BigQueryClient) -> Router {
     let router = Router::new()
         .route("/api/stats/sessions/:session_id/calls", post(post_call))
         .route("/api/stats/sessions/:session_id/texts", post(post_text))
+        // For backwards compatibility, it's easiest just to accept the old path as well for now
+        .route("/sessions/:session_id/calls", post(post_call))
+        .route("/sessions/:session_id/texts", post(post_text))
         .with_state(state.clone());
 
     // Start a background task to submit stats to BigQuery on an interval
