@@ -133,7 +133,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
     }
 
     // Handle websocket messages
-    let mut timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
+    let mut last_activity = Instant::now();
     loop {
         select! {
             biased;
@@ -150,8 +150,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 
                     match ws_sink.send(message).await {
                         Ok(_) => {
-                            // Update the inactivity timer
-                            timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
+                            last_activity = Instant::now();
                             trace!("sent message");
                             TOTAL_MESSAGES.with_label_values(&[identity.as_str()]).inc();
                         },
@@ -172,8 +171,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                     None => break,
                 };
 
-                // Update the inactivity timer
-                timeout = Some(sleep(CHANNEL_INACTIVITY_TIMEOUT));
+                last_activity = Instant::now();
 
                 match message {
                     Message::Binary(_) => {
@@ -198,7 +196,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                 }
             }
             // Timeout channels that have been inactive for too long
-            _ = timeout.take().unwrap_or(sleep(CHANNEL_INACTIVITY_TIMEOUT)) => {
+            _ = sleep(CHANNEL_INACTIVITY_TIMEOUT - (Instant::now().duration_since(last_activity))) => {
                 debug!("channel timed out after {CHANNEL_INACTIVITY_TIMEOUT:?} seconds of inactivity");
                 break;
             }
