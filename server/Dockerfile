@@ -2,21 +2,9 @@ FROM rust:1.72-bookworm as builder
 
 WORKDIR /usr/src/app
 
-# Build the dependencies first
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/src/app/target \
-    cargo build --release
-RUN rm src/*.rs
-
 # Build the server
 COPY . .
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/src/app/target \
-    cargo build --release
-RUN --mount=type=cache,target=/usr/src/app/target \
-    cp /usr/src/app/target/release/turbovpb-server /usr/src/app/turbovpb-server
+RUN cargo build --release
 
 FROM debian:bookworm-slim
 
@@ -28,7 +16,7 @@ RUN apt-get update && \
 # Set the working directory so the server can find the static files
 WORKDIR /usr/app
 
-COPY --from=builder /usr/src/app/turbovpb-server /usr/app/turbovpb-server
+COPY --from=builder /usr/src/app/target/release/turbovpb-server /usr/app/turbovpb-server
 COPY static /usr/app/static/
 
 CMD /usr/app/turbovpb-server
