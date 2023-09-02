@@ -2,7 +2,7 @@
 
 app = "turbovpb-server"
 kill_signal = "SIGINT"
-kill_timeout = 5
+kill_timeout = 20
 processes = []
 
 [env]
@@ -26,14 +26,14 @@ type = "connections"
 hard_limit = 100000
 
 [[http_service.checks]]
-grace_period = "10s"
+grace_period = "5s"
 interval = "30s"
 method = "GET"
 timeout = "5s"
 path = "/"
 
 [[http_service.checks]]
-grace_period = "10s"
+grace_period = "5s"
 interval = "30s"
 method = "GET"
 timeout = "5s"
