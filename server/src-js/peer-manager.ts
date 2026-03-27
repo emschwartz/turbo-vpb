@@ -1,7 +1,3 @@
-declare const ReconnectingWebSocket: {
-  new (url: string, protocols: string[], options: Record<string, unknown>): WebSocket
-} | undefined
-
 const FINAL_ERRORS = ['browser-incompatible', 'invalid-id', 'invalid-key', 'ssl-unavailable', 'unavailable-id']
 
 const RECONNECT_BACKOFF = 10
@@ -234,18 +230,7 @@ class PeerManager {
       console.log('connecting to:', url)
       let startTime = Date.now()
       let openTime: number | undefined
-      if (typeof ReconnectingWebSocket === 'function') {
-        console.log('Using ReconnectingWebSocket')
-        this.ws = new ReconnectingWebSocket(url, [], {
-          minReconnectionDelay: RECONNECT_BACKOFF,
-          connectionTimeout: 10000,
-          maxRetries: MAX_RECONNECT_ATTEMPTS,
-          debug: true,
-        })
-      } else {
-        console.warn('ReconnectingWebSocket not found, using normal WebSocket')
-        this.ws = new WebSocket(url)
-      }
+      this.ws = new WebSocket(url)
       this.ws.binaryType = 'arraybuffer'
 
       this.ws.onopen = () => {
@@ -267,11 +252,7 @@ class PeerManager {
         }
         startTime = Date.now()
         this.pubsubState = PubSubState.CLOSED
-        if (typeof ReconnectingWebSocket === 'function') {
-          this.onreconnecting('Server')
-        } else {
-          this.onerror(new Error(`WebSocket closed (reason: ${reason || 'unknown'})`))
-        }
+        this.reconnect(new Error(`WebSocket closed (reason: ${reason || 'unknown'})`))
       }
       this.ws.onerror = (event: Event) => {
         let err: Error
@@ -296,7 +277,6 @@ class PeerManager {
         }
         this.pubsubState = PubSubState.CLOSED
 
-        // Only call reconnect if ReconnectingWebSocket isn't already trying to reconnect
         if (this.ws!.readyState !== WebSocket.CONNECTING) {
           this.reconnect(err)
         }
