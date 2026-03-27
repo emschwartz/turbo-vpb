@@ -1,11 +1,11 @@
 use axum::{http::StatusCode, response::IntoResponse, routing::get_service, Server};
 use futures::try_join;
-use gcp_bigquery_client::Client as BigQueryClient;
 use std::{env, error::Error, net::SocketAddr, path::PathBuf};
 use tokio::fs;
+use tokio_rusqlite::{rusqlite, Connection};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 mod metrics;
 mod pages;
@@ -36,23 +36,39 @@ async fn main() {
         .fallback(static_file_service)
         .layer(CompressionLayer::new());
 
-    let mut api = pubsub::router();
-
-    // If the Google credentials are set, enable the stats collection endpoints
-    let service_account_key = env::var("GOOGLE_SERVICE_ACCOUNT_KEY")
-        .ok()
-        .and_then(|key| serde_json::from_str(&key).ok());
-    if let Some(service_account_key) = service_account_key {
-        match BigQueryClient::from_service_account_key(service_account_key, false).await {
-            Ok(bigquery) => {
-                info!("BigQuery client initialized");
-                api = api.merge(stats::router(bigquery));
-            }
-            Err(err) => {
-                error!("Failed to initialize BigQuery client: {err}");
-            }
-        }
+    // Initialize SQLite database
+    let db_path = env::var("DATABASE_PATH").unwrap_or_else(|_| "data/turbovpb.db".to_string());
+    let db_dir = PathBuf::from(&db_path);
+    if let Some(parent) = db_dir.parent() {
+        fs::create_dir_all(parent)
+            .await
+            .expect("Failed to create database directory");
     }
+    let db = Connection::open(&db_path)
+        .await
+        .expect("Failed to open SQLite database");
+    db.call(|conn| {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS calls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                duration INTEGER NOT NULL,
+                result TEXT,
+                timestamp TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS texts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            );",
+        )?;
+        Ok::<(), rusqlite::Error>(())
+    })
+    .await
+    .expect("Failed to create database tables");
+    info!("SQLite database initialized at {db_path}");
+
+    let api = pubsub::router().merge(stats::router(db));
 
     let port: u16 = env::var("PORT")
         .ok()

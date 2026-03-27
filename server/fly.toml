@@ -8,10 +8,15 @@ processes = []
 [env]
 RUST_LOG = "turbovpb_server=info"
 RUST_BACKTRACE = "1"
+DATABASE_PATH = "/data/turbovpb.db"
 
 [experimental]
 allowed_public_ports = []
 auto_rollback = true
+
+[mounts]
+source = "turbovpb_data"
+destination = "/data"
 
 [metrics]
 port = 8081

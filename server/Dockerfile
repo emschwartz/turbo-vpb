@@ -26,13 +26,10 @@ RUN tailwindcss -i styles/input.css -o static/styles.css --minify
 
 FROM debian:bookworm-slim
 
-# Install the root certificates
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-
 # Set the working directory so the server can find the static files
 WORKDIR /usr/app
+
+RUN mkdir -p /data
 
 COPY --from=builder /usr/src/app/target/release/turbovpb-server /usr/app/turbovpb-server
 COPY static /usr/app/static/
