@@ -21,6 +21,10 @@ export default defineBackground({
         if (!hasPermission) continue;
 
         try {
+          await browser.scripting.insertCSS({
+            target: { tabId: tab.id },
+            files: ['/content-scripts/content.css'],
+          });
           await browser.scripting.executeScript({
             target: { tabId: tab.id },
             files: ['/content-scripts/content.js'],

@@ -68,7 +68,7 @@ export async function isVanWithCustomDomain(tabId: number): Promise<boolean> {
         (document.querySelector(".van-header") ||
           document.querySelector(".van-inner")) !== null,
     });
-    return Array.isArray(result) && (result[0] as any) === true;
+    return Array.isArray(result) && result[0]?.result === true;
   } catch (err) {
     throw new Error(`Error checking if tab is VAN with custom domain: ${err}`);
   }

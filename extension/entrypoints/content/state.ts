@@ -71,7 +71,7 @@ export const detailsToSend = computed(() => {
     // Other details to send
     extensionVersion: browser.runtime.getManifest().version,
     extensionUserAgent: navigator.userAgent,
-    extensionPlatform: navigator.platform,
+    extensionPlatform: (navigator as any).userAgentData?.platform || navigator.platform,
   };
 });
 
