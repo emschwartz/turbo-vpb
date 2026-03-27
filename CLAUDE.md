@@ -11,7 +11,7 @@ TurboVPB is a browser extension that accelerates phone banking with virtual phon
 Monorepo with three independent components:
 
 - **`extension/`** - Browser extension (TypeScript, Preact, WXT, Tailwind CSS, pnpm)
-- **`server/`** - Relay server (Rust, Axum, Tokio, Prometheus metrics)
+- **`server/`** - Relay server (Rust, Axum, Tokio, Prometheus metrics) with client-side TypeScript (esbuild)
 - **`e2e/`** - End-to-end tests (Playwright)
 
 Each has its own package manager and lock file. No shared workspace tooling.
@@ -22,7 +22,7 @@ Each has its own package manager and lock file. No shared workspace tooling.
 just install      # Install all deps (extension + e2e) and configure git hooks
 ```
 
-This runs `pnpm install` in `extension/`, `npm install` in `e2e/`, and sets `core.hooksPath` to `.githooks/` for pre-commit checks.
+This runs `pnpm install` in `extension/` and `server/`, `npm install` in `e2e/`, and sets `core.hooksPath` to `.githooks/` for pre-commit checks.
 
 ## Common Commands
 
@@ -34,15 +34,17 @@ just dev          # Run server + extension (Chrome) together
 just df           # Run server + extension (Firefox)
 just server-run   # Run server only (RUST_LOG=turbovpb_server=trace)
 just server-css-watch  # Watch mode for server Tailwind CSS
+just server-js-watch   # Watch mode for server client-side TypeScript
 ```
 
 ### Building
 ```bash
-just build              # Build everything (extension + server CSS + server binary)
+just build              # Build everything (extension + server CSS + server JS + server binary)
 just ext-build          # Build extension only (Chrome)
 just ext-build firefox  # Build extension only (Firefox)
 just server-build       # Build server only
 just server-css         # Build server Tailwind CSS
+just server-js          # Compile server client-side TypeScript
 ```
 
 ### Linting and formatting
@@ -101,4 +103,5 @@ Each file exports a scraper for a specific phone bank platform. `index.ts` auto-
 - **Preact** (not React) with `@preact/signals` for reactivity. React aliases configured in `wxt.config.ts`.
 - **WXT** (Web eXtension Tooling) for building the Manifest V3 extension. Config in `wxt.config.ts`.
 - Server pages use **Tailwind CSS** compiled via standalone CLI binary (`./tailwindcss`), not via npm.
+- Server client-side JS (`server/src-js/`) is written in **TypeScript** and compiled to `server/static/js/` via **esbuild** (pnpm). The compiled JS files are gitignored.
 - Server deployed to **Fly.io** (config in `server/fly.toml`).

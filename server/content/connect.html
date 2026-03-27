@@ -143,31 +143,7 @@
     </div>
 </div>
 
-<script>
-    ; (function () {
-        if (!/debug/.test(window.location) && localStorage.getItem('active-eruda') != 'true') {
-            return
-        }
-        document.write('<scr' + 'ipt src="dependencies/eruda.js"></scr' + 'ipt>');
-        document.write('<scr' + 'ipt>eruda.init();</scr' + 'ipt>');
-    })();
-</script>
-
 <script src="/dependencies/ackee-tracker.min.js"></script>
-<script>
-    // Sentry SDK has been removed; provide a no-op stub so existing
-    // references in peer-manager.js and connect.js do not throw.
-    if (typeof Sentry === 'undefined') {
-        var noop = function() {};
-        window.Sentry = {
-            init: noop,
-            captureException: noop,
-            configureScope: noop,
-            startTransaction: null
-        };
-    }
-</script>
-<script src="/dependencies/peerjs.min.js"></script>
 <script src="/dependencies/reconnecting-websocket-iife.js"></script>
 <script src="/dependencies/confetti.min.js"></script>
 <script defer src="/js/peer-manager.js"></script>

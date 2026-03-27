@@ -64,6 +64,18 @@ server-css-watch:
 server-css-prod:
     cd server && ./tailwindcss -i styles/input.css -o static/styles.css --minify
 
+# compile server typescript to static js
+server-js:
+    cd server && pnpm run build
+
+# watch and rebuild server typescript
+server-js-watch:
+    cd server && pnpm run watch
+
+# install server js dependencies
+server-js-install:
+    cd server && pnpm install
+
 # --- E2E Tests ---
 
 # install e2e test dependencies
@@ -89,19 +101,22 @@ setup-hooks:
 # install all dependencies and set up hooks
 install:
     just ext-install
+    just server-js-install
     just e2e-install
     just setup-hooks
 
-# build everything (extension + server CSS + server binary)
+# build everything (extension + server CSS + server JS + server binary)
 build browser='chrome':
     just ext-build {{browser}}
     just server-css-prod
+    just server-js
     just server-build
 
 # build and package extension, build server for production
 release browser='chrome':
     just ext-package {{browser}}
     just server-css-prod
+    just server-js
     just server-build
 
 # run e2e tests (builds extension first)
