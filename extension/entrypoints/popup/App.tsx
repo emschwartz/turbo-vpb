@@ -1,16 +1,12 @@
-import { FunctionComponent } from "preact";
-import {
-  StarIcon,
-  QuestionMarkCircleIcon,
-  ChatBubbleLeftRightIcon,
-} from "@heroicons/react/24/outline";
-import { batch, signal, computed } from "@preact/signals";
-import browser from "webextension-polyfill";
-import { DailyCallHistory } from "../../lib/types";
-import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
-import SiteStatusIndicator from "./site-status-indicator";
-import WhiteButton from "./white-button";
-import "../../index.css";
+import { FunctionComponent } from 'preact';
+import { StarIcon, QuestionMarkCircleIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { batch, signal, computed } from '@preact/signals';
+import { browser } from 'wxt/browser';
+import { DailyCallHistory } from '../../lib/types';
+import TurboVpbLogoAndName from '../../components/turbovpb-logo-and-name';
+import SiteStatusIndicator from './site-status-indicator';
+import WhiteButton from './white-button';
+import '../../assets/main.css';
 
 const statsStartDate = signal(new Date());
 const totalCalls = signal(0);

@@ -4,9 +4,13 @@
   "type": "module",
   "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "build:firefox": "TARGET=firefox vite build"
+    "dev": "wxt",
+    "dev:firefox": "wxt --browser firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build --browser firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip --browser firefox",
+    "postinstall": "wxt prepare"
   },
   "repository": {
     "type": "git",
@@ -17,36 +21,24 @@
   "bugs": {
     "url": "https://github.com/emschwartz/turbo-vpb/issues"
   },
-  "browserslist": "> 0.5%, last 2 versions, not dead",
   "homepage": "https://github.com/emschwartz/turbo-vpb#readme",
   "devDependencies": {
     "@preact/preset-vite": "^2.5.0",
     "@tailwindcss/forms": "^0.5.4",
-    "@types/webextension-polyfill": "0.10.1",
     "autoprefixer": "^10.4.15",
     "postcss": "^8.4.28",
     "prettier": "^3.0.2",
     "tailwindcss": "^3.3.3",
     "typescript": "^5.1.6",
-    "vite": "^4.4.9",
-    "vite-plugin-web-extension": "^3.2.0"
+    "wxt": "^0.20.20"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.0.18",
     "@preact/signals": "^1.2.1",
-    "content-scripts-register-polyfill": "^4.0.2",
     "preact": "^10.17.0",
     "react-qr-code": "^2.0.12",
     "reconnecting-websocket": "^4.4.0",
-    "tingle.js": "^0.16.0",
-    "webextension-polyfill": "^0.10.0"
-  },
-  "alias": {
-    "react": "preact/compat",
-    "react-dom": "preact/compat",
-    "react/jsx-runtime": "preact/jsx-runtime",
-    "react/jsx-dev-runtime": "preact/jsx-runtime",
-    "preact/jsx-dev-runtime": "preact/jsx-runtime"
+    "tingle.js": "^0.16.0"
   }
 }

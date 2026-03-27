@@ -1,6 +1,6 @@
 import { signal, computed, batch } from "@preact/signals";
-import PubSubClient from "../../lib/pubsub-client";
-import { sessionStoredSignal } from "../../lib/stored-signal";
+import PubSubClient from '../../lib/pubsub-client';
+import { sessionStoredSignal } from '../../lib/stored-signal';
 import {
   ConnectionDetails,
   ConnectionStatus,
@@ -8,9 +8,9 @@ import {
   DailyCallHistory,
   ExtensionSettings,
   Stats,
-} from "../../lib/types";
-import browser from "webextension-polyfill";
-import { randomId } from "../../lib/crypto";
+} from '../../lib/types';
+import { browser } from 'wxt/browser';
+import { randomId } from '../../lib/crypto';
 
 const DEFAULT_SERVER_URL = "https://next.turbovpb.com";
 

@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["*.html", "./src/**/*.{html,tsx,ts,js}"],
+  content: [
+    './entrypoints/**/*.{html,tsx,ts}',
+    './components/**/*.{tsx,ts}',
+    './lib/**/*.{tsx,ts}',
+  ],
   theme: {
     extend: {
       zIndex: {

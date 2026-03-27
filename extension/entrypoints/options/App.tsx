@@ -1,10 +1,10 @@
-import { FunctionComponent } from "preact";
-import { ExtensionSettings, MessageTemplateDetails } from "src/lib/types";
-import { batch, effect, signal } from "@preact/signals";
-import browser from "webextension-polyfill";
-import MessageTemplateList from "./message-template-list";
-import "../../index.css";
-import { InformationCircleIcon } from "@heroicons/react/24/solid";
+import { FunctionComponent } from 'preact';
+import { ExtensionSettings, MessageTemplateDetails } from '../../lib/types';
+import { batch, effect, signal } from '@preact/signals';
+import { browser } from 'wxt/browser';
+import MessageTemplateList from './message-template-list';
+import '../../assets/main.css';
+import { InformationCircleIcon } from '@heroicons/react/24/solid';
 
 const serverUrl = signal("");
 const yourName = signal("");

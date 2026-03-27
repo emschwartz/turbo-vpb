@@ -2,7 +2,7 @@ import { ContactDetails, PhonebankType } from "../types";
 import * as openvpb from "./openvpb";
 import * as everyaction from "./everyaction";
 import * as bluevote from "./bluevote";
-import browser from "webextension-polyfill";
+import { browser } from 'wxt/browser';
 
 interface VpbIntegration {
   type: PhonebankType;

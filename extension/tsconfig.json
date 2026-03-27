@@ -1,18 +1,8 @@
 {
-  "include": ["src/**/*.tsx", "src/**/*.ts"],
-  "exclude": ["node_modules", "dist"],
+  "extends": "./.wxt/tsconfig.json",
   "compilerOptions": {
-    "target": "es2017",
-    "module": "es2020",
     "jsx": "react-jsx",
-    "moduleResolution": "Node",
     "jsxImportSource": "preact",
-    "skipLibCheck": true,
-    "baseUrl": "./",
-    "paths": {
-      "react": ["./node_modules/preact/compat"],
-      "react-dom": ["./node_modules/preact/compat"]
-    },
     "allowSyntheticDefaultImports": true
   }
 }

@@ -1,5 +1,5 @@
 import { FunctionComponent } from "preact";
-import { MessageTemplateDetails } from "src/lib/types";
+import { MessageTemplateDetails } from "../lib/types";
 import { TrashIcon, XMarkIcon } from "@heroicons/react/20/solid";
 
 const SelectTexted: FunctionComponent<{

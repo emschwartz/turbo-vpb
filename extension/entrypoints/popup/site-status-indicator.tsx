@@ -1,6 +1,6 @@
 import { batch, signal } from "@preact/signals";
 import { FunctionComponent } from "preact";
-import browser from "webextension-polyfill";
+import { browser } from 'wxt/browser';
 import {
   PlusCircleIcon,
   XCircleIcon,

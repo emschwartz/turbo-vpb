@@ -1,0 +1,44 @@
+import { defineConfig } from 'wxt';
+import preact from '@preact/preset-vite';
+
+export default defineConfig({
+  srcDir: '.',
+  vite: () => ({
+    plugins: [preact()],
+    resolve: {
+      alias: {
+        'react': 'preact/compat',
+        'react-dom': 'preact/compat',
+        'react/jsx-runtime': 'preact/jsx-runtime',
+      },
+    },
+  }),
+  manifest: ({ browser }) => ({
+    name: 'TurboVPB',
+    description:
+      'Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!',
+    version: '0.10.0',
+    author: 'Evan Schwartz',
+    homepage_url: 'https://turbovpb.com',
+    permissions: ['activeTab', 'scripting', 'storage'],
+    host_permissions: [
+      'https://www.openvpb.com/*',
+      'https://*.everyaction.com/*',
+      'https://www.votebuilder.com/*',
+      'https://phonebank.bluevote.com/*',
+      '*://*.turbovpb.com/*',
+      'https://*/ContactDetailScript',
+      'http://localhost/*',
+    ],
+    action: {
+      default_title: 'TurboVPB',
+    },
+    ...(browser === 'firefox'
+      ? {
+          browser_specific_settings: {
+            gecko: { id: '{5ac6de74-7640-4236-a7ed-e19b356b666b}' },
+          },
+        }
+      : {}),
+  }),
+});
