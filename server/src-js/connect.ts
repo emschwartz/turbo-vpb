@@ -180,6 +180,7 @@ let pendingSaveMessage: string | null = null
 let waitForNewContact = false // if true, only display contact details if it's a new phone number
 let autoSaveTextedResultEnabled = true
 let messageSeq = 0
+let peerDisconnectedPending = false
 const pendingCallResultAcks = new Map<number, ReturnType<typeof setInterval>>()
 
 window.addEventListener('error', displayError)
@@ -229,6 +230,7 @@ async function start(): Promise<void> {
     })
     peerManager.onconnect = () => {
       console.log('PeerManager.onconnect')
+      peerDisconnectedPending = false
       setStatus('Connected', 'success')
       stopConnectionTimeout()
 
@@ -250,8 +252,12 @@ async function start(): Promise<void> {
     }
     peerManager.onpeerdisconnected = () => {
       console.log('PeerManager.onpeerdisconnected')
-      setStatus('Connecting to Extension', 'warning')
+      if (sessionIsComplete()) return
+      peerDisconnectedPending = true
+      setStatus('Extension disconnected', 'warning')
       setLoading()
+      document.getElementById('contact-details')!.hidden = true
+      restartConnectionTimeout()
     }
     peerManager.onreconnecting = (target: string) => {
       console.log('PeerManager.onreconnecting', target)
@@ -426,6 +432,12 @@ function restartConnectionTimeout(): void {
   connectTimer = setTimeout(async () => {
     console.error('connection timed out')
     connectTimerIsRunning = false
+
+    if (peerDisconnectedPending) {
+      peerDisconnectedPending = false
+      markSessionComplete()
+      return
+    }
 
     const err = new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?')
     displayError(err)

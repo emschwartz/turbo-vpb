@@ -3,9 +3,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Use the dev build which includes http://localhost/* in content_scripts,
+// needed for testing against the local server.
 const EXTENSION_PATH = path.resolve(
   __dirname,
-  "../../extension/.output/chrome-mv3",
+  "../../extension/.output/chrome-mv3-dev",
 );
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
@@ -227,6 +229,12 @@ test("reconnection after extension page reload", async () => {
     // Reload the test-phonebank page (extension will reconnect)
     await phonebankPage.reload();
 
+    // The connect page should briefly show the extension disconnected
+    const status = connectPage.locator("#status");
+    await expect(status).toHaveText("Extension disconnected", {
+      timeout: 10_000,
+    });
+
     // Wait for the extension to re-inject and reconnect.
     // The contact name should appear on the connect page again.
     // After reload, the test-phonebank page resets to the first contact.
@@ -236,8 +244,7 @@ test("reconnection after extension page reload", async () => {
       { timeout: 20_000 },
     );
 
-    // Verify the connect page status is still connected
-    const status = connectPage.locator("#status");
+    // Verify the connect page reconnected
     await expect(status).toHaveText("Connected");
   } finally {
     await connectBrowser.close();
@@ -367,5 +374,76 @@ test("multiple contacts cycle correctly with stats", async () => {
     expect(callCount).toBeGreaterThanOrEqual(3);
   } finally {
     await connectBrowser.close();
+  }
+});
+
+test("connect page shows disconnect then session complete when phonebank page closes", async () => {
+  // Open a separate phonebank page so we can close it without affecting other tests
+  const pbPage = await extensionContext.newPage();
+  await pbPage.goto(`${SERVER_URL}/test-phonebank`);
+
+  const connectUrl = await getConnectUrl(pbPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    // Wait for the connect page to be fully connected
+    await expect(connectPage.locator("#status")).toHaveText("Connected", {
+      timeout: 15_000,
+    });
+
+    // Close the phonebank page (simulates user closing the tab)
+    await pbPage.close();
+
+    // The connect page should first show "Extension disconnected"
+    await expect(connectPage.locator("#status")).toHaveText(
+      "Extension disconnected",
+      { timeout: 10_000 },
+    );
+
+    // After the connection timeout, it should show "Session Complete"
+    await expect(connectPage.locator("#status")).toHaveText(
+      "Session Complete",
+      { timeout: 20_000 },
+    );
+    await expect(connectPage.locator("#session-ended")).toBeVisible();
+  } finally {
+    await connectBrowser.close();
+  }
+});
+
+test("extension shows waiting status when connect page closes", async () => {
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    // Wait for connection to be established
+    await expect(connectPage.locator("#status")).toHaveText("Connected", {
+      timeout: 15_000,
+    });
+
+    // Verify the extension shows connected
+    const extensionStatus = phonebankPage.locator("#turbovpb-insert");
+    await expect(extensionStatus).toContainText("Connected", {
+      timeout: 5_000,
+    });
+
+    // Close the connect page (simulates user closing the mobile tab)
+    await connectBrowser.close();
+
+    // The extension should revert to "Scan QR code to connect"
+    await expect(extensionStatus).toContainText("Scan QR code to connect", {
+      timeout: 10_000,
+    });
+  } finally {
+    // connectBrowser already closed above, but handle the case where test fails early
+    try {
+      await connectBrowser.close();
+    } catch {
+      // already closed
+    }
   }
 });
