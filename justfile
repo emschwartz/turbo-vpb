@@ -3,7 +3,7 @@ dev browser='chrome':
     #!/usr/bin/env bash
     set -euxo pipefail
     trap "kill 0" SIGINT
-    RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml &
+    RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml -- server/static &
     cd extension && TARGET={{browser}} pnpm dev &
     wait
 
@@ -34,7 +34,7 @@ ext-package browser='chrome': (ext-build browser)
 
 # run the server locally
 server-run:
-    RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml
+    RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml -- server/static
 
 # build the server
 server-build:

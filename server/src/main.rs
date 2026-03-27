@@ -1,7 +1,7 @@
 use axum::{http::StatusCode, response::IntoResponse, routing::get_service, Server};
 use futures::try_join;
 use gcp_bigquery_client::Client as BigQueryClient;
-use std::{env, error::Error, net::SocketAddr};
+use std::{env, error::Error, net::SocketAddr, path::PathBuf};
 use tokio::fs;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
@@ -18,18 +18,18 @@ async fn main() {
     info!("Starting TurboVPB server");
 
     // Make sure we can access the static file directory
-    let static_dir = env::args().nth(1).unwrap_or_else(|| "static".to_string());
+    let static_dir: PathBuf = env::args().nth(1).unwrap_or_else(|| "static".to_string()).into();
     fs::read_dir(&static_dir)
         .await
         .expect("Failed to read static directory")
         .next_entry()
         .await
         .expect("Failed to read file from static directory");
-    debug!("Using static directory: {}", static_dir);
+    debug!("Using static directory: {}", static_dir.display());
 
     // Serve static files
-    let static_file_service = get_service(ServeDir::new(static_dir))
-        .fallback(get_service(ServeFile::new("static/favicons/favicon.ico")))
+    let static_file_service = get_service(ServeDir::new(&static_dir))
+        .fallback(get_service(ServeFile::new(static_dir.join("favicons/favicon.ico"))))
         .handle_error(internal_service_error);
 
     let website = pages::router()
