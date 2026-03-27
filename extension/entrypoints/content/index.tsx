@@ -44,7 +44,10 @@ export default defineContentScript({
     watchForResultCodes();
     watchForNewContacts();
     listenForExtensionMessages();
-    loadSettings().then(connectPubsubClient).catch(console.error);
+    loadSettings().then(connectPubsubClient).catch((err) => {
+      console.error("Failed to connect to server:", err);
+      setStatus("disconnected");
+    });
     effect(() => {
       if (state.status.value === "connected") {
         hideQrCodeModal();
@@ -59,14 +62,15 @@ export default defineContentScript({
         })
         .catch(console.error);
     });
+    // Register call result handler once, outside of effects
+    vpb.onCallResult(setLastCallResult);
+
     // Send the contact details whenever there is a new contact
     effect(() => {
       if (state.pubsubClient.value && detailsToSend.value) {
         console.log("Sending contact details", detailsToSend.value);
         state.pubsubClient.value?.send(detailsToSend.value);
       }
-
-      vpb.onCallResult(setLastCallResult);
     });
     effect(() => {
       console.log(state.sessionStats.value);
@@ -98,11 +102,17 @@ export default defineContentScript({
     }
 
     function watchForResultCodes() {
+      let attempts = 0;
+      const maxAttempts = 150; // 30 seconds at 200ms intervals
       const interval = ctx.setInterval(async () => {
+        attempts++;
         const resultCodes = await vpb.scrapeResultCodes();
         if (resultCodes && resultCodes.length > 0) {
           console.log("Scraped result codes", resultCodes);
           setResultCodes(resultCodes);
+          ctx.clearInterval(interval);
+        } else if (attempts >= maxAttempts) {
+          console.warn("Gave up waiting for result codes after 30s");
           ctx.clearInterval(interval);
         }
       }, 200);
@@ -111,7 +121,7 @@ export default defineContentScript({
     // Insert the TurboVPB container and modal into the page
     function injectSidebar(): boolean {
       if (document.getElementById("turbovpb-insert")) {
-        return;
+        return true;
       }
       const parent = vpb.turboVpbContainerLocation();
       if (parent) {
@@ -188,7 +198,11 @@ export default defineContentScript({
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
           console.log("Marking result:", message.result);
-          await vpb.markResult(message.result);
+          try {
+            await vpb.markResult(message.result);
+          } catch (err) {
+            console.error("Failed to mark result:", err);
+          }
         } else {
           console.error("Unknown message type", message);
         }
@@ -224,10 +238,10 @@ export default defineContentScript({
         if (area === "local") {
           state.settings.value = {
             serverUrl:
-              changes.serverUrl?.newValue || state.settings.value?.serverUrl,
-            yourName: changes.yourName?.newValue || state.settings.value?.yourName,
+              changes.serverUrl?.newValue ?? state.settings.value?.serverUrl,
+            yourName: changes.yourName?.newValue ?? state.settings.value?.yourName,
             messageTemplates:
-              changes.messageTemplates?.newValue ||
+              changes.messageTemplates?.newValue ??
               state.settings.value?.messageTemplates,
           };
         }

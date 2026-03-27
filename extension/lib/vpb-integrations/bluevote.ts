@@ -4,6 +4,9 @@ export const type = "bluevote";
 
 export function turboVpbContainerLocation() {
   const container = document.querySelector(".caller-info");
+  if (!container) {
+    return;
+  }
   const div = document.createElement("div");
   container.append(div);
   return div;
@@ -48,7 +51,7 @@ export async function markResult(result: string) {
       if (radioUnit.parentNode.textContent.toLowerCase() === resultCode) {
         radioUnit.click();
         await sleep();
-        saveNextButton().click();
+        saveNextButton()?.click();
         return;
       }
     }

@@ -42,9 +42,17 @@ function openOptions() {
   window.close();
 }
 
+function getStoreUrl(): string {
+  const ua = navigator.userAgent;
+  if (ua.includes("Firefox")) {
+    return "https://addons.mozilla.org/en-US/firefox/addon/turbovpb/";
+  }
+  return "https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh";
+}
+
 const LeaveReviewButton: FunctionComponent = () => (
   <a
-    href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh"
+    href={getStoreUrl()}
     id="webStoreLink"
     class="text-secondary text-center"
     target="_blank"

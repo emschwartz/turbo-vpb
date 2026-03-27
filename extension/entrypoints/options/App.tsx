@@ -28,6 +28,7 @@ batch(() =>
       }
     }),
 );
+let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 effect(() => {
   const settings: ExtensionSettings = {
     serverUrl: serverUrl.value,
@@ -36,8 +37,11 @@ effect(() => {
       (template) => !!template.label && !!template.message,
     ),
   };
-  console.log("Saving settings", settings);
-  return browser.storage.local.set(settings);
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    console.log("Saving settings", settings);
+    browser.storage.local.set(settings).catch(console.error);
+  }, 400);
 });
 
 function setServerUrl(url: string) {
@@ -91,13 +95,11 @@ const TextReplacement: FunctionComponent = () => (
         </div>
         <div class="ml-3 flex-1">
           <p class="text-sm text-blue-700">
-            <p>
               The name you enter above will be inserted wherever the text{" "}
               <b>[Your Name]</b> appears in a message template.{" "}
               <b>[Their Name]</b> will be replaced by the contact's first name.
               Other details can be inserted in the same way, for example{" "}
               <b>[City]</b> or <b>[Polling Location]</b>.
-            </p>
           </p>
         </div>
       </div>

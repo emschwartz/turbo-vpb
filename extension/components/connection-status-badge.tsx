@@ -32,9 +32,9 @@ const ConnectionStatusBadge: FunctionComponent<{
   } else if (status === "disconnected") {
     return (
       <span
-        className={`rounded-md bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800 text-center ${className}`}
+        className={`rounded-md bg-yellow-100 px-2.5 py-0.5 text-sm font-medium text-yellow-800 text-center ${className}`}
       >
-        Disconnected
+        Reconnecting...
       </span>
     );
   }

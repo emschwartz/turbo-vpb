@@ -21,6 +21,16 @@ export default defineBackground({
         if (!hasPermission) continue;
 
         try {
+          // Check if content script is already injected
+          const [result] = await browser.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => !!document.getElementById('turbovpb-insert'),
+          });
+          if (result?.result) {
+            console.log('Content script already injected in tab:', tab.id);
+            continue;
+          }
+
           await browser.scripting.insertCSS({
             target: { tabId: tab.id },
             files: ['/content-scripts/content.css'],

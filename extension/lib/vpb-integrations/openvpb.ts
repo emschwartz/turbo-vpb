@@ -78,6 +78,8 @@ export function scrapeContactDetails(): ContactDetails {
 */
 export async function scrapeResultCodes(): Promise<string[] | undefined> {
   const resultCodes = Object.keys(await getResultCodes());
+  // Close the result codes panel that getResultCodes() opened
+  await sleep();
   cancelButton()?.click();
   return resultCodes;
 }

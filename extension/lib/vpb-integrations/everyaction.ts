@@ -58,6 +58,8 @@ export function scrapeContactDetails(): ContactDetails {
 
 export async function scrapeResultCodes(): Promise<string[] | undefined> {
   const resultCodes = Object.keys(await getResultCodes());
+  // Close the result codes panel that getResultCodes() opened
+  await sleep();
   cancelButton()?.click();
   return resultCodes;
 }
@@ -72,7 +74,7 @@ export async function markResult(resultCode: string) {
     input.click();
     console.log("Marked result:", resultCode);
     await sleep();
-    saveNextButton().click();
+    saveNextButton()?.click();
   } else {
     console.warn("Result code not found:", resultCode, resultCodes);
   }

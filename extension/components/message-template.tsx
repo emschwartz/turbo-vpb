@@ -2,31 +2,36 @@ import { FunctionComponent } from "preact";
 import { MessageTemplateDetails } from "../lib/types";
 import { TrashIcon, XMarkIcon } from "@heroicons/react/20/solid";
 
+let selectTextedCounter = 0;
+
 const SelectTexted: FunctionComponent<{
   selectTexted: boolean;
   editTemplate: (template: Partial<MessageTemplateDetails>) => void;
-}> = ({ selectTexted, editTemplate }) => (
-  <div className="relative flex items-start mt-2">
-    <div
-      className="flex h-5 items-center"
-      onClick={() => editTemplate({ sendTextedResult: !selectTexted })}
-    >
-      <input
-        id="select-texted"
-        aria-describedby="select-texted-description"
-        name="select-texted"
-        type="checkbox"
-        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        checked={selectTexted}
-      />
+}> = ({ selectTexted, editTemplate }) => {
+  const id = `select-texted-${++selectTextedCounter}`;
+  return (
+    <div className="relative flex items-start mt-2">
+      <div
+        className="flex h-5 items-center"
+        onClick={() => editTemplate({ sendTextedResult: !selectTexted })}
+      >
+        <input
+          id={id}
+          aria-describedby={`${id}-description`}
+          name={id}
+          type="checkbox"
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          checked={selectTexted}
+        />
+      </div>
+      <div className="ml-3 text-sm">
+        <span id={`${id}-description`} className="text-gray-700">
+          Select <b>Texted</b> result code when sending this message
+        </span>
+      </div>
     </div>
-    <div className="ml-3 text-sm">
-      <span id="select-texted-description" className="text-gray-700">
-        Select <b>Texted</b> result code when sending this message
-      </span>
-    </div>
-  </div>
-);
+  );
+};
 
 const MessageTemplate: FunctionComponent<{
   messageTemplate: MessageTemplateDetails;
@@ -59,12 +64,11 @@ const MessageTemplate: FunctionComponent<{
           placeholder={
             "Message Contents\n\nHi [Their Name], this is [Your Name] from..."
           }
+          value={messageTemplate.message}
           onInput={(e) =>
             editTemplate({ message: (e.target as HTMLTextAreaElement).value })
           }
-        >
-          {messageTemplate.message}
-        </textarea>
+        />
       </div>
 
       <div class="mt-2 mb-4">

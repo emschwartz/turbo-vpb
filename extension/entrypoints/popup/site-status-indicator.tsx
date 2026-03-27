@@ -24,17 +24,25 @@ const domain = signal(undefined as string | undefined);
 
 async function checkCurrentTab() {
   const activeTab = await getActiveTab();
+  if (!activeTab?.url) {
+    tabStatus.value = "unsupported";
+    return;
+  }
   const tabOrigin = urlToOrigin(activeTab.url);
   const enabled = await browser.permissions.contains({
     origins: [tabOrigin],
   });
   let isVan = false;
   if (!enabled) {
-    isVan = await isVanWithCustomDomain(activeTab.id);
+    try {
+      isVan = await isVanWithCustomDomain(activeTab.id);
+    } catch (err) {
+      console.error("Failed to check for VAN custom domain:", err);
+    }
   }
   const hostname = new URL(activeTab.url).hostname.replace(/^www\./, "");
-  const supported = SUPPORTED_DOMAINS.some((domain) =>
-    hostname.endsWith(domain),
+  const supported = SUPPORTED_DOMAINS.some((d) =>
+    hostname.endsWith(d),
   );
 
   batch(() => {
@@ -93,7 +101,7 @@ const SiteStatusIndicator: FunctionComponent = () =>
     />
   ) : (
     <button
-      title={`TurboVPB is not available on ${domain}`}
+      title={`TurboVPB is not available on ${domain.value}`}
       class="inline-flex items-center rounded-md border border-gray-300 bg-gray-100 px-6 py-3 text-base font-medium text-gray-700 shadow-sm focus:outline-none"
       disabled
     >

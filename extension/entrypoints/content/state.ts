@@ -105,20 +105,21 @@ export function setLastCallResult(contacted: boolean, result: string) {
 
     // Keep track of the last month's daily call stats
     const date = new Date().toLocaleDateString();
-    const dailyCalls = state.dailyCalls;
-    let todaysRecord = dailyCalls.value[dailyCalls.value.length - 1];
+    const updated = [...state.dailyCalls.value];
+    let todaysRecord = updated[updated.length - 1];
     // Add a new record for today if it doesn't exist
     if (!todaysRecord || todaysRecord[0] !== date) {
       todaysRecord = [date, 0];
-      dailyCalls.value.push(todaysRecord);
+      updated.push(todaysRecord);
 
       // Limit it to 31 days of records
-      if (dailyCalls.value.length > 31) {
-        dailyCalls.value.shift();
+      if (updated.length > 31) {
+        updated.shift();
       }
     }
-    todaysRecord[1] += 1;
-    state.dailyCalls = dailyCalls;
+    // Create a new tuple so the signal detects the change
+    updated[updated.length - 1] = [todaysRecord[0], todaysRecord[1] + 1];
+    state.dailyCalls.value = updated;
   });
 }
 
