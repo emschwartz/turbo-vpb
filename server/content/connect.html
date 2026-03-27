@@ -148,18 +148,20 @@
     })();
 </script>
 
-<script src="dependencies/sentry-7.1.1-with-tracing.min.js"></script>
+<script src="/dependencies/ackee-tracker.min.js"></script>
 <script>
-    if (Sentry) {
-        console.log('Initializing Sentry')
-        Sentry.init({
-            dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315'
-        });
-    } else {
-        console.error('Could not load Sentry')
+    // Sentry SDK has been removed; provide a no-op stub so existing
+    // references in peer-manager.js and connect.js do not throw.
+    if (typeof Sentry === 'undefined') {
+        var noop = function() {};
+        window.Sentry = {
+            init: noop,
+            captureException: noop,
+            configureScope: noop,
+            startTransaction: null
+        };
     }
 </script>
-<script src="/dependencies/ackee-tracker.min.js"></script>
 <script src="/dependencies/peerjs.min.js"></script>
 <script src="/dependencies/reconnecting-websocket-iife.js"></script>
 <script src="/dependencies/confetti.min.js"></script>

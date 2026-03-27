@@ -121,8 +121,10 @@
                 <p class="mt-2 text-slate-500">
                     No. Contact details are not collected or stored on
                     any server.
-                    TurboVPB sends the details directly from your computer to your phone using a peer-to-peer
-                    communications technology called <a href="https://webrtc.org" class="text-blue-600 hover:text-blue-700">WebRTC</a>.
+                    TurboVPB sends the details from your computer to your phone through an encrypted
+                    WebSocket relay. All messages are end-to-end encrypted with AES-GCM, and the
+                    encryption key never leaves your devices (it is passed in the URL fragment, which
+                    is not sent to the server).
                     For more details on how TurboVPB works, see the source code repository: <a
                         href="https://github.com/emschwartz/turbo-vpb" target="_blank" class="text-blue-600 hover:text-blue-700">emschwartz/turbo-vpb</a>.
                 </p>
@@ -174,9 +176,5 @@
 
 </div>
 
-<script src="dependencies/sentry-7.1.1-with-tracing.min.js"></script>
-<script>
-    Sentry.init({ dsn: 'https://6c908d99b8534acebf2eeecafeb1614e@o435207.ingest.sentry.io/5393315' });
-</script>
 <script async src="dependencies/ackee-tracker.min.js" data-ackee-server="https://analytics.turbovpb.com"
     data-ackee-domain-id="d72e1472-0d7f-4ed6-976b-cc6dff65bc1d" data-ackee-opts='{ "detailed": true }'></script>

@@ -3,9 +3,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Use the dev build which includes http://localhost/* in host_permissions,
+// needed because these tests simulate manual content script injection
+// (chrome.scripting.executeScript) on localhost pages.
 const EXTENSION_PATH = path.resolve(
   __dirname,
-  "../../extension/.output/chrome-mv3",
+  "../../extension/.output/chrome-mv3-dev",
 );
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
@@ -71,30 +74,17 @@ test.afterAll(async () => {
   await extensionContext?.close();
 });
 
-async function getConnectUrl(page: Page): Promise<string> {
-  const details = await page.evaluate(async () => {
+async function getConnectUrl(_page: Page): Promise<string> {
+  // Poll chrome.storage.session via the service worker
+  const details = await serviceWorker.evaluate(async () => {
     for (let i = 0; i < 30; i++) {
-      // Try browser.storage.session via the chrome extension API
-      if (typeof chrome !== "undefined" && chrome.storage?.session) {
-        try {
-          const result = await chrome.storage.session.get("turboVpbConnection");
-          if (result.turboVpbConnection?.channelId && result.turboVpbConnection?.encryptionKey) {
-            return result.turboVpbConnection;
-          }
-        } catch (_) {
-          // API may not be available in this context
-        }
+      const result = await (globalThis as any).chrome.storage.session.get(
+        "turboVpbConnection",
+      );
+      const stored = result?.turboVpbConnection;
+      if (stored && stored.channelId && stored.encryptionKey) {
+        return stored;
       }
-
-      // Fall back to DOM sessionStorage
-      const stored = sessionStorage.getItem("turboVpbConnection");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.channelId && parsed.encryptionKey) {
-          return parsed;
-        }
-      }
-
       await new Promise((r) => setTimeout(r, 500));
     }
     return null;
@@ -140,6 +130,12 @@ test("content script is not auto-injected on non-configured VAN domain", async (
 });
 
 test("content script works on VAN-style page after permission grant and injection", async () => {
+  // Record existing tab IDs before opening a new page
+  const existingTabIds: number[] = await serviceWorker.evaluate(async () => {
+    const tabs = await (globalThis as any).chrome.tabs.query({});
+    return tabs.map((t: any) => t.id);
+  });
+
   // Navigate to the VAN page via localhost (where we have host_permissions).
   // The path /test-van-custom-domain does NOT match any content script match
   // patterns, so the content script won't auto-inject. This simulates the
@@ -154,29 +150,34 @@ test("content script works on VAN-style page after permission grant and injectio
     await vanPage.evaluate(() => !!document.getElementById("turbovpb-insert")),
   ).toBe(false);
 
+  // Find the new tab by diffing tab IDs (chrome.tabs.query can't see URLs
+  // without host_permissions for localhost in a production build)
+  const newTabId: number = await serviceWorker.evaluate(async (knownIds: number[]) => {
+    const tabs = await (globalThis as any).chrome.tabs.query({});
+    const newTab = tabs.find((t: any) => !knownIds.includes(t.id));
+    if (!newTab?.id) throw new Error("Could not find new tab");
+    return newTab.id;
+  }, existingTabIds);
+
   // Simulate the background script's permissions.onAdded handler:
   // inject the content script into the tab (just like background.ts does)
-  await serviceWorker.evaluate(async (pageUrl: string) => {
-    const tabs = await (globalThis as any).chrome.tabs.query({});
-    const tab = tabs.find((t: any) => t.url?.includes(pageUrl));
-    if (!tab?.id) throw new Error("Could not find tab for " + pageUrl);
-
+  await serviceWorker.evaluate(async (tabId: number) => {
     // Check content script not already injected
     const [result] = await (globalThis as any).chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: { tabId },
       func: () => !!document.getElementById("turbovpb-insert"),
     });
     if (result?.result) throw new Error("Content script already injected");
 
     await (globalThis as any).chrome.scripting.insertCSS({
-      target: { tabId: tab.id },
+      target: { tabId },
       files: ["/content-scripts/content.css"],
     });
     await (globalThis as any).chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: { tabId },
       files: ["/content-scripts/content.js"],
     });
-  }, "/test-van-custom-domain");
+  }, newTabId);
 
   // Verify the content script initialized and generated a connect URL
   const connectUrl = await getConnectUrl(vanPage);
@@ -206,24 +207,34 @@ test("content script works on VAN-style page after permission grant and injectio
 });
 
 test("call result cycles contacts on VAN-style page", async () => {
+  // Record existing tab IDs before opening a new page
+  const existingTabIds: number[] = await serviceWorker.evaluate(async () => {
+    const tabs = await (globalThis as any).chrome.tabs.query({});
+    return tabs.map((t: any) => t.id);
+  });
+
   const vanPage = await extensionContext.newPage();
   await vanPage.goto(`${SERVER_URL}/test-van-custom-domain`);
 
-  // Inject content script manually (simulating post-permission-grant injection)
-  await serviceWorker.evaluate(async (pageUrl: string) => {
+  // Find the new tab by diffing tab IDs
+  const newTabId: number = await serviceWorker.evaluate(async (knownIds: number[]) => {
     const tabs = await (globalThis as any).chrome.tabs.query({});
-    const tab = tabs.find((t: any) => t.url?.includes(pageUrl));
-    if (!tab?.id) throw new Error("Could not find tab for " + pageUrl);
+    const newTab = tabs.find((t: any) => !knownIds.includes(t.id));
+    if (!newTab?.id) throw new Error("Could not find new tab");
+    return newTab.id;
+  }, existingTabIds);
 
+  // Inject content script manually (simulating post-permission-grant injection)
+  await serviceWorker.evaluate(async (tabId: number) => {
     await (globalThis as any).chrome.scripting.insertCSS({
-      target: { tabId: tab.id },
+      target: { tabId },
       files: ["/content-scripts/content.css"],
     });
     await (globalThis as any).chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: { tabId },
       files: ["/content-scripts/content.js"],
     });
-  }, "/test-van-custom-domain");
+  }, newTabId);
 
   const connectUrl = await getConnectUrl(vanPage);
   const { browser: connectBrowser, page: connectPage } =

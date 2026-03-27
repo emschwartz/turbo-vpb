@@ -1,11 +1,11 @@
 use axum::{routing::get, Router};
-use once_cell::sync::Lazy;
 use prometheus::{
     register_gauge_vec, register_histogram_vec, register_int_counter_vec, Encoder, GaugeVec,
     HistogramVec, IntCounterVec, TextEncoder,
 };
+use std::sync::LazyLock;
 
-pub static CONCURRENT_CHANNELS: Lazy<GaugeVec> = Lazy::new(|| {
+pub static CONCURRENT_CHANNELS: LazyLock<GaugeVec> = LazyLock::new(|| {
     register_gauge_vec!(
         "channels_concurrent",
         "Number of concurrent channels",
@@ -13,13 +13,13 @@ pub static CONCURRENT_CHANNELS: Lazy<GaugeVec> = Lazy::new(|| {
     )
     .unwrap()
 });
-pub static TOTAL_MESSAGES: Lazy<IntCounterVec> = Lazy::new(|| {
+pub static TOTAL_MESSAGES: LazyLock<IntCounterVec> = LazyLock::new(|| {
     register_int_counter_vec!("messages_total", "Total messages sent", &["identity"]).unwrap()
 });
-pub static TOTAL_CHANNELS: Lazy<IntCounterVec> = Lazy::new(|| {
+pub static TOTAL_CHANNELS: LazyLock<IntCounterVec> = LazyLock::new(|| {
     register_int_counter_vec!("channels_total", "Total number of channels", &["identity"]).unwrap()
 });
-pub static CHANNEL_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
+pub static CHANNEL_DURATION: LazyLock<HistogramVec> = LazyLock::new(|| {
     register_histogram_vec!("channels_duration", "Duration of channels", &["identity"],).unwrap()
 });
 

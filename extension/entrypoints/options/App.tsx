@@ -17,33 +17,34 @@ const messageTemplates = signal<MessageTemplateDetails[]>([
   },
 ]);
 
-// Load the settings from storage
-batch(() =>
-  browser.storage.local
-    .get(["messageTemplates", "serverUrl", "yourName"])
-    .then((settings: ExtensionSettings) => {
+// Load the settings from storage, then register the auto-save effect
+let saveTimeout: ReturnType<typeof setTimeout> | undefined;
+browser.storage.local
+  .get(["messageTemplates", "serverUrl", "yourName"])
+  .then((settings: ExtensionSettings) => {
+    batch(() => {
       serverUrl.value = settings.serverUrl || "";
       yourName.value = settings.yourName || "";
       if (settings.messageTemplates?.length > 0) {
         messageTemplates.value = settings.messageTemplates;
       }
-    }),
-);
-let saveTimeout: ReturnType<typeof setTimeout> | undefined;
-effect(() => {
-  const settings: ExtensionSettings = {
-    serverUrl: serverUrl.value,
-    yourName: yourName.value,
-    messageTemplates: messageTemplates.value.filter(
-      (template) => !!template.label && !!template.message,
-    ),
-  };
-  clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
-    console.log("Saving settings", settings);
-    browser.storage.local.set(settings).catch(console.error);
-  }, 400);
-});
+    });
+    // Register the auto-save effect after the initial load completes
+    effect(() => {
+      const settings: ExtensionSettings = {
+        serverUrl: serverUrl.value,
+        yourName: yourName.value,
+        messageTemplates: messageTemplates.value.filter(
+          (template) => !!template.label && !!template.message,
+        ),
+      };
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        console.log("Saving settings", settings);
+        browser.storage.local.set(settings).catch(console.error);
+      }, 400);
+    });
+  });
 
 function setServerUrl(url: string) {
   serverUrl.value = url;

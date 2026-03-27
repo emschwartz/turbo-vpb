@@ -41,7 +41,7 @@ export function selectPhonebankType(
     return "bluevote";
   } else if (
     url.hostname.endsWith("everyaction.com") ||
-    url.hostname === "votebuilder.com"
+    url.hostname.endsWith("votebuilder.com")
   ) {
     return "everyaction";
   } else {

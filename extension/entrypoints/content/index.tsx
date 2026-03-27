@@ -54,7 +54,6 @@ export default defineContentScript({
       }
     });
     effect(() => {
-      console.log("saving total calls", state.totalCalls.value);
       browser.storage.local
         .set({
           totalCalls: state.totalCalls.value,
@@ -72,16 +71,15 @@ export default defineContentScript({
         state.pubsubClient.value?.send(detailsToSend.value);
       }
     });
-    effect(() => {
-      console.log(state.sessionStats.value);
-    });
 
     function listenForExtensionMessages() {
-      browser.runtime.onMessage.addListener((message) => {
+      const handler = (message: any) => {
         if (message.type === "openQrCodeModal") {
           showQrCodeModal();
         }
-      });
+      };
+      browser.runtime.onMessage.addListener(handler);
+      ctx.onInvalidated(() => browser.runtime.onMessage.removeListener(handler));
     }
 
     function watchForNewContacts() {
@@ -193,7 +191,7 @@ export default defineContentScript({
         console.log("Received message:", message);
 
         // Send the details as soon as we receive a connect message
-        if (message.type === "connect") {
+        if (message.type === "connect" && detailsToSend.value.contact) {
           console.log("Sending contact details in response to connect message");
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
@@ -238,7 +236,7 @@ export default defineContentScript({
         }
       });
 
-      browser.storage.onChanged.addListener((changes, area) => {
+      const onChangedHandler = (changes: any, area: string) => {
         if (area === "local") {
           state.settings.value = {
             serverUrl:
@@ -249,7 +247,9 @@ export default defineContentScript({
               state.settings.value?.messageTemplates,
           };
         }
-      });
+      };
+      browser.storage.onChanged.addListener(onChangedHandler);
+      ctx.onInvalidated(() => browser.storage.onChanged.removeListener(onChangedHandler));
     }
   },
 });

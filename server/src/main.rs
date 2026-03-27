@@ -1,6 +1,5 @@
-use axum::{http::StatusCode, response::IntoResponse, routing::get_service, Server};
-use futures::try_join;
-use std::{env, error::Error, net::SocketAddr, path::PathBuf};
+use axum::extract::DefaultBodyLimit;
+use std::{env, net::SocketAddr, path::PathBuf};
 use tokio::fs;
 use tokio_rusqlite::{rusqlite, Connection};
 use tower_http::services::{ServeDir, ServeFile};
@@ -22,23 +21,17 @@ async fn main() {
         .nth(1)
         .unwrap_or_else(|| "static".to_string())
         .into();
-    fs::read_dir(&static_dir)
+    let _ = fs::read_dir(&static_dir)
         .await
-        .expect("Failed to read static directory")
-        .next_entry()
-        .await
-        .expect("Failed to read file from static directory");
+        .expect("Failed to read static directory");
     debug!("Using static directory: {}", static_dir.display());
 
     // Serve static files
-    let static_file_service = get_service(ServeDir::new(&static_dir))
-        .fallback(get_service(ServeFile::new(
-            static_dir.join("favicons/favicon.ico"),
-        )))
-        .handle_error(internal_service_error);
+    let static_file_service =
+        ServeDir::new(&static_dir).fallback(ServeFile::new(static_dir.join("favicons/favicon.ico")));
 
     let website = pages::router()
-        .fallback(static_file_service)
+        .fallback_service(static_file_service)
         .layer(CompressionLayer::new());
 
     // Initialize SQLite database
@@ -73,7 +66,9 @@ async fn main() {
     .expect("Failed to create database tables");
     info!("SQLite database initialized at {db_path}");
 
-    let api = pubsub::router().merge(stats::router(db));
+    let api = pubsub::router()
+        .merge(stats::router(db))
+        .layer(DefaultBodyLimit::max(16_384)); // 16 KB max
 
     let port: u16 = env::var("PORT")
         .ok()
@@ -82,16 +77,39 @@ async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("Listening on {}", addr);
     let app = api.merge(website).layer(TraceLayer::new_for_http());
-    let app = Server::bind(&addr).serve(app.into_make_service());
+
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .expect("Failed to bind");
 
     // Serve the metrics on a different port so they're not publicly exposed
-    let metrics_addr = SocketAddr::from(([0, 0, 0, 0], 8081));
-    let metrics = Server::bind(&metrics_addr).serve(metrics::router().into_make_service());
+    let metrics_port: u16 = env::var("METRICS_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8081);
+    let metrics_addr = SocketAddr::from(([127, 0, 0, 1], metrics_port));
+    let metrics_listener = tokio::net::TcpListener::bind(metrics_addr)
+        .await
+        .expect("Failed to bind metrics");
     info!("Metrics listening on {}", metrics_addr);
 
-    try_join!(app, metrics).expect("Server error");
+    let metrics_handle = tokio::spawn(async move {
+        axum::serve(metrics_listener, metrics::router().into_make_service())
+            .await
+            .expect("Metrics server error");
+    });
+
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .expect("Server error");
+
+    metrics_handle.abort();
 }
 
-async fn internal_service_error(_: impl Error) -> impl IntoResponse {
-    (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+async fn shutdown_signal() {
+    tokio::signal::ctrl_c()
+        .await
+        .expect("Failed to install CTRL+C handler");
+    info!("Shutdown signal received");
 }

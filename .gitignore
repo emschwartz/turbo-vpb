@@ -13,3 +13,6 @@ dist
 .output
 .wxt
 .superpowers
+docs/superpowers/plans
+server/data/
+extension/test-results/

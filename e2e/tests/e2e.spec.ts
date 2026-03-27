@@ -90,18 +90,24 @@ test.afterAll(async () => {
 
 /**
  * Extract the connect URL by reading the extension's connection details
- * from sessionStorage, where the content script persists them.
+ * from browser.storage.session via the service worker.
  */
-async function getConnectUrl(page: Page): Promise<string> {
-  // Poll sessionStorage until the extension stores connection details
-  const details = await page.evaluate(async () => {
+async function getConnectUrl(_page: Page): Promise<string> {
+  // Get the service worker to access chrome.storage.session
+  let serviceWorker = extensionContext.serviceWorkers()[0];
+  if (!serviceWorker) {
+    serviceWorker = await extensionContext.waitForEvent("serviceworker");
+  }
+
+  // Poll chrome.storage.session until the extension stores connection details
+  const details = await serviceWorker.evaluate(async () => {
     for (let i = 0; i < 30; i++) {
-      const stored = sessionStorage.getItem("turboVpbConnection");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.channelId && parsed.encryptionKey) {
-          return parsed;
-        }
+      const result = await (globalThis as any).chrome.storage.session.get(
+        "turboVpbConnection",
+      );
+      const stored = result?.turboVpbConnection;
+      if (stored && stored.channelId && stored.encryptionKey) {
+        return stored;
       }
       await new Promise((r) => setTimeout(r, 500));
     }
@@ -109,7 +115,9 @@ async function getConnectUrl(page: Page): Promise<string> {
   });
 
   if (!details) {
-    throw new Error("Extension did not store connection details in sessionStorage");
+    throw new Error(
+      "Extension did not store connection details in chrome.storage.session",
+    );
   }
 
   return `${SERVER_URL}/connect#${details.channelId}&${details.encryptionKey}`;
@@ -130,6 +138,9 @@ async function openConnectPage(connectUrl: string): Promise<{
 }
 
 test("contact details flow from extension to connect page", async () => {
+  // Reload to ensure we start with the first contact
+  await phonebankPage.reload();
+
   // Wait for the extension to inject its UI and generate the QR code
   const connectUrl = await getConnectUrl(phonebankPage);
   expect(connectUrl).toContain("/connect");
@@ -160,6 +171,9 @@ test("contact details flow from extension to connect page", async () => {
 });
 
 test("call result flows back from connect page to extension", async () => {
+  // Reload to ensure we start with the first contact
+  await phonebankPage.reload();
+
   const connectUrl = await getConnectUrl(phonebankPage);
   const { browser: connectBrowser, page: connectPage } =
     await openConnectPage(connectUrl);
@@ -231,6 +245,9 @@ test("reconnection after extension page reload", async () => {
 });
 
 test("message template placeholders are substituted on connect page", async () => {
+  // Reload to ensure we start with the first contact (Alice)
+  await phonebankPage.reload();
+
   const connectUrl = await getConnectUrl(phonebankPage);
   const { browser: connectBrowser, page: connectPage } =
     await openConnectPage(connectUrl);

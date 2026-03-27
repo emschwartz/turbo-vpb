@@ -12,7 +12,7 @@ import {
 import { browser } from 'wxt/browser';
 import { randomId } from '../../lib/crypto';
 
-const DEFAULT_SERVER_URL = "https://next.turbovpb.com";
+const DEFAULT_SERVER_URL = "https://pubsub.turbovpb.com";
 
 export const state = {
   settings: signal(undefined as ExtensionSettings | undefined),
@@ -99,12 +99,10 @@ export function setLastCallResult(contacted: boolean, result: string) {
       lastContactLoadTime: Date.now(),
       startTime: sessionStats.startTime,
     };
-    console.log(state, state.sessionStats, state.sessionStats.value);
-
     state.totalCalls.value += 1;
 
     // Keep track of the last month's daily call stats
-    const date = new Date().toLocaleDateString();
+    const date = new Date().toISOString().slice(0, 10);
     const updated = [...state.dailyCalls.value];
     let todaysRecord = updated[updated.length - 1];
     // Add a new record for today if it doesn't exist

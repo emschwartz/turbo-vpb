@@ -5,7 +5,7 @@ const CONNECTION_TIMEOUT_MS = 10_000;
 
 export default class PubSubClient {
   ws: ReconnectingWebSocket;
-  encryptionKey: CryptoKey;
+  private encryptionKey: CryptoKey | undefined;
   wsUrl: string;
   httpUrl: string;
   channelId: string;
@@ -22,7 +22,7 @@ export default class PubSubClient {
     this.channelId = channelId;
     this.encryptionKey = encryptionKey;
     const channelPath = `/api/channels/${this.channelId}/extension`;
-    this.wsUrl = `${serverBase.replace("http", "ws")}${channelPath}`;
+    this.wsUrl = `${serverBase.replace(/^http/, 'ws')}${channelPath}`;
     this.httpUrl = `${serverBase}${channelPath}`;
     this.onmessage = () => {};
     this.onclose = () => {};

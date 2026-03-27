@@ -33,7 +33,7 @@ const startDate = computed(() =>
 );
 const callsToday = computed(() => {
   const todaysRecord = dailyCalls.value[dailyCalls.value.length - 1];
-  const date = new Date().toLocaleDateString();
+  const date = new Date().toISOString().slice(0, 10);
   return todaysRecord && todaysRecord[0] === date ? todaysRecord[1] : 0;
 });
 
@@ -64,10 +64,10 @@ const LeaveReviewButton: FunctionComponent = () => (
 
 const HelpButton: FunctionComponent = () => (
   <a
-    href="https://join.slack.com/t/turbophonebank/shared_invite/zt-1g3ounuk2-KxWo4negWzH_8W4T3A_Sbg"
+    href="https://github.com/emschwartz/turbo-vpb/issues"
     target="_blank"
     class="text-slate-700"
-    title="Join us on Slack to ask questions or discuss TurboVPB"
+    title="Report issues or ask questions on GitHub"
   >
     <QuestionMarkCircleIcon class="w-5" />
   </a>

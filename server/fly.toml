@@ -1,18 +1,9 @@
-# fly.toml file generated for turbovpb-server on 2022-08-30T08:25:25+02:00
-
 app = "turbovpb-server"
-kill_signal = "SIGINT"
-kill_timeout = 20
-processes = []
 
 [env]
 RUST_LOG = "turbovpb_server=info"
 RUST_BACKTRACE = "1"
 DATABASE_PATH = "/data/turbovpb.db"
-
-[experimental]
-allowed_public_ports = []
-auto_rollback = true
 
 [mounts]
 source = "turbovpb_data"
@@ -25,6 +16,8 @@ path = "/metrics"
 [http_service]
 internal_port = 8080
 force_https = true
+auto_stop_machines = "stop"
+auto_start_machines = true
 
 [http_service.concurrency]
 type = "connections"

@@ -1,6 +1,6 @@
 use crate::metrics::{CHANNEL_DURATION, CONCURRENT_CHANNELS, TOTAL_CHANNELS, TOTAL_MESSAGES};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::{Extension, Path};
+use axum::extract::{Path, State};
 use axum::routing::{delete, get};
 use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Json, Router};
 use dashmap::DashMap;
@@ -16,6 +16,7 @@ use tracing::{debug, instrument, trace};
 const PING_INTERVAL: Duration = Duration::from_secs(20);
 const CHANNEL_INACTIVITY_TIMEOUT: Duration = Duration::from_secs(60 * 30);
 const CHANNEL_CAPACITY: usize = 16;
+const MAX_MESSAGE_SIZE: usize = 16_384;
 
 type ChannelState = Arc<DashMap<String, Channel>>;
 struct Channel {
@@ -25,6 +26,7 @@ struct Channel {
     /// channel record when the last connection is dropped.
     num_connections: usize,
     channel_created_at: std::time::Instant,
+    created_by_identity: &'static str,
     // Version <=0.9.6 of the extension expects the server to store
     // the last message sent on either side, because that was the
     // behavior of the nchan server, so we're doing that here
@@ -40,6 +42,7 @@ impl Default for Channel {
             browser: channel(CHANNEL_CAPACITY).0,
             num_connections: 0,
             channel_created_at: Instant::now(),
+            created_by_identity: "extension",
             last_browser_message: Default::default(),
             last_extension_message: Default::default(),
         }
@@ -82,13 +85,13 @@ pub fn router() -> Router {
             get(ws_handler).post(post_channel),
         )
         .route("/api/channels/:channel_id", delete(delete_channel))
-        .layer(Extension(ChannelState::default()))
+        .with_state(ChannelState::default())
 }
 
 async fn ws_handler(
     Path((channel_id, identity)): Path<(String, Identity)>,
     ws: WebSocketUpgrade,
-    Extension(state): Extension<ChannelState>,
+    State(state): State<ChannelState>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |ws| websocket(channel_id, identity, ws, state.clone()))
 }
@@ -105,7 +108,9 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                 .with_label_values(&[identity.as_str()])
                 .inc();
 
-            Channel::default()
+            let mut ch = Channel::default();
+            ch.created_by_identity = identity.as_str();
+            ch
         });
         channel.num_connections += 1;
 
@@ -187,7 +192,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                 last_activity = Instant::now();
 
                 match message {
-                    Message::Binary(_) => {
+                    Message::Binary(ref data) if data.len() <= MAX_MESSAGE_SIZE => {
                         // Ignore send errors because that just means that the other side is not connected
                         match sender.send(message) {
                             Ok(_) => {
@@ -195,6 +200,9 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                             },
                             Err(err) => debug!("error sending message to channel: {err}"),
                         }
+                    }
+                    Message::Binary(_) => {
+                        debug!("message too large, dropping");
                     }
                     Message::Ping(data) => {
                         if ws_sink.send(Message::Pong(data)).await.is_err() {
@@ -220,39 +228,35 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 
     debug!("websocket closed");
 
-    // Remove the channel record when the last connection is dropped
-    let should_remove = if let Some(mut channel) = state.get_mut(&channel_id) {
+    // Remove the channel record atomically when the last connection is dropped
+    if let Some((_, channel)) = state.remove_if_mut(&channel_id, |_, channel| {
         channel.num_connections = channel.num_connections.saturating_sub(1);
         channel.num_connections == 0
-    } else {
-        debug!("channel already removed");
-        false
-    };
-    if should_remove {
+    }) {
         debug!("removing channel");
-        if let Some((_, channel)) = state.remove(&channel_id) {
-            CONCURRENT_CHANNELS
-                .with_label_values(&[identity.as_str()])
-                .dec();
-            CHANNEL_DURATION
-                .with_label_values(&[identity.as_str()])
-                .observe(channel.channel_created_at.elapsed().as_secs_f64());
-        }
+        CONCURRENT_CHANNELS
+            .with_label_values(&[channel.created_by_identity])
+            .dec();
+        CHANNEL_DURATION
+            .with_label_values(&[channel.created_by_identity])
+            .observe(channel.channel_created_at.elapsed().as_secs_f64());
     }
 }
 
 #[instrument(skip(state))]
 async fn delete_channel(
     Path(channel_id): Path<String>,
-    Extension(state): Extension<ChannelState>,
+    State(state): State<ChannelState>,
 ) -> impl IntoResponse {
     debug!("deleting channel");
     // Removing the channel drops the broadcast Senders, which causes
     // active WebSocket loops to receive RecvError::Closed and break.
     if let Some((_, channel)) = state.remove(&channel_id) {
-        CONCURRENT_CHANNELS.with_label_values(&["extension"]).dec();
+        CONCURRENT_CHANNELS
+            .with_label_values(&[channel.created_by_identity])
+            .dec();
         CHANNEL_DURATION
-            .with_label_values(&["extension"])
+            .with_label_values(&[channel.created_by_identity])
             .observe(channel.channel_created_at.elapsed().as_secs_f64());
         StatusCode::OK
     } else {
@@ -263,7 +267,7 @@ async fn delete_channel(
 #[instrument(skip(state, body))]
 async fn post_channel(
     Path((channel_id, identity)): Path<(String, Identity)>,
-    Extension(state): Extension<ChannelState>,
+    State(state): State<ChannelState>,
     body: Bytes,
 ) -> impl IntoResponse {
     if let Some(channel) = state.get(&channel_id) {

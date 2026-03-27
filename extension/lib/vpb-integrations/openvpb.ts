@@ -87,6 +87,10 @@ export async function scrapeResultCodes(): Promise<string[] | undefined> {
 export async function markResult(resultCode: string) {
   const resultCodes = await getResultCodes();
   const li = resultCodes[resultCode];
+  if (!li) {
+    console.warn("Result code not found:", resultCode);
+    return;
+  }
   const input = li.querySelector("input[type='radio']") as HTMLInputElement;
   input.click();
   await sleep();

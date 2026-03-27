@@ -1,5 +1,3 @@
-import tingle from "tingle.js";
-import "tingle.js/dist/tingle.min.css";
 import { browser } from 'wxt/browser';
 
 const DOWNLOAD_ICON = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-cloud-arrow-down-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -15,7 +13,7 @@ const SAVED_ICON = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi 
 </svg>`;
 
 const YOUR_NAME_REGEX =
-  /([\[\(\{\<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}\>]+)/gi;
+  /([\[\(\{\<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}\>]+)/i;
 
 interface MessageTemplate {
   label: string;
@@ -136,124 +134,91 @@ export default defineContentScript({
     }
 
     async function showNameRequiredDialog(): Promise<string | undefined> {
-      console.log("showing name required dialog");
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         let firstName: string | undefined;
-        try {
-          const modal = new tingle.modal({
-            footer: true,
-            closeMethods: ["overlay", "button", "escape"],
-            closeLabel: "Close",
-            onClose: () => resolve(firstName),
-          });
+        const dialog = document.createElement("dialog");
+        dialog.style.cssText = "border:none;border-radius:8px;padding:2rem;max-width:480px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.2);";
+        dialog.innerHTML = `
+          <h3 class="alert-heading">Enter Your First Name</h3>
+          <p class="lead">TurboVPB will automatically replace <code>[Your Name]</code><br>from the message templates with your actual name.</p>
+          <input type="text" id="first-name-input" class="p-2 form-control form-control-lg text-center" placeholder="First Name"/>
+          <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
+            <button class="btn btn-primary m-2 save-name-btn" disabled>Save</button>
+          </div>`;
+        document.body.appendChild(dialog);
 
-          modal.setContent(`
-            <h3 class="alert-heading">Enter Your First Name</h3>
-            <p class="lead">TurboVPB will automatically replace <code>[Your Name]</code><br>from the message templates with your actual name.</p>
+        const nameInput = dialog.querySelector<HTMLInputElement>("#first-name-input")!;
+        const saveBtn = dialog.querySelector<HTMLButtonElement>(".save-name-btn")!;
 
-            <input type="text" id="first-name-input" class="p-2 form-control form-control-lg text-center" placeholder="First Name"/>
-            `);
-          const saveNameButton = document.querySelector(".save-name-btn");
-          if (saveNameButton) {
-            saveNameButton.setAttribute("disabled", "true");
+        nameInput.addEventListener("input", () => {
+          firstName = nameInput.value;
+          saveBtn.disabled = !firstName;
+          nameInput.classList.toggle("is-valid", !!firstName);
+          nameInput.classList.toggle("is-invalid", !firstName);
+        });
+
+        saveBtn.addEventListener("click", () => {
+          if (firstName) {
+            dialog.close();
+            resolve(firstName);
           }
+        });
 
-          const nameInput = document.getElementById("first-name-input");
-          nameInput?.addEventListener("input", validateName);
+        dialog.addEventListener("close", () => {
+          dialog.remove();
+          resolve(firstName);
+        });
 
-          function validateName(): boolean {
-            const nameInput = document.getElementById("first-name-input") as HTMLInputElement | null;
-            if (nameInput) {
-              firstName = nameInput.value;
-              if (firstName) {
-                nameInput.classList.add("is-valid");
-                nameInput.classList.remove("is-invalid");
+        dialog.addEventListener("click", (e) => {
+          if (e.target === dialog) dialog.close();
+        });
 
-                const saveNameButton = document.querySelector(".save-name-btn");
-                if (saveNameButton) {
-                  saveNameButton.removeAttribute("disabled");
-                }
-                return true;
-              } else {
-                nameInput.classList.add("is-invalid");
-                nameInput.classList.remove("is-valid");
-
-                const saveNameButton = document.querySelector(".save-name-btn");
-                if (saveNameButton) {
-                  saveNameButton.setAttribute("disabled", "true");
-                }
-                return false;
-              }
-            }
-            return false;
-          }
-
-          modal.addFooterBtn(
-            "Save",
-            "btn btn-primary m-2 tingle-btn--pull-right save-name-btn",
-            () => {
-              if (!validateName()) {
-                console.log("Name invalid");
-                return;
-              }
-              modal.close();
-              resolve(firstName);
-            },
-          );
-          modal.open();
-        } catch (err) {
-          reject(err);
-        }
+        dialog.showModal();
       });
     }
 
     async function showConfirmationDialog(previousTemplates: MessageTemplate[]): Promise<boolean> {
-      console.log("showing confirmation dialog");
-      return new Promise((resolve, reject) => {
-        try {
-          const modal = new tingle.modal({
-            footer: true,
-            closeMethods: ["overlay", "button", "escape"],
-            closeLabel: "Cancel",
-            onClose: () => resolve(false),
-          });
-          modal.setContent(`
-            <h3 class="alert-heading">Overwrite Current Settings?</h3>
-            <p class="lead">You have ${
-              previousTemplates.length
-            } Text Message Template${
-              previousTemplates.length > 1 ? "s" : ""
-            } configured.<br>Do you want to overwrite your current settings?</p>
+      return new Promise((resolve) => {
+        const dialog = document.createElement("dialog");
+        dialog.style.cssText = "border:none;border-radius:8px;padding:2rem;max-width:540px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.2);";
+        dialog.innerHTML = `
+          <h3 class="alert-heading">Overwrite Current Settings?</h3>
+          <p class="lead">You have ${previousTemplates.length} Text Message Template${
+            previousTemplates.length > 1 ? "s" : ""
+          } configured.<br>Do you want to overwrite your current settings?</p>
+          <p class="lead mb-0">Click here to export your current settings<br>and save the link to use them again later:</p>
+          <a href="${createShareUrl(previousTemplates)}" target="_blank" class="btn btn-success btn-lg btn-block py-3 mt-3"><b>${UPLOAD_ICON} &nbsp; Export Current Settings</b></a>
+          <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
+            <button class="btn btn-secondary m-2 cancel-btn">Cancel</button>
+            <button class="btn btn-primary m-2 overwrite-btn" disabled>${DOWNLOAD_ICON} Overwrite Settings</button>
+          </div>`;
+        document.body.appendChild(dialog);
 
-            <p class="lead mb-0">Click here to export your current settings<br>and save the link to use them again later:</p>
-            <a href=${createShareUrl(
-              previousTemplates,
-            )} target="_blank" class="btn btn-success btn-lg btn-block py-3 mt-3"><b>${UPLOAD_ICON} &nbsp; Export Current Settings</b></a>`);
-          modal.addFooterBtn("Cancel", "btn btn-secondary m-2", () => {
-            resolve(false);
-          });
-          modal.addFooterBtn(
-            `${DOWNLOAD_ICON} Overwrite Settings`,
-            "overwrite-settings-btn btn btn-primary m-2 tingle-btn--pull-right",
-            () => {
-              console.log("Overwrite settings");
-              resolve(true);
-              modal.close();
-            },
-          );
-          const overwriteSettingsButton = document.querySelector(
-            ".overwrite-settings-btn",
-          );
-          if (overwriteSettingsButton) {
-            overwriteSettingsButton.setAttribute("disabled", "true");
-            setTimeout(() => {
-              overwriteSettingsButton.removeAttribute("disabled");
-            }, 3000);
-          }
-          modal.open();
-        } catch (err) {
-          reject(err);
-        }
+        const cancelBtn = dialog.querySelector<HTMLButtonElement>(".cancel-btn")!;
+        const overwriteBtn = dialog.querySelector<HTMLButtonElement>(".overwrite-btn")!;
+
+        // Delay enabling overwrite button to prevent accidental clicks
+        setTimeout(() => { overwriteBtn.disabled = false; }, 3000);
+
+        cancelBtn.addEventListener("click", () => {
+          dialog.close();
+        });
+
+        overwriteBtn.addEventListener("click", () => {
+          dialog.remove();
+          resolve(true);
+        });
+
+        dialog.addEventListener("close", () => {
+          dialog.remove();
+          resolve(false);
+        });
+
+        dialog.addEventListener("click", (e) => {
+          if (e.target === dialog) dialog.close();
+        });
+
+        dialog.showModal();
       });
     }
 

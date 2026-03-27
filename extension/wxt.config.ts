@@ -14,7 +14,7 @@ export default defineConfig({
       },
     },
   }),
-  manifest: ({ browser }) => ({
+  manifest: ({ browser, mode }) => ({
     name: 'TurboVPB',
     description:
       'Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!',
@@ -29,7 +29,7 @@ export default defineConfig({
       'https://phonebank.bluevote.com/*',
       '*://*.turbovpb.com/*',
       'https://*/ContactDetailScript',
-      'http://localhost/*',
+      ...(mode === 'development' ? ['http://localhost/*'] : []),
     ],
     action: {
       default_title: 'TurboVPB',

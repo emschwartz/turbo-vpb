@@ -19,21 +19,24 @@ jobs:
           key: rust-${{ runner.os }}-${{ hashFiles('server/Cargo.lock') }}
           restore-keys: rust-${{ runner.os }}-
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          cache: pnpm
           cache-dependency-path: |
-            extension/package-lock.json
+            extension/pnpm-lock.yaml
             e2e/package-lock.json
 
       - name: Install extension dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
         working-directory: extension
 
       - name: Build extension
-        run: npm run build
+        run: pnpm build && pnpm build --mode development
         working-directory: extension
 
       - name: Install e2e dependencies
@@ -44,8 +47,11 @@ jobs:
         run: npx playwright install chromium --with-deps
         working-directory: e2e
 
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
       - name: Run E2E tests
-        run: npx playwright test
+        run: xvfb-run --auto-servernum npx playwright test
         working-directory: e2e
 
       - name: Upload test artifacts
