@@ -16,37 +16,55 @@ Monorepo with three independent components:
 
 Each has its own package manager and lock file. No shared workspace tooling.
 
+## Setup
+
+```bash
+just install      # Install all deps (extension + e2e) and configure git hooks
+```
+
+This runs `pnpm install` in `extension/`, `npm install` in `e2e/`, and sets `core.hooksPath` to `.githooks/` for pre-commit checks.
+
 ## Common Commands
 
-### Full-stack development (from repo root)
+All commands run from the repo root via the justfile.
+
+### Development
 ```bash
 just dev          # Run server + extension (Chrome) together
 just df           # Run server + extension (Firefox)
+just server-run   # Run server only (RUST_LOG=turbovpb_server=trace)
+just server-css-watch  # Watch mode for server Tailwind CSS
 ```
 
-### Extension (from `extension/`)
+### Building
 ```bash
-pnpm install      # Install dependencies
-pnpm dev          # Dev mode (Chrome)
-pnpm dev:firefox  # Dev mode (Firefox)
-pnpm build        # Production build (Chrome)
-pnpm build:firefox
+just build              # Build everything (extension + server CSS + server binary)
+just ext-build          # Build extension only (Chrome)
+just ext-build firefox  # Build extension only (Firefox)
+just server-build       # Build server only
+just server-css         # Build server Tailwind CSS
 ```
 
-### Server (from `server/`)
+### Linting and formatting
 ```bash
-just run          # cargo run with RUST_LOG=turbovpb_server=trace
-cargo build       # Build only
-just css          # Build Tailwind CSS for server pages
-just css-watch    # Watch mode for server CSS
+# Server (Rust)
+cd server && cargo fmt --check    # Check formatting
+cd server && cargo clippy -- -D warnings  # Lint
+
+# Extension (TypeScript)
+cd extension && pnpm typecheck    # Type check
+cd extension && pnpm format:check # Prettier check
 ```
 
-### E2E tests (from `e2e/`)
+The pre-commit hook (`.githooks/pre-commit`) runs all four checks above.
+
+### E2E tests
 ```bash
-npm test              # Headless Playwright tests (auto-starts server)
-npm run test:headed   # With visible browser
+just test         # Build extension then run Playwright tests (headless)
+just e2e          # Run Playwright tests only (extension must be pre-built)
+just e2e-headed   # Run with visible browser
 ```
-Playwright auto-starts the server on port 8089. Extension must be pre-built (`pnpm build` in `extension/`). Tests run serially (extensions require single worker).
+Playwright auto-starts the server on port 8089. Tests run serially (extensions require single worker).
 
 ## Architecture
 
@@ -64,9 +82,9 @@ Each file exports a scraper for a specific phone bank platform. `index.ts` auto-
 
 ### Server modules (`server/src/`)
 
-- **`main.rs`** - Axum routes, static file serving, optional BigQuery client init
+- **`main.rs`** - Axum routes, static file serving, SQLite init
 - **`pubsub.rs`** - In-memory WebSocket relay using DashMap. Channels timeout after 30min of inactivity.
-- **`stats.rs`** - Call/text analytics batched to BigQuery every 30s (requires `GOOGLE_SERVICE_ACCOUNT_KEY` env var)
+- **`stats.rs`** - Call/text analytics stored in SQLite (path configurable via `DATABASE_PATH` env var, defaults to `data/turbovpb.db`)
 - **`pages.rs`** - Server-rendered HTML pages (TinyTemplate, embedded in binary)
 - **`metrics.rs`** - Prometheus metrics on port 8081
 
