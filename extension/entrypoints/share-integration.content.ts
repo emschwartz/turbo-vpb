@@ -18,11 +18,15 @@ const YOUR_NAME_REGEX =
 interface MessageTemplate {
   label: string;
   message: string;
-  result: string | null;
+  sendTextedResult: boolean;
 }
 
 export default defineContentScript({
-  matches: ["https://turbovpb.com/share*", "https://*.turbovpb.com/share*"],
+  matches: [
+    "https://turbovpb.com/share*",
+    "https://*.turbovpb.com/share*",
+    ...(import.meta.env.DEV ? ["http://localhost/share*"] : []),
+  ],
   main() {
     console.log("Loaded share integration");
 
@@ -130,7 +134,7 @@ export default defineContentScript({
           messageTemplates.push({
             label,
             message,
-            result: sendTexted ? "Texted" : null,
+            sendTextedResult: sendTexted,
           });
         } else {
           console.warn(
