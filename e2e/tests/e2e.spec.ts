@@ -229,14 +229,9 @@ test("reconnection after extension page reload", async () => {
     // Reload the test-phonebank page (extension will reconnect)
     await phonebankPage.reload();
 
-    // The connect page should briefly show the extension disconnected
-    const status = connectPage.locator("#status");
-    await expect(status).toHaveText("Extension disconnected", {
-      timeout: 10_000,
-    });
-
     // Wait for the extension to re-inject and reconnect.
-    // The contact name should appear on the connect page again.
+    // The connect page has a grace period before showing disconnect status,
+    // so the extension should reconnect before the user sees any change.
     // After reload, the test-phonebank page resets to the first contact.
     const connectName = connectPage.locator("#name");
     await expect(connectName).toHaveText(
@@ -244,7 +239,8 @@ test("reconnection after extension page reload", async () => {
       { timeout: 20_000 },
     );
 
-    // Verify the connect page reconnected
+    // Verify the connect page status shows connected (not disconnected)
+    const status = connectPage.locator("#status");
     await expect(status).toHaveText("Connected");
   } finally {
     await connectBrowser.close();
@@ -377,7 +373,7 @@ test("multiple contacts cycle correctly with stats", async () => {
   }
 });
 
-test("connect page shows disconnect then session complete when phonebank page closes", async () => {
+test("connect page shows session complete when phonebank page closes", async () => {
   // Open a separate phonebank page so we can close it without affecting other tests
   const pbPage = await extensionContext.newPage();
   await pbPage.goto(`${SERVER_URL}/test-phonebank`);
@@ -392,20 +388,14 @@ test("connect page shows disconnect then session complete when phonebank page cl
       timeout: 15_000,
     });
 
-    // Close the phonebank page (simulates user closing the tab)
+    // Close the phonebank page (simulates user closing the tab).
+    // The server detects the WebSocket close and notifies the connect page.
+    // After a grace period + timeout, the connect page marks session complete.
     await pbPage.close();
 
-    // The connect page should first show "Extension disconnected"
-    await expect(connectPage.locator("#status")).toHaveText(
-      "Extension disconnected",
-      { timeout: 10_000 },
-    );
-
-    // After the connection timeout, it should show "Session Complete"
-    await expect(connectPage.locator("#status")).toHaveText(
-      "Session Complete",
-      { timeout: 20_000 },
-    );
+    await expect(connectPage.locator("#status")).toHaveText("Session Complete", {
+      timeout: 15_000,
+    });
     await expect(connectPage.locator("#session-ended")).toBeVisible();
   } finally {
     await connectBrowser.close();

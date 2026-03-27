@@ -40,6 +40,8 @@ interface SimpleStorage {
 const CONNECT_TIMEOUT = 15000
 const CALL_RESULT_ACK_TIMEOUT = 3000
 const CALL_RESULT_MAX_RETRIES = 3
+const PEER_DISCONNECTED_GRACE_PERIOD = 3000
+const PEER_DISCONNECTED_TIMEOUT = 5000
 const WAIT_AFTER_PAGE_BECOMES_VISIBLE = 100
 const THEIR_NAME_REGEX = /[\[\(\{<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}>]+/ig
 const YOUR_NAME_REGEX = /[\[\(\{<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}>]+/ig
@@ -180,7 +182,7 @@ let pendingSaveMessage: string | null = null
 let waitForNewContact = false // if true, only display contact details if it's a new phone number
 let autoSaveTextedResultEnabled = true
 let messageSeq = 0
-let peerDisconnectedPending = false
+let peerDisconnectedTimer: ReturnType<typeof setTimeout> | undefined
 const pendingCallResultAcks = new Map<number, ReturnType<typeof setInterval>>()
 
 window.addEventListener('error', displayError)
@@ -230,7 +232,7 @@ async function start(): Promise<void> {
     })
     peerManager.onconnect = () => {
       console.log('PeerManager.onconnect')
-      peerDisconnectedPending = false
+      clearTimeout(peerDisconnectedTimer)
       setStatus('Connected', 'success')
       stopConnectionTimeout()
 
@@ -247,17 +249,33 @@ async function start(): Promise<void> {
       }
     }
     peerManager.onmessage = async (data: unknown) => {
+      clearTimeout(peerDisconnectedTimer)
       stopConnectionTimeout() // we know we're connected if we got a message
       await handleExtensionMessage(data as ExtensionMessage)
+    }
+    peerManager.onpeerclosed = () => {
+      console.log('PeerManager.onpeerclosed')
+      markSessionComplete()
     }
     peerManager.onpeerdisconnected = () => {
       console.log('PeerManager.onpeerdisconnected')
       if (sessionIsComplete()) return
-      peerDisconnectedPending = true
-      setStatus('Extension disconnected', 'warning')
-      setLoading()
-      document.getElementById('contact-details')!.hidden = true
-      restartConnectionTimeout()
+      // Wait a few seconds before showing "Extension disconnected" so that
+      // quick reconnections (page reloads, OpenVPB contact transitions) are invisible.
+      // If the extension reconnects within the grace period, peerDisconnectedTimer is cleared.
+      peerDisconnectedTimer = setTimeout(() => {
+        if (sessionIsComplete()) return
+        setStatus('Extension disconnected', 'warning')
+        setLoading()
+        document.getElementById('contact-details')!.hidden = true
+        // After showing the disconnected status, mark session complete
+        // if the extension still hasn't reconnected
+        peerDisconnectedTimer = setTimeout(() => {
+          if (!sessionIsComplete()) {
+            markSessionComplete()
+          }
+        }, PEER_DISCONNECTED_TIMEOUT)
+      }, PEER_DISCONNECTED_GRACE_PERIOD)
     }
     peerManager.onreconnecting = (target: string) => {
       console.log('PeerManager.onreconnecting', target)
@@ -432,12 +450,6 @@ function restartConnectionTimeout(): void {
   connectTimer = setTimeout(async () => {
     console.error('connection timed out')
     connectTimerIsRunning = false
-
-    if (peerDisconnectedPending) {
-      peerDisconnectedPending = false
-      markSessionComplete()
-      return
-    }
 
     const err = new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?')
     displayError(err)

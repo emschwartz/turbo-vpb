@@ -61,7 +61,10 @@ export default class PubSubClient {
         // Text messages are unencrypted control messages from the server
         if (typeof msg.data === "string") {
           const control = JSON.parse(msg.data);
-          if (control.type === "peerDisconnected") {
+          if (
+            control.type === "peerDisconnected" ||
+            control.type === "peerClosed"
+          ) {
             console.log("Peer disconnected");
             this.onpeerdisconnected();
           }

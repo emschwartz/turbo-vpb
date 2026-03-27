@@ -51,6 +51,7 @@ class PeerManager {
   onerror: (err: PeerErrorWithType) => void
   onreconnecting: (target: string) => void
   onpeerdisconnected: () => void
+  onpeerclosed: () => void
 
   constructor({ remotePeerId, encryptionKey, url = DEFAULT_SERVER_URL }: PeerManagerOptions) {
     this.remotePeerId = remotePeerId
@@ -63,6 +64,7 @@ class PeerManager {
     this.onerror = () => {}
     this.onreconnecting = () => {}
     this.onpeerdisconnected = () => {}
+    this.onpeerclosed = () => {}
 
     this.isConnecting = false
     this.reconnectDelay = RECONNECT_DELAY_START
@@ -306,7 +308,11 @@ class PeerManager {
           // Text messages are unencrypted control messages from the server
           if (typeof data === 'string') {
             const control = JSON.parse(data)
-            if (control.type === 'peerDisconnected') {
+            if (control.type === 'peerClosed') {
+              console.log('Peer closed')
+              this.pubsubState = PubSubState.OPEN
+              this.onpeerclosed()
+            } else if (control.type === 'peerDisconnected') {
               console.log('Peer disconnected')
               this.pubsubState = PubSubState.OPEN
               this.onpeerdisconnected()

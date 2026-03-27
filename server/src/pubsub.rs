@@ -16,7 +16,7 @@ use tracing::{debug, instrument, trace};
 const PING_INTERVAL: Duration = Duration::from_secs(20);
 const CHANNEL_INACTIVITY_TIMEOUT: Duration = Duration::from_secs(60 * 30);
 const CHANNEL_CAPACITY: usize = 16;
-const MAX_MESSAGE_SIZE: usize = 16_384;
+const MAX_MESSAGE_SIZE: usize = 2_048;
 const MAX_CHANNEL_ID_LENGTH: usize = 64;
 const MAX_CONNECTIONS_PER_CHANNEL: usize = 4;
 
@@ -329,8 +329,8 @@ async fn disconnect_channel(
             Identity::Extension => &channel.browser,
             Identity::Browser => &channel.extension,
         };
-        let _ = notify_sender.send(Message::Text(r#"{"type":"peerDisconnected"}"#.into()));
-        debug!("sent peerDisconnected via HTTP disconnect");
+        let _ = notify_sender.send(Message::Text(r#"{"type":"peerClosed"}"#.into()));
+        debug!("sent peerClosed via HTTP disconnect");
         StatusCode::OK
     } else {
         StatusCode::NOT_FOUND
