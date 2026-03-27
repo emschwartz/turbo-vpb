@@ -14,10 +14,12 @@ jobs:
       run:
         working-directory: extension
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
+        with:
+          version: 9
 
       - name: Setup Node
         uses: actions/setup-node@v4
