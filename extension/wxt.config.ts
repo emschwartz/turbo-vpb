@@ -36,6 +36,10 @@ export default defineConfig({
       ? {
           browser_specific_settings: {
             gecko: { id: "{5ac6de74-7640-4236-a7ed-e19b356b666b}" },
+            developer: {
+              name: "Evan Schwartz",
+              url: "https://emschwartz.me",
+            },
           },
         }
       : {}),
