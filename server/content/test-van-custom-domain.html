@@ -1,0 +1,86 @@
+<div>
+  <!-- VAN detection markers (checked by isVanWithCustomDomain) -->
+  <div class="van-header"></div>
+  <div class="van-inner">
+
+    <!-- EveryAction-style layout: .grid-half is where TurboVPB injects its UI -->
+    <div class="grid-half">
+      <div class="col-lg-6 col-md-6 col-sm-12 panel panel-details panel-default">
+
+        <!-- Contact name: everyaction scraper reads .person-phone-panel > firstChild -->
+        <div class="person-phone-panel">
+          <div id="contactName"></div>
+        </div>
+
+        <!-- Phone: everyaction scraper reads #current-number > firstChild.textContent -->
+        <div id="current-number">
+          <a id="phoneLink" href="tel:+15551234567">(555)-123-4567</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- "Couldn't Reach" button: everyaction scraper clicks #switch to reveal result codes -->
+    <button id="switch" class="btn btn-warning">Couldn't Reach Contact</button>
+
+    <!-- Result codes panel (hidden until "Couldn't Reach" is clicked) -->
+    <div id="resultCodesPanel" style="display: none;">
+      <div class="script-result">
+        <input id="left-voicemail" value="Left Voicemail" type="radio" name="script-contact-result" />
+        <label for="left-voicemail">Left Voicemail</label>
+      </div>
+      <div class="script-result">
+        <input id="refused" value="Refused" type="radio" name="script-contact-result" />
+        <label for="refused">Refused</label>
+      </div>
+      <div class="script-result">
+        <input id="busy" value="Busy" type="radio" name="script-contact-result" />
+        <label for="busy">Busy</label>
+      </div>
+      <div class="script-result">
+        <input id="texted" value="Texted" type="radio" name="script-contact-result" />
+        <label for="texted">Texted</label>
+      </div>
+
+      <button id="cancel-has-made-contact">Cancel</button>
+      <input id="ctl00_ContentPlaceHolderVANPage_scriptSectionbtnSaveNextHH"
+             type="submit" class="btn" value="Save &amp; Next" />
+    </div>
+
+  </div>
+</div>
+
+<script>
+  var TEST_CONTACTS = [
+    { name: { first: "Alice", last: "Johnson" }, phone: "(555)-123-4567" },
+    { name: { first: "Bob", last: "Smith" }, phone: "(555)-987-6543" },
+    { name: { first: "Carol", last: "Williams" }, phone: "(555)-246-8135" },
+  ];
+  var contactIndex = 0;
+
+  document.getElementById("switch").addEventListener("click", function() {
+    document.getElementById("resultCodesPanel").style.display = "block";
+  });
+
+  document.getElementById("cancel-has-made-contact").addEventListener("click", function() {
+    document.getElementById("resultCodesPanel").style.display = "none";
+    document.querySelectorAll('input[name="script-contact-result"]').forEach(function(r) { r.checked = false; });
+  });
+
+  document.getElementById("ctl00_ContentPlaceHolderVANPage_scriptSectionbtnSaveNextHH").addEventListener("click", function(e) {
+    e.preventDefault();
+    nextContact();
+    document.getElementById("resultCodesPanel").style.display = "none";
+    document.querySelectorAll('input[name="script-contact-result"]').forEach(function(r) { r.checked = false; });
+  });
+
+  function nextContact() {
+    var contact = TEST_CONTACTS[contactIndex % TEST_CONTACTS.length];
+    contactIndex++;
+    document.getElementById("contactName").innerText = contact.name.first + " " + contact.name.last;
+    var phoneEl = document.getElementById("phoneLink");
+    phoneEl.href = "tel:" + contact.phone;
+    phoneEl.innerText = contact.phone;
+  }
+  nextContact();
+</script>

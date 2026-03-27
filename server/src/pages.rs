@@ -10,6 +10,10 @@ const PAGES: &[(&str, &str)] = &[
         "test-phonebank",
         include_str!("../content/test-phonebank.html"),
     ),
+    (
+        "test-van-custom-domain",
+        include_str!("../content/test-van-custom-domain.html"),
+    ),
 ];
 static TEMPLATE: &str = include_str!("../templates/default.html");
 
