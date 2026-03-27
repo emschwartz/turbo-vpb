@@ -1,7 +1,6 @@
 target
-/extension
-/.git
+tailwindcss
 fly.toml
-README.md
-LICENSE.txt
+.gitignore
+.dockerignore
 **/.DS_Store
