@@ -6,11 +6,11 @@
   "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
   "scripts": {
     "dev": "wxt",
-    "dev:firefox": "wxt --browser firefox",
+    "dev:firefox": "wxt --browser firefox --mv3",
     "build": "wxt build",
-    "build:firefox": "wxt build --browser firefox",
+    "build:firefox": "wxt build --browser firefox --mv3",
     "zip": "wxt zip",
-    "zip:firefox": "wxt zip --browser firefox",
+    "zip:firefox": "wxt zip --browser firefox --mv3",
     "postinstall": "wxt prepare",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check ."
