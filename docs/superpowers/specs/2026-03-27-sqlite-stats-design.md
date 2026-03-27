@@ -29,11 +29,11 @@ CREATE TABLE IF NOT EXISTS texts (
 ### `Cargo.toml`
 
 - Remove: `gcp-bigquery-client`, `time`
-- Add: `rusqlite` with `bundled` feature (compiles SQLite from source, no system dependency)
+- Add: `tokio-rusqlite` with `bundled` feature (async wrapper around rusqlite, compiles SQLite from source)
 
 ### `stats.rs`
 
-- `router()` takes an `Arc<Mutex<rusqlite::Connection>>` instead of a `BigQueryClient`
+- `router()` takes a `tokio_rusqlite::Connection` (which is `Clone`, no `Arc<Mutex<>>` needed) instead of a `BigQueryClient`
 - Each POST handler (`post_call`, `post_text`) inserts a row directly (no batching)
 - Remove: `ServerState`, `BigQueryRecord`, `BigQueryCallRecord`, background `tokio::spawn` flush loop
 - Keep: `CallRecord` struct, route paths (including backwards-compat paths)
@@ -76,5 +76,5 @@ fly volumes create turbovpb_data --region <region> --size 1
 - All BigQuery batching logic (the `ServerState`, `TableDataInsertAllRequest` swap, background flush loop)
 - `BigQueryRecord` / `BigQueryCallRecord` wrapper types
 - `GOOGLE_SERVICE_ACCOUNT_KEY` env var and conditional init
-- `gcp-bigquery-client` and `time` crate dependencies
+- `gcp-bigquery-client`, `time`, and `serde_json` crate dependencies
 - `ca-certificates` apt package in Dockerfile
