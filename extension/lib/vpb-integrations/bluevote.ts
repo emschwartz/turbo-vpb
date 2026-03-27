@@ -17,18 +17,22 @@ export function scrapeContactDetails(): ContactDetails | undefined {
     document.getElementById("main-phone") ||
     Array.from(document.getElementsByTagName("a")).find((a) =>
       a.href.startsWith("tel:"),
-    ) ||
-    {}
-  ).innerText;
+    )
+  )?.innerText;
 
-  const name =
-    document.getElementById("voter-name") &&
-    document.getElementById("voter-name").innerText.replace(/\s\*/, "");
+  const name = document
+    .getElementById("voter-name")
+    ?.innerText.replace(/\s\*/, "");
   const firstName = name?.split(" ")[0];
   const lastName = name?.split(" ").slice(1).join(" ");
 
   if (phoneNumber && firstName) {
-    return { phoneNumber, firstName, lastName, additionalFields: {} };
+    return {
+      phoneNumber,
+      firstName,
+      lastName: lastName ?? "",
+      additionalFields: {},
+    };
   }
 }
 
@@ -48,7 +52,7 @@ export async function markResult(result: string) {
   }
   try {
     for (let radioUnit of nonContactRadioButtons()) {
-      if (radioUnit.parentNode.textContent.toLowerCase() === resultCode) {
+      if (radioUnit.parentNode?.textContent?.toLowerCase() === resultCode) {
         radioUnit.click();
         await sleep();
         saveNextButton()?.click();
@@ -69,7 +73,7 @@ export function onCallResult(
   // Listen for when the result code radio buttons are selected
   // (but note that the user might click more than one)
   for (const element of nonContactRadioButtons()) {
-    const resultCode = element?.parentNode?.textContent;
+    const resultCode = element?.parentNode?.textContent ?? null;
     const button = element.querySelector(
       'input[name="resultCodeId"]',
     ) as HTMLInputElement;
@@ -79,7 +83,9 @@ export function onCallResult(
   const cancelButton = document.querySelector(".clearNonContact");
   cancelButton?.addEventListener("click", () => (result = null));
 
-  saveNextButton()?.addEventListener("click", () => callback(!result, result));
+  saveNextButton()?.addEventListener("click", () =>
+    callback(!result, result ?? undefined),
+  );
 }
 
 async function sleep() {

@@ -1,6 +1,6 @@
 import { signal, computed, batch } from "@preact/signals";
-import PubSubClient from '../../lib/pubsub-client';
-import { sessionStoredSignal } from '../../lib/stored-signal';
+import PubSubClient from "../../lib/pubsub-client";
+import { sessionStoredSignal } from "../../lib/stored-signal";
 import {
   ConnectionDetails,
   ConnectionStatus,
@@ -8,9 +8,9 @@ import {
   DailyCallHistory,
   ExtensionSettings,
   Stats,
-} from '../../lib/types';
-import { browser } from 'wxt/browser';
-import { randomId } from '../../lib/crypto';
+} from "../../lib/types";
+import { browser } from "wxt/browser";
+import { randomId } from "../../lib/crypto";
 
 const DEFAULT_SERVER_URL = "https://pubsub.turbovpb.com";
 
@@ -72,7 +72,8 @@ export const detailsToSend = computed(() => {
     // Other details to send
     extensionVersion: browser.runtime.getManifest().version,
     extensionUserAgent: navigator.userAgent,
-    extensionPlatform: (navigator as any).userAgentData?.platform || navigator.platform,
+    extensionPlatform:
+      (navigator as any).userAgentData?.platform || navigator.platform,
   };
 });
 
@@ -84,8 +85,8 @@ export function hideQrCodeModal() {
   state.showQrCodeModal.value = false;
 }
 
-export function setLastCallResult(contacted: boolean, result: string) {
-  const resultCode = contacted ? "Contacted" : result;
+export function setLastCallResult(contacted: boolean, result?: string) {
+  const resultCode = contacted ? "Contacted" : (result ?? "Unknown");
   console.log("Last call result:", resultCode);
 
   // Update the statistics
@@ -129,7 +130,7 @@ export function setResultCodes(resultCodes: string[]) {
   state.resultCodes.value = resultCodes;
 }
 
-export function setContactDetails(contactDetails: ContactDetails) {
+export function setContactDetails(contactDetails: ContactDetails | undefined) {
   batch(() => {
     const oldContact = state.currentContact.value;
     if (contactDetails && !contactsAreEqual(oldContact, contactDetails)) {
@@ -158,7 +159,10 @@ export function setStatus(status: ConnectionStatus) {
   state.status.value = status;
 }
 
-function contactsAreEqual(a: ContactDetails, b: ContactDetails) {
+function contactsAreEqual(
+  a: ContactDetails | undefined,
+  b: ContactDetails | undefined,
+) {
   return (
     a?.phoneNumber === b?.phoneNumber &&
     a?.firstName === b?.firstName &&

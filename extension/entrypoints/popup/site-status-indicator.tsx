@@ -1,6 +1,6 @@
 import { batch, signal } from "@preact/signals";
 import { FunctionComponent } from "preact";
-import { browser } from 'wxt/browser';
+import { browser } from "wxt/browser";
 import {
   PlusCircleIcon,
   XCircleIcon,
@@ -24,7 +24,7 @@ const domain = signal(undefined as string | undefined);
 
 async function checkCurrentTab() {
   const activeTab = await getActiveTab();
-  if (!activeTab?.url) {
+  if (!activeTab?.url || activeTab.id == null) {
     tabStatus.value = "unsupported";
     return;
   }
@@ -41,16 +41,14 @@ async function checkCurrentTab() {
     }
   }
   const hostname = new URL(activeTab.url).hostname.replace(/^www\./, "");
-  const supported = SUPPORTED_DOMAINS.some((d) =>
-    hostname.endsWith(d),
-  );
+  const supported = SUPPORTED_DOMAINS.some((d) => hostname.endsWith(d));
 
   batch(() => {
     tabStatus.value = enabled
       ? "enabled"
       : supported || isVan
-      ? "disabled"
-      : "unsupported";
+        ? "disabled"
+        : "unsupported";
     domain.value = hostname;
     origin.value = tabOrigin;
   });
@@ -59,7 +57,9 @@ checkCurrentTab();
 browser.permissions.onAdded.addListener(checkCurrentTab);
 
 async function openQrCodeModal() {
-  browser.tabs.sendMessage((await getActiveTab()).id, {
+  const tab = await getActiveTab();
+  if (tab?.id == null) return;
+  browser.tabs.sendMessage(tab.id, {
     type: "openQrCodeModal",
   });
   window.close();
@@ -75,7 +75,9 @@ async function getActiveTab() {
 
 async function requestPermission() {
   console.log("Requesting permission for:", origin.value);
-  const result = await browser.permissions.request({ origins: [origin.value] });
+  const result = await browser.permissions.request({
+    origins: [origin.value!],
+  });
   console.log("Permission request ", result ? "granted" : "denied");
   return result;
 }

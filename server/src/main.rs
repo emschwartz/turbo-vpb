@@ -27,8 +27,8 @@ async fn main() {
     debug!("Using static directory: {}", static_dir.display());
 
     // Serve static files
-    let static_file_service =
-        ServeDir::new(&static_dir).fallback(ServeFile::new(static_dir.join("favicons/favicon.ico")));
+    let static_file_service = ServeDir::new(&static_dir)
+        .fallback(ServeFile::new(static_dir.join("favicons/favicon.ico")));
 
     let website = pages::router()
         .fallback_service(static_file_service)

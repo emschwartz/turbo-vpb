@@ -1,11 +1,11 @@
-import { FunctionComponent } from 'preact';
-import { ExtensionSettings, MessageTemplateDetails } from '../../lib/types';
-import { batch, effect, signal } from '@preact/signals';
-import { browser } from 'wxt/browser';
-import MessageTemplateList from './message-template-list';
-import '../../assets/main.css';
-import { InformationCircleIcon } from '@heroicons/react/24/solid';
-import TurboVpbLogoAndName from '../../components/turbovpb-logo-and-name';
+import { FunctionComponent } from "preact";
+import { ExtensionSettings, MessageTemplateDetails } from "../../lib/types";
+import { batch, effect, signal } from "@preact/signals";
+import { browser } from "wxt/browser";
+import MessageTemplateList from "./message-template-list";
+import "../../assets/main.css";
+import { InformationCircleIcon } from "@heroicons/react/24/solid";
+import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
 
 const serverUrl = signal("");
 const yourName = signal("");
@@ -25,7 +25,7 @@ browser.storage.local
     batch(() => {
       serverUrl.value = settings.serverUrl || "";
       yourName.value = settings.yourName || "";
-      if (settings.messageTemplates?.length > 0) {
+      if (settings.messageTemplates && settings.messageTemplates.length > 0) {
         messageTemplates.value = settings.messageTemplates;
       }
     });
@@ -97,11 +97,11 @@ const TextReplacement: FunctionComponent = () => (
         </div>
         <div class="ml-3 flex-1">
           <p class="text-sm text-blue-700">
-              The name you enter above will be inserted wherever the text{" "}
-              <b>[Your Name]</b> appears in a message template.{" "}
-              <b>[Their Name]</b> will be replaced by the contact's first name.
-              Other details can be inserted in the same way, for example{" "}
-              <b>[City]</b> or <b>[Polling Location]</b>.
+            The name you enter above will be inserted wherever the text{" "}
+            <b>[Your Name]</b> appears in a message template.{" "}
+            <b>[Their Name]</b> will be replaced by the contact's first name.
+            Other details can be inserted in the same way, for example{" "}
+            <b>[City]</b> or <b>[Polling Location]</b>.
           </p>
         </div>
       </div>
@@ -147,7 +147,10 @@ const OptionsPage: FunctionComponent = () => {
       </nav>
       <div class="container p-8 space-y-8 divide-slate-200 mx-auto">
         <TextReplacement />
-        <MessageTemplateList templates={messageTemplates} serverUrl={serverUrl} />
+        <MessageTemplateList
+          templates={messageTemplates}
+          serverUrl={serverUrl}
+        />
         <hr />
         <AdvancedSettings />
         <p class="font-medium text-sm text-slate-400 mt-6">

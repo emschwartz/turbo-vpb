@@ -1,11 +1,12 @@
 import { render } from "preact";
 import { batch, effect } from "@preact/signals";
-import { browser } from 'wxt/browser';
-import { importKey } from '../../lib/crypto';
-import PubSubClient from '../../lib/pubsub-client';
-import { selectIntegration } from '../../lib/vpb-integrations';
-import QrCodeModal from '../../components/qr-code-modal';
-import QrCodeInsert from '../../components/qr-code-insert';
+import { browser } from "wxt/browser";
+import { importKey } from "../../lib/crypto";
+import PubSubClient from "../../lib/pubsub-client";
+import { selectIntegration } from "../../lib/vpb-integrations";
+import QrCodeModal from "../../components/qr-code-modal";
+import QrCodeInsert from "../../components/qr-code-insert";
+import { DailyCallHistory, MessageTemplateDetails } from "../../lib/types";
 import {
   hideQrCodeModal,
   setContactDetails,
@@ -21,33 +22,37 @@ import {
   setTotalCalls,
   setResultCodes,
 } from "./state";
-import '../../assets/main.css';
+import "../../assets/main.css";
 
 export default defineContentScript({
   matches: [
-    'https://www.openvpb.com/VirtualPhoneBank*',
-    'https://*.everyaction.com/ContactDetailScript*',
-    'https://www.votebuilder.com/ContactDetailScript*',
-    'https://phonebank.bluevote.com/*',
-    'https://*/ContactDetailScript*',
-    'https://*.turbovpb.com/test-phonebank',
-    'http://localhost/test-phonebank*',
-    'http://localhost:8080/test-phonebank*',
-    'http://localhost:8089/test-phonebank*',
+    "https://www.openvpb.com/VirtualPhoneBank*",
+    "https://*.everyaction.com/ContactDetailScript*",
+    "https://www.votebuilder.com/ContactDetailScript*",
+    "https://phonebank.bluevote.com/*",
+    "https://*/ContactDetailScript*",
+    "https://*.turbovpb.com/test-phonebank",
+    "http://localhost/test-phonebank*",
+    "http://localhost:8080/test-phonebank*",
+    "http://localhost:8089/test-phonebank*",
   ],
 
   main(ctx) {
     // Startup routine when the content script is loaded
     const vpb = selectIntegration();
-    console.log(`TurboVPB content script loaded and using ${vpb.type} integration`);
+    console.log(
+      `TurboVPB content script loaded and using ${vpb.type} integration`,
+    );
     watchForSidebar();
     watchForResultCodes();
     watchForNewContacts();
     listenForExtensionMessages();
-    loadSettings().then(connectPubsubClient).catch((err) => {
-      console.error("Failed to connect to server:", err);
-      setStatus("disconnected");
-    });
+    loadSettings()
+      .then(connectPubsubClient)
+      .catch((err) => {
+        console.error("Failed to connect to server:", err);
+        setStatus("disconnected");
+      });
     effect(() => {
       if (state.status.value === "connected") {
         hideQrCodeModal();
@@ -79,7 +84,9 @@ export default defineContentScript({
         }
       };
       browser.runtime.onMessage.addListener(handler);
-      ctx.onInvalidated(() => browser.runtime.onMessage.removeListener(handler));
+      ctx.onInvalidated(() =>
+        browser.runtime.onMessage.removeListener(handler),
+      );
     }
 
     function watchForNewContacts() {
@@ -94,7 +101,7 @@ export default defineContentScript({
     function watchForSidebar() {
       const interval = ctx.setInterval(() => {
         if (injectSidebar()) {
-          ctx.clearInterval(interval);
+          clearInterval(interval);
         }
       }, 200);
     }
@@ -108,10 +115,10 @@ export default defineContentScript({
         if (resultCodes && resultCodes.length > 0) {
           console.log("Scraped result codes", resultCodes);
           setResultCodes(resultCodes);
-          ctx.clearInterval(interval);
+          clearInterval(interval);
         } else if (attempts >= maxAttempts) {
           console.warn("Gave up waiting for result codes after 30s");
-          ctx.clearInterval(interval);
+          clearInterval(interval);
         }
       }, 200);
     }
@@ -197,7 +204,11 @@ export default defineContentScript({
         } else if (message.type === "callResult") {
           console.log("Marking result:", message.result);
           // Ack immediately so the mobile page knows we received it
-          await client.send({ type: "ack", ackType: "callResult", seq: message.seq });
+          await client.send({
+            type: "ack",
+            ackType: "callResult",
+            seq: message.seq,
+          });
           try {
             await vpb.markResult(message.result);
           } catch (err) {
@@ -224,15 +235,17 @@ export default defineContentScript({
       ]);
       batch(() => {
         state.settings.value = {
-          serverUrl: stored.serverUrl,
-          yourName: stored.yourName,
-          messageTemplates: stored.messageTemplates,
+          serverUrl: stored.serverUrl as string | undefined,
+          yourName: stored.yourName as string | undefined,
+          messageTemplates: stored.messageTemplates as
+            | MessageTemplateDetails[]
+            | undefined,
         };
         if (stored.totalCalls) {
-          setTotalCalls(stored.totalCalls);
+          setTotalCalls(stored.totalCalls as number);
         }
         if (stored.dailyCalls) {
-          state.dailyCalls.value = stored.dailyCalls;
+          state.dailyCalls.value = stored.dailyCalls as DailyCallHistory;
         }
       });
 
@@ -241,7 +254,8 @@ export default defineContentScript({
           state.settings.value = {
             serverUrl:
               changes.serverUrl?.newValue ?? state.settings.value?.serverUrl,
-            yourName: changes.yourName?.newValue ?? state.settings.value?.yourName,
+            yourName:
+              changes.yourName?.newValue ?? state.settings.value?.yourName,
             messageTemplates:
               changes.messageTemplates?.newValue ??
               state.settings.value?.messageTemplates,
@@ -249,7 +263,9 @@ export default defineContentScript({
         }
       };
       browser.storage.onChanged.addListener(onChangedHandler);
-      ctx.onInvalidated(() => browser.storage.onChanged.removeListener(onChangedHandler));
+      ctx.onInvalidated(() =>
+        browser.storage.onChanged.removeListener(onChangedHandler),
+      );
     }
   },
 });

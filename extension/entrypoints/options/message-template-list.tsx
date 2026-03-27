@@ -74,7 +74,10 @@ const MessageTemplateList: FunctionComponent<{
           type="button"
           onClick={() => addTemplate(templates)}
         >
-          <PlusCircleIcon className="-ml-1 mr-2 h-5 w-5 text-slate-400" aria-hidden="true" />
+          <PlusCircleIcon
+            className="-ml-1 mr-2 h-5 w-5 text-slate-400"
+            aria-hidden="true"
+          />
           Add Message Template
         </button>
 

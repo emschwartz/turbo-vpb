@@ -2,14 +2,14 @@ import { ContactDetails, PhonebankType } from "../types";
 import * as openvpb from "./openvpb";
 import * as everyaction from "./everyaction";
 import * as bluevote from "./bluevote";
-import { browser } from 'wxt/browser';
+import { browser } from "wxt/browser";
 
 interface VpbIntegration {
   type: PhonebankType;
   scrapeContactDetails: () => ContactDetails | undefined;
   scrapeResultCodes: () => Promise<string[] | undefined>;
   markResult(code: string): Promise<void>;
-  turboVpbContainerLocation(): Element;
+  turboVpbContainerLocation(): Element | undefined;
   onCallResult(
     callback: (contacted: boolean, result?: string) => void | Promise<void>,
   ): void;

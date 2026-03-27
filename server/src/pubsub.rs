@@ -108,9 +108,10 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                 .with_label_values(&[identity.as_str()])
                 .inc();
 
-            let mut ch = Channel::default();
-            ch.created_by_identity = identity.as_str();
-            ch
+            Channel {
+                created_by_identity: identity.as_str(),
+                ..Default::default()
+            }
         });
         channel.num_connections += 1;
 

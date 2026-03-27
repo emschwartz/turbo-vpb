@@ -9,22 +9,26 @@ import { browser } from "wxt/browser";
  * @param defaultValue - The default value to use if the key is not found in storage.
  * @returns
  */
-export const sessionStoredSignal = <T>(
-  storageKey: string,
-  defaultValue: T,
-) => {
+export const sessionStoredSignal = <T>(storageKey: string, defaultValue: T) => {
   const s = signal(defaultValue);
 
   // Load the previous value from browser.storage.session asynchronously.
   const storageArea = browser.storage.session || null;
   if (storageArea) {
-    storageArea.get(storageKey).then((result) => {
-      if (result[storageKey] != null) {
-        s.value = result[storageKey] as T;
-      }
-    }).catch((err) => {
-      console.error("Error loading value from browser.storage.session:", storageKey, err);
-    });
+    storageArea
+      .get(storageKey)
+      .then((result) => {
+        if (result[storageKey] != null) {
+          s.value = result[storageKey] as T;
+        }
+      })
+      .catch((err) => {
+        console.error(
+          "Error loading value from browser.storage.session:",
+          storageKey,
+          err,
+        );
+      });
   }
 
   // Save the value when it changes.
@@ -32,7 +36,11 @@ export const sessionStoredSignal = <T>(
     if (s.value != null) {
       if (storageArea) {
         storageArea.set({ [storageKey]: s.value }).catch((err) => {
-          console.error("Error saving to browser.storage.session:", storageKey, err);
+          console.error(
+            "Error saving to browser.storage.session:",
+            storageKey,
+            err,
+          );
         });
       }
     }

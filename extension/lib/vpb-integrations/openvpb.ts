@@ -14,7 +14,7 @@ export function turboVpbContainerLocation() {
   return div;
 }
 
-export function scrapeContactDetails(): ContactDetails {
+export function scrapeContactDetails(): ContactDetails | undefined {
   dismissFirstCallPopup();
 
   const phoneNumber = (
@@ -24,36 +24,42 @@ export function scrapeContactDetails(): ContactDetails {
     Array.from(document.getElementsByTagName("a")).find(
       (a) =>
         a.href.startsWith("tel:") &&
+        a.parentElement &&
         !DESIGNATED_CONTACT_REGEX.test(a.parentElement.id) &&
+        a.parentElement.parentElement &&
         !DESIGNATED_CONTACT_REGEX.test(a.parentElement.parentElement.id),
-    ) ||
-    {}
-  ).innerText;
+    )
+  )?.innerText;
 
   const name = document.getElementById("contactName")?.innerText;
   const firstName = name?.split(" ")[0];
   const lastName = name?.split(" ").slice(1).join(" ");
 
-  const additionalFields = {};
+  const additionalFields: Record<string, string> = {};
   const detailsSidebar =
     document.getElementById("openvpb-target-details") ||
     document.querySelector(".openvpb-sidebar-fields");
-  if (detailsSidebar && detailsSidebar.querySelector("dl")) {
-    const dl = detailsSidebar.querySelector("dl");
+  const dl = detailsSidebar?.querySelector("dl");
+  if (dl) {
     const pairs = dl.querySelectorAll("dt, dd");
-    let key: string;
+    let key: string | undefined;
     for (let i = 0; i < pairs.length; i++) {
       if (!key && pairs[i].tagName === "DT") {
-        key = pairs[i].textContent;
+        key = pairs[i].textContent ?? undefined;
       } else if (key && pairs[i].tagName === "DD") {
-        additionalFields[key] = pairs[i].textContent;
-        key = null;
+        additionalFields[key] = pairs[i].textContent ?? "";
+        key = undefined;
       }
     }
   }
 
   if (phoneNumber && firstName) {
-    return { phoneNumber, firstName, lastName, additionalFields };
+    return {
+      phoneNumber,
+      firstName,
+      lastName: lastName ?? "",
+      additionalFields,
+    };
   }
 }
 
@@ -107,7 +113,7 @@ export function onCallResult(
     );
     const resultCode = (
       selectedRadioButton as HTMLInputElement
-    )?.labels[0].textContent.trim();
+    )?.labels?.[0]?.textContent?.trim();
     if (resultCode) {
       callback(false, resultCode);
     } else {
@@ -123,7 +129,7 @@ export function onCallResult(
       document.getElementById("contactresultstryalternatephone"),
     ];
     for (const button of buttons) {
-      setupButton(handler, button);
+      if (button) setupButton(handler, button);
     }
     // If the call result is unselected again, the other buttons will
     // be re-rendered so we need to set the whole thing up again
@@ -145,11 +151,13 @@ export function onCallResult(
     }
   };
 
-  // This button is always visiable
-  setupButton(handler, document.getElementById("openvpbsavenextbutton"));
+  // This button is always visible
+  const saveNextBtn = document.getElementById("openvpbsavenextbutton");
+  if (saveNextBtn) setupButton(handler, saveNextBtn);
 
   // Wait for the Couldn't Reach button to be pressed to set up the other listeners
-  setupButton(setupContactResultsButton, couldntReachButton());
+  const crButton = couldntReachButton();
+  if (crButton) setupButton(setupContactResultsButton, crButton);
 }
 
 async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
@@ -158,10 +166,10 @@ async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
   await sleep();
 
   const elements = document.querySelectorAll(".contact-results li");
-  const resultCodes = {};
+  const resultCodes: Record<string, HTMLElement> = {};
   for (const element of elements) {
-    const resultCode = element.textContent.trim();
-    if (resultCode) {
+    const resultCode = element.textContent?.trim();
+    if (resultCode && element instanceof HTMLElement) {
       resultCodes[resultCode] = element;
     }
   }

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Running pre-commit checks..."
+
+# --- Server checks (same as .github/workflows/server.yml) ---
+
+echo ""
+echo "=== Server: cargo fmt --check ==="
+(cd server && cargo fmt --check)
+
+echo ""
+echo "=== Server: cargo clippy ==="
+(cd server && cargo clippy -- -D warnings)
+
+# --- Extension checks (same as .github/workflows/extension.yml) ---
+
+echo ""
+echo "=== Extension: typecheck ==="
+(cd extension && pnpm typecheck)
+
+echo ""
+echo "=== Extension: prettier --check ==="
+(cd extension && pnpm format:check)
+
+echo ""
+echo "All pre-commit checks passed."

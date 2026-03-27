@@ -1,12 +1,16 @@
-import { FunctionComponent } from 'preact';
-import { StarIcon, QuestionMarkCircleIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
-import { batch, signal, computed } from '@preact/signals';
-import { browser } from 'wxt/browser';
-import { DailyCallHistory } from '../../lib/types';
-import TurboVpbLogoAndName from '../../components/turbovpb-logo-and-name';
-import SiteStatusIndicator from './site-status-indicator';
-import WhiteButton from './white-button';
-import '../../assets/main.css';
+import { FunctionComponent } from "preact";
+import {
+  StarIcon,
+  QuestionMarkCircleIcon,
+  ChatBubbleLeftRightIcon,
+} from "@heroicons/react/24/outline";
+import { batch, signal, computed } from "@preact/signals";
+import { browser } from "wxt/browser";
+import { DailyCallHistory } from "../../lib/types";
+import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
+import SiteStatusIndicator from "./site-status-indicator";
+import WhiteButton from "./white-button";
+import "../../assets/main.css";
 
 const statsStartDate = signal(new Date());
 const totalCalls = signal(0);
@@ -15,17 +19,19 @@ browser.storage.local
   .get(["totalCalls", "statsStartDate", "dailyCalls"])
   .then((data) => {
     batch(() => {
-      totalCalls.value = data.totalCalls || 0;
-      statsStartDate.value = new Date(data.statsStartDate || Date.now());
-      dailyCalls.value = data.dailyCalls || [];
+      totalCalls.value = (data.totalCalls as number) || 0;
+      statsStartDate.value = new Date(
+        (data.statsStartDate as number) || Date.now(),
+      );
+      dailyCalls.value = (data.dailyCalls as DailyCallHistory) || [];
     });
   });
 browser.storage.onChanged.addListener((changes) => {
   if (changes.totalCalls) {
-    totalCalls.value = changes.totalCalls.newValue;
+    totalCalls.value = changes.totalCalls.newValue as number;
   }
   if (changes.dailyCalls) {
-    dailyCalls.value = changes.dailyCalls.newValue;
+    dailyCalls.value = changes.dailyCalls.newValue as DailyCallHistory;
   }
 });
 const startDate = computed(() =>

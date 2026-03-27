@@ -16,43 +16,47 @@ export function turboVpbContainerLocation() {
   return div;
 }
 
-export function scrapeContactDetails(): ContactDetails {
+export function scrapeContactDetails(): ContactDetails | undefined {
   const phoneNumber = (
-    (document.getElementById("current-number") &&
-      document.getElementById("current-number").firstElementChild) ||
+    document.getElementById("current-number")?.firstElementChild ||
     Array.from(document.getElementsByTagName("a")).find(
       (a) =>
         a.href.startsWith("tel:") &&
+        a.parentElement &&
         !DESIGNATED_CONTACT_REGEX.test(a.parentElement.id) &&
+        a.parentElement.parentElement &&
         !DESIGNATED_CONTACT_REGEX.test(a.parentElement.parentElement.id),
-    ) ||
-    {}
-  ).textContent;
+    )
+  )?.textContent;
 
   const name =
-    (document.querySelector(".person-phone-panel") &&
-      document
-        .querySelector(".person-phone-panel")
-        .firstElementChild.textContent.replace(/ [–-] \d+(?:\s+\w)?/, "")) ||
+    document
+      .querySelector(".person-phone-panel")
+      ?.firstElementChild?.textContent?.replace(/ [–-] \d+(?:\s+\w)?/, "") ??
     null;
   const firstName = name?.split(" ")[0];
   const lastName = name?.split(" ").slice(1).join(" ");
 
-  const additionalFields = {};
-  if (document.getElementById("spanTableAdditionalInfo")) {
-    for (const inputUnit of document
-      .getElementById("spanTableAdditionalInfo")
+  const additionalFields: Record<string, string> = {};
+  const additionalInfo = document.getElementById("spanTableAdditionalInfo");
+  if (additionalInfo) {
+    for (const inputUnit of additionalInfo
       .querySelectorAll(".input-unit")
       .values()) {
       const label = inputUnit.querySelector("label, .input-label");
       const value = inputUnit.querySelector(".form-control, div");
-      if (label && value) {
+      if (label?.textContent && value?.textContent) {
         additionalFields[label.textContent] = value.textContent;
       }
     }
   }
   if (phoneNumber && firstName) {
-    return { phoneNumber, firstName, lastName, additionalFields };
+    return {
+      phoneNumber,
+      firstName,
+      lastName: lastName ?? "",
+      additionalFields,
+    };
   }
 }
 
@@ -85,11 +89,13 @@ async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
   await sleep();
 
   const elements = Array.from(document.getElementsByClassName("script-result"));
-  const results = {};
+  const results: Record<string, HTMLElement> = {};
 
   for (const element of elements) {
-    const resultCode = element.textContent.replace(/\s{2,}/g, " ").trim();
-    results[resultCode] = element;
+    const resultCode = element.textContent?.replace(/\s{2,}/g, " ").trim();
+    if (resultCode && element instanceof HTMLElement) {
+      results[resultCode] = element;
+    }
   }
   return results;
 }
@@ -102,12 +108,12 @@ export function onCallResult(
   if (saveNext && !saveNext.classList.contains(markerClass)) {
     saveNext.classList.add(markerClass);
 
-    saveNextButton().addEventListener("click", () => {
+    saveNext.addEventListener("click", () => {
       const selectedRadioButton = document.querySelector(
         ".script-result input[type=radio]:checked",
       );
-      const callResult = selectedRadioButton?.parentNode.textContent
-        .replace(/\s{2,}/g, " ")
+      const callResult = selectedRadioButton?.parentNode?.textContent
+        ?.replace(/\s{2,}/g, " ")
         .trim();
       if (callResult) {
         callback(false, callResult);

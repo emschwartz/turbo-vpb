@@ -78,12 +78,19 @@ e2e:
 e2e-headed:
     cd e2e && npm run test:headed
 
+# --- Setup ---
+
+# configure git to use the repo's hooks directory
+setup-hooks:
+    git config core.hooksPath .githooks
+
 # --- Orchestration ---
 
-# install all dependencies
+# install all dependencies and set up hooks
 install:
     just ext-install
     just e2e-install
+    just setup-hooks
 
 # build everything (extension + server CSS + server binary)
 build browser='chrome':

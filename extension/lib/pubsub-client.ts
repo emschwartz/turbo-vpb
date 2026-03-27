@@ -4,7 +4,7 @@ import ReconnectingWebSocket from "reconnecting-websocket";
 const CONNECTION_TIMEOUT_MS = 10_000;
 
 export default class PubSubClient {
-  ws: ReconnectingWebSocket;
+  ws!: ReconnectingWebSocket;
   private encryptionKey: CryptoKey | undefined;
   wsUrl: string;
   httpUrl: string;
@@ -22,7 +22,7 @@ export default class PubSubClient {
     this.channelId = channelId;
     this.encryptionKey = encryptionKey;
     const channelPath = `/api/channels/${this.channelId}/extension`;
-    this.wsUrl = `${serverBase.replace(/^http/, 'ws')}${channelPath}`;
+    this.wsUrl = `${serverBase.replace(/^http/, "ws")}${channelPath}`;
     this.httpUrl = `${serverBase}${channelPath}`;
     this.onmessage = () => {};
     this.onclose = () => {};
@@ -56,7 +56,7 @@ export default class PubSubClient {
     });
     this.ws.addEventListener("message", (async (msg: MessageEvent) => {
       try {
-        const decrypted = await decrypt(this.encryptionKey, msg.data);
+        const decrypted = await decrypt(this.encryptionKey!, msg.data);
         this.onmessage(decrypted);
       } catch (err) {
         console.error("Failed to decrypt message, ignoring:", err);
@@ -66,7 +66,7 @@ export default class PubSubClient {
     // Wait for the first connection to make sure we can actually connect
     await new Promise((resolve, reject) => {
       const ws = this.ws;
-      function errorHandler({ message }) {
+      function errorHandler({ message }: { message: string }) {
         removeListeners();
         reject(new Error(message));
       }
@@ -94,7 +94,7 @@ export default class PubSubClient {
   }
 
   async exportEncryptionKey() {
-    return await exportKey(this.encryptionKey);
+    return await exportKey(this.encryptionKey!);
   }
 
   disconnect() {
@@ -105,14 +105,18 @@ export default class PubSubClient {
   // The server stores the message so late-joining subscribers get it,
   // regardless of whether there's an active receiver right now.
   async send(message: any): Promise<boolean> {
-    const encrypted = await encrypt(this.encryptionKey, message);
+    const encrypted = await encrypt(this.encryptionKey!, message);
     try {
       const response = await fetch(this.httpUrl, {
         method: "POST",
         body: encrypted,
       });
       if (!response.ok) {
-        console.error("HTTP send failed:", response.status, await response.text());
+        console.error(
+          "HTTP send failed:",
+          response.status,
+          await response.text(),
+        );
         return false;
       }
       return true;

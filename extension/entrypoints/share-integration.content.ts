@@ -1,4 +1,4 @@
-import { browser } from 'wxt/browser';
+import { browser } from "wxt/browser";
 
 const DOWNLOAD_ICON = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-cloud-arrow-down-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
   <path fill-rule="evenodd" d="M8 2a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 6.095 0 7.555 0 9.318 0 11.366 1.708 13 3.781 13h8.906C14.502 13 16 11.57 16 9.773c0-1.636-1.242-2.969-2.834-3.194C12.923 3.999 10.69 2 8 2zm2.354 6.854l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 9.293V5.5a.5.5 0 0 1 1 0v3.793l1.146-1.147a.5.5 0 0 1 .708.708z"/>
@@ -22,7 +22,7 @@ interface MessageTemplate {
 }
 
 export default defineContentScript({
-  matches: ['https://turbovpb.com/share*', 'https://*.turbovpb.com/share*'],
+  matches: ["https://turbovpb.com/share*", "https://*.turbovpb.com/share*"],
   main() {
     console.log("Loaded share integration");
 
@@ -32,29 +32,35 @@ export default defineContentScript({
     }
 
     const importButton = document.getElementById("import-settings");
-    if (importButton) {
-      importButton.removeAttribute("hidden");
-    } else {
+    if (!importButton) {
       throw new Error("Import settings button does not exist");
     }
+    importButton.removeAttribute("hidden");
 
-    start().catch(console.error);
+    start(importButton).catch(console.error);
 
-    async function start() {
+    async function start(importButton: HTMLElement) {
       const { messageTemplates } = parseSettings();
-      let { messageTemplates: previousTemplates = [], yourName } =
-        await browser.storage.local.get(["messageTemplates", "yourName"]);
-      const includesYourNameReplacement = messageTemplates.some((t: MessageTemplate) =>
-        YOUR_NAME_REGEX.test(t.message || ""),
+      const stored = await browser.storage.local.get([
+        "messageTemplates",
+        "yourName",
+      ]);
+      let previousTemplates = (stored.messageTemplates ??
+        []) as MessageTemplate[];
+      let yourName = stored.yourName as string | undefined;
+      const includesYourNameReplacement = messageTemplates.some(
+        (t: MessageTemplate) => YOUR_NAME_REGEX.test(t.message || ""),
       );
 
-      const alreadyUsingTheseTemplates = messageTemplates.every((template: MessageTemplate) => {
-        return previousTemplates.some(
-          (prevTemplate: MessageTemplate) =>
-            template.label === prevTemplate.label &&
-            template.message === prevTemplate.message,
-        );
-      });
+      const alreadyUsingTheseTemplates = messageTemplates.every(
+        (template: MessageTemplate) => {
+          return previousTemplates.some(
+            (prevTemplate: MessageTemplate) =>
+              template.label === prevTemplate.label &&
+              template.message === prevTemplate.message,
+          );
+        },
+      );
       if (alreadyUsingTheseTemplates) {
         console.log("Already using these templates");
         importButton.innerHTML = `<h3>${SAVED_ICON} &nbsp; Already Using These Settings</h3>`;
@@ -107,11 +113,17 @@ export default defineContentScript({
       const messageTemplates: MessageTemplate[] = [];
       for (let i = 0; i < templateElements.length; i++) {
         const elem = templateElements[i];
-        const labelElem = elem.querySelector<HTMLElement>("[name='message-label']");
+        const labelElem = elem.querySelector<HTMLElement>(
+          "[name='message-label']",
+        );
         const label = labelElem?.innerText ?? null;
-        const messageElem = elem.querySelector<HTMLElement>("[name='message-body']");
+        const messageElem = elem.querySelector<HTMLElement>(
+          "[name='message-body']",
+        );
         const message = messageElem?.innerText ?? null;
-        const sendTextedElem = elem.querySelector<HTMLInputElement>("[name='send-texted-result']");
+        const sendTextedElem = elem.querySelector<HTMLInputElement>(
+          "[name='send-texted-result']",
+        );
         const sendTexted = !!sendTextedElem && !!sendTextedElem.checked;
 
         if (label && message) {
@@ -137,7 +149,8 @@ export default defineContentScript({
       return new Promise((resolve) => {
         let firstName: string | undefined;
         const dialog = document.createElement("dialog");
-        dialog.style.cssText = "border:none;border-radius:8px;padding:2rem;max-width:480px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.2);";
+        dialog.style.cssText =
+          "border:none;border-radius:8px;padding:2rem;max-width:480px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.2);";
         dialog.innerHTML = `
           <h3 class="alert-heading">Enter Your First Name</h3>
           <p class="lead">TurboVPB will automatically replace <code>[Your Name]</code><br>from the message templates with your actual name.</p>
@@ -147,8 +160,10 @@ export default defineContentScript({
           </div>`;
         document.body.appendChild(dialog);
 
-        const nameInput = dialog.querySelector<HTMLInputElement>("#first-name-input")!;
-        const saveBtn = dialog.querySelector<HTMLButtonElement>(".save-name-btn")!;
+        const nameInput =
+          dialog.querySelector<HTMLInputElement>("#first-name-input")!;
+        const saveBtn =
+          dialog.querySelector<HTMLButtonElement>(".save-name-btn")!;
 
         nameInput.addEventListener("input", () => {
           firstName = nameInput.value;
@@ -177,10 +192,13 @@ export default defineContentScript({
       });
     }
 
-    async function showConfirmationDialog(previousTemplates: MessageTemplate[]): Promise<boolean> {
+    async function showConfirmationDialog(
+      previousTemplates: MessageTemplate[],
+    ): Promise<boolean> {
       return new Promise((resolve) => {
         const dialog = document.createElement("dialog");
-        dialog.style.cssText = "border:none;border-radius:8px;padding:2rem;max-width:540px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.2);";
+        dialog.style.cssText =
+          "border:none;border-radius:8px;padding:2rem;max-width:540px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.2);";
         dialog.innerHTML = `
           <h3 class="alert-heading">Overwrite Current Settings?</h3>
           <p class="lead">You have ${previousTemplates.length} Text Message Template${
@@ -194,11 +212,15 @@ export default defineContentScript({
           </div>`;
         document.body.appendChild(dialog);
 
-        const cancelBtn = dialog.querySelector<HTMLButtonElement>(".cancel-btn")!;
-        const overwriteBtn = dialog.querySelector<HTMLButtonElement>(".overwrite-btn")!;
+        const cancelBtn =
+          dialog.querySelector<HTMLButtonElement>(".cancel-btn")!;
+        const overwriteBtn =
+          dialog.querySelector<HTMLButtonElement>(".overwrite-btn")!;
 
         // Delay enabling overwrite button to prevent accidental clicks
-        setTimeout(() => { overwriteBtn.disabled = false; }, 3000);
+        setTimeout(() => {
+          overwriteBtn.disabled = false;
+        }, 3000);
 
         cancelBtn.addEventListener("click", () => {
           dialog.close();

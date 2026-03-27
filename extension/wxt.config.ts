@@ -1,43 +1,43 @@
-import { defineConfig } from 'wxt';
-import preact from '@preact/preset-vite';
-import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from "wxt";
+import preact from "@preact/preset-vite";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  srcDir: '.',
+  srcDir: ".",
   vite: () => ({
     plugins: [preact(), tailwindcss()],
     resolve: {
       alias: {
-        'react': 'preact/compat',
-        'react-dom': 'preact/compat',
-        'react/jsx-runtime': 'preact/jsx-runtime',
+        react: "preact/compat",
+        "react-dom": "preact/compat",
+        "react/jsx-runtime": "preact/jsx-runtime",
       },
     },
   }),
   manifest: ({ browser, mode }) => ({
-    name: 'TurboVPB',
+    name: "TurboVPB",
     description:
-      'Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!',
-    version: '0.10.0',
-    author: 'Evan Schwartz',
-    homepage_url: 'https://turbovpb.com',
-    permissions: ['activeTab', 'scripting', 'storage'],
+      "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
+    version: "0.10.0",
+    author: "Evan Schwartz",
+    homepage_url: "https://turbovpb.com",
+    permissions: ["activeTab", "scripting", "storage"],
     host_permissions: [
-      'https://www.openvpb.com/*',
-      'https://*.everyaction.com/*',
-      'https://www.votebuilder.com/*',
-      'https://phonebank.bluevote.com/*',
-      '*://*.turbovpb.com/*',
-      'https://*/ContactDetailScript',
-      ...(mode === 'development' ? ['http://localhost/*'] : []),
+      "https://www.openvpb.com/*",
+      "https://*.everyaction.com/*",
+      "https://www.votebuilder.com/*",
+      "https://phonebank.bluevote.com/*",
+      "*://*.turbovpb.com/*",
+      "https://*/ContactDetailScript",
+      ...(mode === "development" ? ["http://localhost/*"] : []),
     ],
     action: {
-      default_title: 'TurboVPB',
+      default_title: "TurboVPB",
     },
-    ...(browser === 'firefox'
+    ...(browser === "firefox"
       ? {
           browser_specific_settings: {
-            gecko: { id: '{5ac6de74-7640-4236-a7ed-e19b356b666b}' },
+            gecko: { id: "{5ac6de74-7640-4236-a7ed-e19b356b666b}" },
           },
         }
       : {}),
