@@ -34,7 +34,7 @@ export function selectPhonebankType(
     (url.hostname.endsWith("turbovpb.com") &&
       url.pathname.startsWith("/test-phonebank")) ||
     // Only for testing
-    url.toString().startsWith("http://localhost:8080/test-phonebank")
+    (url.hostname === "localhost" && url.pathname.startsWith("/test-phonebank"))
   ) {
     return "openvpb";
   } else if (url.hostname === "phonebank.bluevote.com") {

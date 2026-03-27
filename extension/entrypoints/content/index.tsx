@@ -31,7 +31,9 @@ export default defineContentScript({
     'https://phonebank.bluevote.com/*',
     'https://*/ContactDetailScript*',
     'https://*.turbovpb.com/test-phonebank',
-    'http://localhost:8080/test-phonebank',
+    'http://localhost/test-phonebank*',
+    'http://localhost:8080/test-phonebank*',
+    'http://localhost:8089/test-phonebank*',
   ],
 
   main(ctx) {

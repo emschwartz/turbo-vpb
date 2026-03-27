@@ -1,22 +1,3 @@
-<script>
-  async function nextContact() {
-    const response = await (
-      await fetch("https://randomuser.me/api?nat=us&inc=name,phone,location")
-    ).json();
-    const contact = response.results[0];
-    document.getElementById(
-      "contactName"
-    ).innerText = `${contact.name.first} ${contact.name.last}`;
-    document.getElementById(
-      "address"
-    ).innerText = `${contact.location.street.number} ${contact.location.street.name}, ${contact.location.city}, ${contact.location.state}`;
-    const phoneNumber = document.getElementById("openVpbPhoneLink");
-    phoneNumber.href = `tel:${contact.phone}`;
-    phoneNumber.innerText = contact.phone;
-  }
-  nextContact();
-</script>
-
 <div>
   <div id="openvpbsidebarcontainer"></div>
   <div class="van-header"></div>
@@ -67,3 +48,23 @@
     </button>
   </div>
 </div>
+
+<script>
+  const TEST_CONTACTS = [
+    { name: { first: "Alice", last: "Johnson" }, phone: "(555)-123-4567", address: "123 Main St, Springfield, Illinois" },
+    { name: { first: "Bob", last: "Smith" }, phone: "(555)-987-6543", address: "456 Oak Ave, Portland, Oregon" },
+    { name: { first: "Carol", last: "Williams" }, phone: "(555)-246-8135", address: "789 Pine Rd, Austin, Texas" },
+  ];
+  let contactIndex = 0;
+
+  function nextContact() {
+    const contact = TEST_CONTACTS[contactIndex % TEST_CONTACTS.length];
+    contactIndex++;
+    document.getElementById("contactName").innerText = `${contact.name.first} ${contact.name.last}`;
+    document.getElementById("address").innerText = contact.address;
+    const phoneNumber = document.getElementById("openVpbPhoneLink");
+    phoneNumber.href = `tel:${contact.phone}`;
+    phoneNumber.innerText = contact.phone;
+  }
+  nextContact();
+</script>

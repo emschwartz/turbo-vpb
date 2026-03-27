@@ -54,7 +54,11 @@ async fn main() {
         }
     }
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    let port: u16 = env::var("PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8080);
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("Listening on {}", addr);
     let app = api.merge(website).layer(TraceLayer::new_for_http());
     let app = Server::bind(&addr).serve(app.into_make_service());

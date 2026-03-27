@@ -63,6 +63,7 @@ export const detailsToSend = computed(() => {
     type: "contact",
     // Send the details whenever these change
     contact: state.currentContact.value,
+    yourName: state.settings.value?.yourName,
     messageTemplates: state.settings.value?.messageTemplates,
     resultCodes: state.resultCodes.value,
     stats: state.sessionStats.value,

@@ -15,7 +15,7 @@ const SUPPORTED_DOMAINS = [
   "votebuilder.com",
   "phonebank.bluevote.com",
   ".turbovpb.com",
-  "localhost:8080",
+  "localhost",
 ];
 
 const tabStatus = signal("enabled" as "enabled" | "disabled" | "unsupported");
