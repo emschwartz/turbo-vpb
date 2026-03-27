@@ -1,91 +1,77 @@
 <template id="message-template-template">
-    <div class="card text-left my-3 mx-0" name="message-template">
-        <div class="card-body">
+    <div class="border border-slate-200 rounded-lg p-6 text-left my-4" name="message-template">
+        <h4 name="message-label" class="font-semibold text-slate-900 mb-2"></h4>
+        <p name="message-body" class="rounded-lg bg-slate-50 p-4 text-slate-600"></p>
 
-            <h4 name="message-label" class="card-title pl-1"></h4>
-            <p name="message-body" class="card-text rounded bg-light p-3"></p>
-
-            <div class="form-group form-check form-check-inline mb-0">
-                <input type="checkbox" class="form-check-input" name="send-texted-result" disabled />
-                <label class="form-check-label">Select <code>Texted</code> result code and load next contact after
-                    sending?
-                </label>
-            </div>
+        <div class="flex items-center gap-2 mt-3">
+            <input type="checkbox" class="rounded" name="send-texted-result" disabled />
+            <label class="text-sm text-slate-500">Select <code class="bg-slate-100 px-1 rounded text-sm">Texted</code> result code and load next contact after
+                sending?
+            </label>
         </div>
     </div>
 </template>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="/">
-        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill" fill="currentColor"
-            xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd"
-                d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
-        </svg> TurboVPB
-    </a>
+<nav class="bg-white border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center">
+        <a class="flex items-center gap-2 text-slate-900 font-semibold text-lg no-underline" href="/">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"
+                xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd"
+                    d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
+            </svg>
+            TurboVPB
+        </a>
+    </div>
 </nav>
 
-<div class="container container-sm mt-3 mb-5">
-    <div class="row mb-2">
-        <div class="col"></div>
-        <div class="col-md-12 text-center">
-            <h1 class="my-4 display-3">Import 2-Click Texting Settings</h1>
-        </div>
-        <div class="col"></div>
-    </div>
+<div class="max-w-2xl mx-auto px-6 py-12">
+    <h1 class="text-3xl font-bold text-slate-900 text-center mb-8">Import 2-Click Texting Settings</h1>
 
-    <div class="row mb-2 text-center">
-        <div class="col"></div>
-        <div class="col-md-8">
-            <button id="import-settings" class="btn btn-primary btn-lg px-5 pt-3 pb-2 m-3" disabled hidden>
-                <h3>
-                    <svg width="1em" height="1em" class="mr-1" viewBox="0 0 16 16" class="bi bi-cloud-arrow-down-fill"
-                        fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd"
-                            d="M8 2a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 6.095 0 7.555 0 9.318 0 11.366 1.708 13 3.781 13h8.906C14.502 13 16 11.57 16 9.773c0-1.636-1.242-2.969-2.834-3.194C12.923 3.999 10.69 2 8 2zm2.354 6.854l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 9.293V5.5a.5.5 0 0 1 1 0v3.793l1.146-1.147a.5.5 0 0 1 .708.708z" />
-                    </svg>
+    <div class="text-center mb-8">
+        <button id="import-settings" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-8 py-4 text-lg font-semibold" disabled hidden>
+            <svg width="1em" height="1em" class="inline-block mr-2" viewBox="0 0 16 16"
+                fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd"
+                    d="M8 2a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 6.095 0 7.555 0 9.318 0 11.366 1.708 13 3.781 13h8.906C14.502 13 16 11.57 16 9.773c0-1.636-1.242-2.969-2.834-3.194C12.923 3.999 10.69 2 8 2zm2.354 6.854l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 9.293V5.5a.5.5 0 0 1 1 0v3.793l1.146-1.147a.5.5 0 0 1 .708.708z" />
+            </svg>
+            Import Settings
+        </button>
 
-                    Import Settings
-                </h3>
-            </button>
+        <div id="version-gt-0-8-message" class="rounded-lg p-6 bg-blue-50 border border-blue-200 text-left">
+            <h4 class="font-semibold text-lg text-blue-900 mb-3">
+                TurboVPB Version >= 0.8.0 Required
+            </h4>
 
-            <div id="version-gt-0-8-message" class="alert alert-info">
-                <h4 class="alert-heading">
-                    TurboVPB Version >= 0.8.0 Required
-                </h4>
+            <p class="text-blue-800 mb-4">You first need to install or update TurboVPB. To install the extension, click here:</p>
 
-                <p>You first need to install or update TurboVPB. To install the extension, click here:</p>
-
-                <a class="btn btn-primary btn-lg my-2 mx-auto" id="install-chrome"
+            <div class="flex flex-wrap justify-center gap-3">
+                <a class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 font-medium no-underline"
+                    id="install-chrome"
                     href="https://chrome.google.com/webstore/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh?hl=en-US"
                     target="_blank">
-                    <img src="images/chrome-logo.png" width="40px" class="mr-2"> Get TurboVPB for Chrome
+                    <img src="images/chrome-logo.png" class="w-8"> Get TurboVPB for Chrome
                 </a>
-                <a class="btn btn-primary btn-lg my-2 mx-auto" id="install-firefox"
+                <a class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 font-medium no-underline"
+                    id="install-firefox"
                     href="https://addons.mozilla.org/en-US/firefox/addon/turbovpb/" target="_blank" hidden>
-                    <img src="images/firefox-logo.png" width="40px" class="mr-2">
+                    <img src="images/firefox-logo.png" class="w-8">
                     Get TurboVPB for Firefox
                 </a>
-                <script>
-                    if (/firefox/i.test(navigator.userAgent)) {
-                        document.getElementById('install-chrome').setAttribute('hidden', 'true')
-                        document.getElementById('install-firefox').removeAttribute('hidden')
-                    }
-                </script>
             </div>
+            <script>
+                if (/firefox/i.test(navigator.userAgent)) {
+                    document.getElementById('install-chrome').setAttribute('hidden', 'true')
+                    document.getElementById('install-firefox').removeAttribute('hidden')
+                }
+            </script>
         </div>
-        <div class="col"></div>
     </div>
 
-    <div class="row mb-5">
-        <div class="col"></div>
-        <div class="col-md-8 text-center">
-            <h2 class="my-3">Text Message Templates</h2>
-            <div id="message-template-container" class="my-3"></div>
-        </div>
-        <div class="col"></div>
+    <div class="text-center mb-12">
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Text Message Templates</h2>
+        <div id="message-template-container"></div>
     </div>
-
 </div>
 
 <script>

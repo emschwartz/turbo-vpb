@@ -17,3 +17,15 @@ docker-build:
 docker-run: docker-build
     docker run -e RUST_LOG=turbovpb_server=trace -p 8080:8080 -p 8081:8081 -it --rm turbovpb-server
 alias dr := docker-run
+
+# build tailwind css
+css:
+    ./tailwindcss -i styles/input.css -o static/styles.css
+
+# watch and rebuild tailwind css on changes
+css-watch:
+    ./tailwindcss -i styles/input.css -o static/styles.css --watch
+
+# build tailwind css (minified for production)
+css-prod:
+    ./tailwindcss -i styles/input.css -o static/styles.css --minify

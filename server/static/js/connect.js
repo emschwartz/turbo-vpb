@@ -719,7 +719,7 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
     }
     for (let { label, message, result } of messageTemplates) {
         const a = document.createElement('a')
-        a.className = "btn btn-outline-secondary btn-block p-3 my-3"
+        a.className = "block w-full border border-slate-300 hover:border-slate-400 text-slate-700 text-center rounded-lg py-3 my-3 font-medium no-underline"
         a.role = 'button'
         a.target = "_blank"
         let messageBody = message
@@ -747,7 +747,7 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
         } else {
             a.innerHTML = TEXT_MESSAGE_ICON
         }
-        a.querySelector('svg').classList.add('mr-2', 'mb-1')
+        a.querySelector('svg').classList.add('inline-block', 'mr-2', 'mb-1')
         const span = document.createElement('span')
         span.innerText = label
         a.appendChild(span)
@@ -765,18 +765,22 @@ function createTextMessageLinks(firstName, phoneNumber, additionalFields) {
                 if (navigator && navigator.clipboard) {
                     await navigator.clipboard.writeText(messageBody)
                     span.innerText = 'Message Copied to Clipboard'
-                    a.classList.replace('btn-outline-secondary', 'btn-outline-success')
+                    a.classList.replace('border-slate-300', 'border-green-500')
+                    a.classList.replace('text-slate-700', 'text-green-700')
                     setTimeout(() => {
                         span.innerText = `Send ${label}`
-                        a.classList.replace('btn-outline-success', 'btn-outline-secondary')
+                        a.classList.replace('border-green-500', 'border-slate-300')
+                        a.classList.replace('text-green-700', 'text-slate-700')
                     }, 800)
                 } else {
                     console.warn('Clipboard is not available')
                     span.innerText = 'Cannot Copy to Clipboard :('
-                    a.classList.replace('btn-outline-secondary', 'btn-outline-danger')
+                    a.classList.replace('border-slate-300', 'border-red-500')
+                    a.classList.replace('text-slate-700', 'text-red-700')
                     setTimeout(() => {
                         span.innerText = `Send ${label}`
-                        a.classList.replace('btn-outline-danger', 'btn-outline-secondary')
+                        a.classList.replace('border-red-500', 'border-slate-300')
+                        a.classList.replace('text-red-700', 'text-slate-700')
                     }, 800)
                 }
             } else if (result && autoSaveTextedResultEnabled) {
@@ -827,7 +831,7 @@ function createCallResultButtons(resultCodes) {
         }
 
         const button = document.createElement('button')
-        button.className = "btn btn-outline-danger btn-block p-3 my-3"
+        button.className = "block w-full border border-red-300 hover:border-red-400 text-red-700 text-center rounded-lg py-3 my-3 font-medium"
         button.role = 'button'
 
         if (result.startsWith('Do Not')) {
@@ -839,7 +843,7 @@ function createCallResultButtons(resultCodes) {
         }
         const svg = button.querySelector('svg')
         if (svg) {
-            svg.classList.add('mr-2', 'mb-1')
+            svg.classList.add('inline-block', 'mr-2', 'mb-1')
         }
 
 
@@ -952,7 +956,15 @@ function setStatus(status, alertType) {
     if (document.readyState === 'complete') {
         const statusElement = document.getElementById('status')
         statusElement.innerText = status
-        statusElement.className = statusElement.className.replace(/badge-\w+/, `badge-${alertType}`)
+        const colorMap = {
+            'success': 'bg-green-100 text-green-800',
+            'warning': 'bg-amber-100 text-amber-800',
+            'danger': 'bg-red-100 text-red-800',
+            'info': 'bg-blue-100 text-blue-800',
+            'primary': 'bg-blue-100 text-blue-800',
+        }
+        const colors = colorMap[alertType] || 'bg-slate-100 text-slate-800'
+        statusElement.className = `rounded-full px-3 py-1 text-sm font-medium ${colors}`
     } else {
         function listener() {
             if (document.readyState === 'complete') {

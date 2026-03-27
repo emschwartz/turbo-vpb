@@ -1,136 +1,119 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
-    <a class="navbar-brand" href="/">
-        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill" fill="currentColor"
-            xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd"
-                d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
-        </svg> TurboVPB
-    </a>
-    <span id="status" class="badge badge-warning ml-auto">Not Connected</span>
+<nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="px-4 py-3 flex items-center justify-between">
+        <a class="flex items-center gap-2 text-slate-900 font-semibold no-underline" href="/">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"
+                xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd"
+                    d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
+            </svg>
+            TurboVPB
+        </a>
+        <span id="status" class="rounded-full px-3 py-1 text-sm font-medium bg-amber-100 text-amber-800">Not Connected</span>
+    </div>
 </nav>
 
-<div class="container-sm p-4" id="main-container">
-    <div id="version-0-9-5-warning" class="alert alert-danger text-justify" hidden>
-        <b>Update your TurboVPB extension.</b> The extension version you have installed has a bug that
+<div class="max-w-md mx-auto p-4" id="main-container">
+    <div id="version-0-9-5-warning" class="rounded-lg p-4 bg-red-50 text-red-800 border-l-4 border-red-400" hidden>
+        <strong>Update your TurboVPB extension.</strong> The extension version you have installed has a bug that
         will prevent it from connecting. In Firefox on your computer, you can go to about:addons in the URL bar,
         click the gear icon in the top right, and click "Check for Updates" and it will automatically
         update to the fixed version.
     </div>
+
     <div id="initial-message" hidden>
-        <div class="alert alert-primary text-center mb-4">
-            <span id="days-left"></span> Election Day! Thank you for the important work you're doing.
-            <script>
-                const electionDay = new Date('Nov 3, 2020')
-                const today = new Date()
-                const daysLeft = Math.ceil((electionDay - today) / 86400000)
-                const elem = document.getElementById('days-left')
-                if (daysLeft > 0) {
-                    elem.innerText = `${daysLeft} days until`
-                } else if (daysLeft === 0) {
-                    elem.innerText = 'Today is'
-                } else {
-                    document.getElementById('initial-message').remove()
-                }
-            </script>
-        </div>
-        <div id="texted-result-code-missing-warning" class="alert alert-warning text-justify" hidden>
-            Warning: This phone bank does not have the <code>Texted</code> result code enabled.
+        <div id="texted-result-code-missing-warning" class="rounded-lg p-4 bg-amber-50 text-amber-800 border-l-4 border-amber-400 mb-4" hidden>
+            Warning: This phone bank does not have the <code class="bg-amber-100 px-1 rounded text-sm">Texted</code> result code enabled.
             You can send texts but TurboVPB will not be able to automatically save the result and load the next contact.
         </div>
     </div>
 
     <div id="warning-container" hidden>
-        <div class="alert alert-danger">
-            <h4 class="alert-heading" id="warning-heading">
+        <div class="rounded-lg p-4 bg-red-50 text-red-800 border-l-4 border-red-400">
+            <h4 class="font-semibold text-lg" id="warning-heading">
                 Uh oh! Looks like something went wrong
             </h4>
-            <p id="warning-text1">
+            <p class="mt-2" id="warning-text1">
                 In order for this page to work, you need to
                 copy the full URL including the # sign with the
                 random-looking letters after it. Try scanning
                 the QR code from the extension on your phone.
             </p>
-            <p id="warning-text2" hidden></p>
+            <p class="mt-2" id="warning-text2" hidden></p>
         </div>
     </div>
-    <div id="statistics" class="text-center mb-5" hidden>
-        <h4 id="num-calls" class="mb-3">0 Calls</h4>
-        <table class="table text-secondary">
-            <tbody>
-                <tr>
-                    <td>Contacts Reached</td>
-                    <td id="successful-calls">0</td>
-                </tr>
-                <tr>
-                    <td>Avg Time Per Contact</td>
-                    <td id="avg-call-time">00:00</td>
-                </tr>
-                <tr>
-                    <td>Total Session Time</td>
-                    <td id="session-time" style="width: 7em">00:00</td>
-                </tr>
-            </tbody>
-        </table>
+
+    <div id="statistics" class="text-center mb-8" hidden>
+        <h4 id="num-calls" class="text-3xl font-bold text-slate-900 mb-4">0 Calls</h4>
+        <div class="border border-slate-200 rounded-lg divide-y divide-slate-200">
+            <div class="flex justify-between px-4 py-3">
+                <span class="text-slate-500">Contacts Reached</span>
+                <span id="successful-calls" class="text-slate-900 font-medium">0</span>
+            </div>
+            <div class="flex justify-between px-4 py-3">
+                <span class="text-slate-500">Avg Time Per Contact</span>
+                <span id="avg-call-time" class="text-slate-900 font-medium">00:00</span>
+            </div>
+            <div class="flex justify-between px-4 py-3">
+                <span class="text-slate-500">Total Session Time</span>
+                <span id="session-time" class="text-slate-900 font-medium" style="min-width: 4em">00:00</span>
+            </div>
+        </div>
     </div>
 
     <div id="loading" hidden>
-        <div class="d-flex justify-content-center">
-            <div class="spinner-border text-secondary" role="status" style="width: 3rem; height: 3rem;">
+        <div class="flex justify-center">
+            <div class="w-12 h-12 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin" role="status">
                 <span class="sr-only">Loading...</span>
             </div>
         </div>
     </div>
 
     <div id="contact-details" hidden>
-        <div class="row mt-auto">
-            <div class="col"></div>
-            <div class="col-md">
-                <h2 id="name" class="text-center"></h2>
-                <a href="" target="_blank" id="phone-number-link" class="btn btn-primary btn-lg btn-block p-3 my-3 h2">
-                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-telephone-outbound-fill mr-2"
-                        fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd"
-                            d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.678.678 0 0 0 .178.643l2.457 2.457a.678.678 0 0 0 .644.178l2.189-.547a1.745 1.745 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.634 18.634 0 0 1-7.01-4.42 18.634 18.634 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877L1.885.511zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
-                    </svg>
-                    <span id="phone-number"></span>
-                </a>
-                <button id="long-press-to-call" class="btn btn-warning btn-lg btn-block p-3 my-3 h2" hidden>
-                    Long-Press To Call
-                </button>
-                <div id="text-message-links"></div>
-                <div id="call-result-links"></div>
-                <div id="text-message-instructions" class="alert alert-info text-justify" role="alert" hidden>
-                    <small id="text-message-instructions-text-only">
-                        You can enable 2-click texting in the TurboVPB extension settings in your
-                        browser.
-                        Buttons to send each message will appear here.
-                    </small>
-                    <small id="text-message-instructions-with-link" hidden>
-                        You can enable 2-click texting by adding message templates in the settings.
-                        <a id="open-options-page" href="#" class="alert-link">Click here</a> to open
-                        TurboVPB's
-                        settings on your computer.
-                    </small>
-                </div>
+        <div>
+            <h2 id="name" class="text-2xl font-semibold text-center text-slate-900"></h2>
+            <a href="" target="_blank" id="phone-number-link" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg py-4 my-3 text-xl font-semibold no-underline">
+                <svg width="1em" height="1em" viewBox="0 0 16 16" class="inline-block mr-2 mb-1"
+                    fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd"
+                        d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.678.678 0 0 0 .178.643l2.457 2.457a.678.678 0 0 0 .644.178l2.189-.547a1.745 1.745 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.634 18.634 0 0 1-7.01-4.42 18.634 18.634 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877L1.885.511zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
+                </svg>
+                <span id="phone-number"></span>
+            </a>
+            <button id="long-press-to-call" class="block w-full bg-amber-500 hover:bg-amber-600 text-white text-center rounded-lg py-4 my-3 text-xl font-semibold" hidden>
+                Long-Press To Call
+            </button>
+            <div id="text-message-links"></div>
+            <div id="call-result-links"></div>
+            <div id="text-message-instructions" class="rounded-lg p-4 bg-blue-50 text-blue-800 border-l-4 border-blue-400" role="alert" hidden>
+                <small id="text-message-instructions-text-only">
+                    You can enable 2-click texting in the TurboVPB extension settings in your
+                    browser.
+                    Buttons to send each message will appear here.
+                </small>
+                <small id="text-message-instructions-with-link" hidden>
+                    You can enable 2-click texting by adding message templates in the settings.
+                    <a id="open-options-page" href="#" class="font-medium underline">Click here</a> to open
+                    TurboVPB's
+                    settings on your computer.
+                </small>
             </div>
-            <div class="col"></div>
         </div>
-        <div class="mt-4 mb-5">
-            <div class="custom-control custom-switch text-muted" id="ios-long-press-mode" hidden>
-                <input class="custom-control-input" type="checkbox" id="require-long-press-mode">
-                <label class="custom-control-label" for="require-long-press-mode">
+        <div class="mt-6 mb-8">
+            <div class="flex items-center gap-2 text-slate-400" id="ios-long-press-mode" hidden>
+                <input class="rounded" type="checkbox" id="require-long-press-mode">
+                <label class="text-sm" for="require-long-press-mode">
                     Long-press to call (for Google Voice)
                 </label>
             </div>
-            <div class="alert alert-light text-center" id="android-google-voice" hidden>
+            <div class="rounded-lg p-4 bg-slate-50 text-slate-500 text-center text-sm" id="android-google-voice" hidden>
                 To call with Google Voice on Android, set Google Voice as the default Phone and SMS app
                 by going to Settings &gt; Apps & Notifications &gt; Advanced &gt; Default Apps.
             </div>
         </div>
     </div>
 
-    <div id="snackbar" class="alert alert-primary">
-        <svg class="mr-1 mb-1" width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-cloud-upload"
+    <div id="snackbar" class="rounded-lg p-4 bg-blue-50 text-blue-800">
+        <svg class="inline-block mr-1 mb-1" width="1em" height="1em" viewBox="0 0 16 16"
             fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <path fill-rule="evenodd"
                 d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z" />
@@ -140,22 +123,18 @@
         <span id="snackbar-message"></span>
     </div>
 
-    <div id="session-ended" class="row p-1" hidden>
-        <div class="col"></div>
-        <div class="col-md">
-            <div class="alert alert-primary">
-                <h4 class="alert-heading">
-                    Session Complete
-                </h4>
-                <p>
-                    The virtual phone bank tab was closed. Scan another TurboVPB QR Code to make more calls.
-                </p>
-                <p>
-                    If you like TurboVPB, please leave a review in the extension store and share it with others!
-                </p>
-            </div>
+    <div id="session-ended" class="p-1" hidden>
+        <div class="border border-slate-200 rounded-lg p-6 text-center">
+            <h4 class="font-semibold text-lg text-slate-900">
+                Session Complete
+            </h4>
+            <p class="mt-2 text-slate-500">
+                The virtual phone bank tab was closed. Scan another TurboVPB QR Code to make more calls.
+            </p>
+            <p class="mt-2 text-slate-500">
+                If you like TurboVPB, please leave a review in the extension store and share it with others!
+            </p>
         </div>
-        <div class="col"></div>
     </div>
 </div>
 
@@ -171,7 +150,6 @@
 
 <script src="dependencies/sentry-7.1.1-with-tracing.min.js"></script>
 <script>
-    // Call init before anything else in case there is an error loading the script
     if (Sentry) {
         console.log('Initializing Sentry')
         Sentry.init({
@@ -189,62 +167,31 @@
 <script defer src="/js/connect.js"></script>
 
 <style>
-    /* The snackbar - position it at the bottom and in the middle of the screen */
     #snackbar {
         visibility: hidden;
-        /* Hidden by default. Visible on click */
         min-width: 250px;
-        /* Set a default minimum width */
         margin-left: -125px;
-        /* Divide value of min-width by 2 */
         text-align: center;
-        /* Centered text */
-        border-radius: 2px;
-        /* Rounded borders */
         padding: 16px;
-        /* Padding */
         position: fixed;
-        /* Sit on top of the screen */
         z-index: 99999;
-        /* Add a z-index if needed */
         left: 50%;
-        /* Center the snackbar */
         top: 60px;
-        /* 60px from the top */
     }
 
-    /* Show the snackbar when clicking on a button (class added with JavaScript) */
     #snackbar.show {
         visibility: visible;
-        /* Show the snackbar */
-        /* Add animation: Take 0.5 seconds to fade in and out the snackbar.
-  However, delay the fade out process for 2.5 seconds */
         -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
         animation: fadein 0.5s, fadeout 0.5s 2.5s;
     }
 
-    /* Animations to fade the snackbar in and out */
     @keyframes fadein {
-        from {
-            top: 0;
-            opacity: 0;
-        }
-
-        to {
-            top: 60px;
-            opacity: 1;
-        }
+        from { top: 0; opacity: 0; }
+        to { top: 60px; opacity: 1; }
     }
 
     @keyframes fadeout {
-        from {
-            top: 60px;
-            opacity: 1;
-        }
-
-        to {
-            top: 0;
-            opacity: 0;
-        }
+        from { top: 60px; opacity: 1; }
+        to { top: 0; opacity: 0; }
     }
 </style>
