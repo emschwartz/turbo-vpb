@@ -1,10 +1,18 @@
 # run the server and extension in dev mode
+# Note: Firefox MV3 dev mode in WXT doesn't register content scripts in the manifest,
+# so we use `web-ext run` with a development build instead of the WXT dev server.
 dev browser='chrome':
     #!/usr/bin/env bash
     set -euxo pipefail
     trap "kill 0" SIGINT
+    MV3_FLAG=$([[ "{{browser}}" == "firefox" ]] && echo "--mv3" || echo "")
     RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml -- server/static &
-    cd extension && TARGET={{browser}} pnpm dev &
+    if [[ "{{browser}}" == "firefox" ]]; then
+        cd extension && pnpm wxt build --browser firefox --mv3 --mode development \
+            && npx web-ext run --source-dir .output/firefox-mv3-dev --start-url http://localhost:8080/test-phonebank
+    else
+        cd extension && pnpm wxt --browser {{browser}} $MV3_FLAG &
+    fi
     wait
 
 # dev with Firefox
@@ -20,11 +28,15 @@ ext-install:
 
 # build extension
 ext-build browser='chrome':
-    cd extension && TARGET={{browser}} pnpm build
+    #!/usr/bin/env bash
+    MV3_FLAG=$([[ "{{browser}}" == "firefox" ]] && echo "--mv3" || echo "")
+    cd extension && pnpm wxt build --browser {{browser}} $MV3_FLAG
 
 # run extension in dev mode
 ext-dev browser='chrome':
-    cd extension && TARGET={{browser}} pnpm dev
+    #!/usr/bin/env bash
+    MV3_FLAG=$([[ "{{browser}}" == "firefox" ]] && echo "--mv3" || echo "")
+    cd extension && pnpm wxt --browser {{browser}} $MV3_FLAG
 
 # package extension into a zip for store submission
 ext-package browser='chrome': (ext-build browser)
@@ -121,5 +133,7 @@ release browser='chrome':
 
 # run e2e tests (builds extension dev build first, since tests use chrome-mv3-dev)
 test browser='chrome':
-    cd extension && pnpm wxt build --mode development
+    #!/usr/bin/env bash
+    MV3_FLAG=$([[ "{{browser}}" == "firefox" ]] && echo "--mv3" || echo "")
+    cd extension && pnpm wxt build --browser {{browser}} --mode development $MV3_FLAG
     just e2e

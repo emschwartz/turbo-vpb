@@ -41,7 +41,9 @@ export default class PubSubClient {
     this.ws = new ReconnectingWebSocket(this.wsUrl, [], {
       connectionTimeout: CONNECTION_TIMEOUT_MS,
     });
-    this.ws.binaryType = "arraybuffer";
+    // Use "blob" instead of "arraybuffer" to avoid Firefox's Xray wrapper
+    // security restrictions when receiving binary data in content scripts.
+    this.ws.binaryType = "blob";
     console.log("connecting to", this.wsUrl);
 
     this.ws.addEventListener("open", () => {
@@ -70,7 +72,8 @@ export default class PubSubClient {
           }
           return;
         }
-        const decrypted = await decrypt(this.encryptionKey!, msg.data);
+        const data = await (msg.data as Blob).arrayBuffer();
+        const decrypted = await decrypt(this.encryptionKey!, data);
         this.onmessage(decrypted);
       } catch (err) {
         console.error("Failed to process message, ignoring:", err);

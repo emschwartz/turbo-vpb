@@ -60,7 +60,10 @@ export async function decrypt<T>(
   encryptionKey: CryptoKey,
   arrayBuffer: ArrayBuffer,
 ): Promise<T> {
-  const payload = new Uint8Array(arrayBuffer);
+  // structuredClone ensures the ArrayBuffer is fully owned by the current
+  // context, avoiding Firefox Xray wrapper errors when content scripts
+  // receive binary data from WebSockets.
+  const payload = new Uint8Array(structuredClone(arrayBuffer));
   const ciphertext = payload.slice(0, 0 - ENCRYPTION_IV_BYTE_LENGTH);
   const iv = payload.slice(0 - ENCRYPTION_IV_BYTE_LENGTH);
   const plaintext = await crypto.subtle.decrypt(
