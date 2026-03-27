@@ -7,7 +7,7 @@ export default defineConfig({
   vite: () => ({
     plugins: [preact(), tailwindcss()],
   }),
-  runner: {
+  webExt: {
     startUrls: ["http://localhost:8080/test-phonebank"],
   },
   manifest: ({ browser, mode }) => ({
