@@ -40,7 +40,10 @@ ext-dev browser='chrome':
 
 # package extension into a zip for store submission
 ext-package browser='chrome': (ext-build browser)
-    (rm extension/turbovpb-{{browser}}.zip || true) && cd extension/dist && zip -r9 ../turbovpb-{{browser}}.zip *
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -f extension/turbovpb-{{browser}}.zip
+    cd extension/.output/{{browser}}-mv3 && zip -r9 ../../turbovpb-{{browser}}.zip *
 
 # --- Server ---
 
