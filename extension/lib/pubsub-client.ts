@@ -1,10 +1,13 @@
 import { generateKey, randomId, encrypt, decrypt, exportKey } from "./crypto";
 import ReconnectingWebSocket from "reconnecting-websocket";
 
+const CONNECTION_TIMEOUT_MS = 10_000;
+
 export default class PubSubClient {
   ws: ReconnectingWebSocket;
   encryptionKey: CryptoKey;
-  url: string;
+  wsUrl: string;
+  httpUrl: string;
   channelId: string;
   onmessage: (message: any) => void | Promise<void>;
   onerror: (error: any) => void;
@@ -18,9 +21,9 @@ export default class PubSubClient {
   ) {
     this.channelId = channelId;
     this.encryptionKey = encryptionKey;
-    this.url = `${serverBase.replace("http", "ws")}/api/channels/${
-      this.channelId
-    }/extension`;
+    const channelPath = `/api/channels/${this.channelId}/extension`;
+    this.wsUrl = `${serverBase.replace("http", "ws")}${channelPath}`;
+    this.httpUrl = `${serverBase}${channelPath}`;
     this.onmessage = () => {};
     this.onclose = () => {};
     this.onerror = () => {};
@@ -32,11 +35,13 @@ export default class PubSubClient {
       this.encryptionKey = await generateKey();
     }
 
-    this.ws = new ReconnectingWebSocket(this.url);
+    // WebSocket is used only for receiving messages
+    this.ws = new ReconnectingWebSocket(this.wsUrl, [], {
+      connectionTimeout: CONNECTION_TIMEOUT_MS,
+    });
     this.ws.binaryType = "arraybuffer";
-    console.log("connecting to", this.url);
+    console.log("connecting to", this.wsUrl);
 
-    // Set up all the event handlers
     this.ws.addEventListener("open", () => {
       console.log("ws opened");
       this.onopen();
@@ -49,9 +54,13 @@ export default class PubSubClient {
       console.error("ws error", message);
       this.onerror(new Error(message));
     });
-    this.ws.addEventListener("message", (async (msg) => {
-      const decrypted = await decrypt(this.encryptionKey, msg.data);
-      this.onmessage(decrypted);
+    this.ws.addEventListener("message", (async (msg: MessageEvent) => {
+      try {
+        const decrypted = await decrypt(this.encryptionKey, msg.data);
+        this.onmessage(decrypted);
+      } catch (err) {
+        console.error("Failed to decrypt message, ignoring:", err);
+      }
     }) as (event: MessageEvent) => void);
 
     // Wait for the first connection to make sure we can actually connect
@@ -92,8 +101,24 @@ export default class PubSubClient {
     this.ws.close();
   }
 
-  async send(message: any) {
+  // Send messages via HTTP POST for immediate delivery confirmation.
+  // The server stores the message so late-joining subscribers get it,
+  // regardless of whether there's an active receiver right now.
+  async send(message: any): Promise<boolean> {
     const encrypted = await encrypt(this.encryptionKey, message);
-    this.ws.send(encrypted);
+    try {
+      const response = await fetch(this.httpUrl, {
+        method: "POST",
+        body: encrypted,
+      });
+      if (!response.ok) {
+        console.error("HTTP send failed:", response.status, await response.text());
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("HTTP send error:", err);
+      return false;
+    }
   }
 }

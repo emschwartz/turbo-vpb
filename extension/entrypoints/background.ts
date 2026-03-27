@@ -3,6 +3,13 @@ import { browser } from 'wxt/browser';
 export default defineBackground({
   type: 'module',
   main() {
+    // Allow content scripts to access browser.storage.session
+    // (by default, only the background script can access it)
+    if (browser.storage.session?.setAccessLevel) {
+      browser.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' })
+        .catch((err) => console.error('Failed to set storage.session access level:', err));
+    }
+
     // WXT handles content script registration via the manifest.
     // We only need to handle dynamic injection into already-open tabs
     // when new permissions are granted at runtime.

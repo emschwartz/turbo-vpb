@@ -6,6 +6,8 @@ console.log('Loading connect.js')
  * Constants
  */
 const CONNECT_TIMEOUT = 15000
+const CALL_RESULT_ACK_TIMEOUT = 3000
+const CALL_RESULT_MAX_RETRIES = 3
 const WAIT_AFTER_PAGE_BECOMES_VISIBLE = 100
 const THEIR_NAME_REGEX = /[\[\(\{<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}>]+/ig
 const YOUR_NAME_REGEX = /[\[\(\{<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}>]+/ig
@@ -154,6 +156,8 @@ let lastCallResult
 let pendingSaveMessage
 let waitForNewContact = false // if true, only display contact details if it's a new phone number
 let autoSaveTextedResultEnabled = true
+let messageSeq = 0
+let pendingCallResultAcks = new Map() // seq -> { timer, retries, message }
 
 /**
  * Analytics
@@ -555,6 +559,12 @@ function restartConnectionTimeout() {
 }
 
 async function handleExtensionMessage(data) {
+    // Handle ack messages from the extension
+    if (data.type === "ack") {
+        handleAckMessage(data)
+        return
+    }
+
     // If we get a connect message from the extension, that means the
     // page was reloaded so we send a connect message back to let it
     // know that we're still connected
@@ -873,14 +883,33 @@ function createCallResultButtons(resultCodes) {
     }
 }
 
-// Send the call result to the extension
+// Send the call result to the extension with retry until acked
 async function sendCallResult(result, showSaveMessageNow) {
-    await peerManager.sendMessage({
+    const seq = ++messageSeq
+    const message = {
         type: 'callResult',
         result,
         callNumber,
+        seq,
         timestamp: (new Date()).toISOString()
-    })
+    }
+
+    await peerManager.sendMessage(message)
+
+    // Set up retry timer in case the extension doesn't ack
+    let retries = 0
+    const retryTimer = setInterval(async () => {
+        retries++
+        if (retries > CALL_RESULT_MAX_RETRIES) {
+            console.warn(`callResult seq=${seq} not acked after ${CALL_RESULT_MAX_RETRIES} retries, giving up`)
+            clearInterval(retryTimer)
+            pendingCallResultAcks.delete(seq)
+            return
+        }
+        console.log(`retrying callResult seq=${seq} (attempt ${retries + 1})`)
+        await peerManager.sendMessage(message)
+    }, CALL_RESULT_ACK_TIMEOUT)
+    pendingCallResultAcks.set(seq, retryTimer)
 
     // Only show the next contact when a new contact
     // is loaded (ignore if the same contact is resent)
@@ -892,6 +921,17 @@ async function sendCallResult(result, showSaveMessageNow) {
     }
 
     await saveCallStats()
+}
+
+function handleAckMessage(data) {
+    if (data.ackType === 'callResult' && typeof data.seq === 'number') {
+        const timer = pendingCallResultAcks.get(data.seq)
+        if (timer) {
+            console.log(`callResult seq=${data.seq} acked`)
+            clearInterval(timer)
+            pendingCallResultAcks.delete(data.seq)
+        }
+    }
 }
 
 // Save anonymous call stats to the centralized statistics service

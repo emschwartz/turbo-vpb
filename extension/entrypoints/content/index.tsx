@@ -198,11 +198,15 @@ export default defineContentScript({
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
           console.log("Marking result:", message.result);
+          // Ack immediately so the mobile page knows we received it
+          await client.send({ type: "ack", ackType: "callResult", seq: message.seq });
           try {
             await vpb.markResult(message.result);
           } catch (err) {
             console.error("Failed to mark result:", err);
           }
+        } else if (message.type === "ack") {
+          // Ack messages are handled by PubSubClient internally
         } else {
           console.error("Unknown message type", message);
         }

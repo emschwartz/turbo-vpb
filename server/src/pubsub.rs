@@ -5,6 +5,7 @@ use axum::routing::{delete, get};
 use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Json, Router};
 use dashmap::DashMap;
 use futures::{sink::SinkExt, stream::StreamExt};
+use tokio::sync::broadcast::error::RecvError;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -14,7 +15,7 @@ use tracing::{debug, instrument, trace};
 
 const PING_INTERVAL: Duration = Duration::from_secs(20);
 const CHANNEL_INACTIVITY_TIMEOUT: Duration = Duration::from_secs(60 * 30);
-const CHANNEL_CAPACITY: usize = 1;
+const CHANNEL_CAPACITY: usize = 16;
 
 type ChannelState = Arc<DashMap<String, Channel>>;
 struct Channel {
@@ -140,24 +141,36 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 
             // Send outgoing messages
             outgoing = receiver.recv() => {
-                if let Ok(message) = outgoing {
-                    // Store the last message sent on either side for backwards compatibility
-                    let last_message = match identity {
-                        Identity::Extension => state.get(&channel_id).unwrap().last_browser_message.clone(),
-                        Identity::Browser => state.get(&channel_id).unwrap().last_extension_message.clone(),
-                    };
-                    *last_message.lock().await = Some(message.clone());
+                match outgoing {
+                    Ok(message) => {
+                        // Store the last message sent on either side for backwards compatibility
+                        let last_message = match identity {
+                            Identity::Extension => state.get(&channel_id).map(|c| c.last_browser_message.clone()),
+                            Identity::Browser => state.get(&channel_id).map(|c| c.last_extension_message.clone()),
+                        };
+                        if let Some(last_message) = last_message {
+                            *last_message.lock().await = Some(message.clone());
+                        } else {
+                            debug!("channel was removed, closing websocket");
+                            break;
+                        }
 
-                    match ws_sink.send(message).await {
-                        Ok(_) => {
-                            last_activity = Instant::now();
-                            trace!("sent message");
-                            TOTAL_MESSAGES.with_label_values(&[identity.as_str()]).inc();
-                        },
-                        Err(err) => debug!("error sending message to websocket: {err}"),
+                        match ws_sink.send(message).await {
+                            Ok(_) => {
+                                last_activity = Instant::now();
+                                trace!("sent message");
+                                TOTAL_MESSAGES.with_label_values(&[identity.as_str()]).inc();
+                            },
+                            Err(err) => debug!("error sending message to websocket: {err}"),
+                        }
                     }
-                } else {
-                    break;
+                    Err(RecvError::Lagged(count)) => {
+                        debug!("receiver lagged, skipped {count} messages");
+                        continue;
+                    }
+                    Err(RecvError::Closed) => {
+                        break;
+                    }
                 }
             }
             // Handle incoming messages
@@ -183,8 +196,10 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                             Err(err) => debug!("error sending message to channel: {err}"),
                         }
                     }
-                    Message::Ping(_) => {
-                        sender.send(Message::Pong(Vec::new())).ok();
+                    Message::Ping(data) => {
+                        if ws_sink.send(Message::Pong(data)).await.is_err() {
+                            break;
+                        }
                     }
                     _ => {}
                 }
@@ -196,8 +211,8 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                 }
             }
             // Timeout channels that have been inactive for too long
-            _ = sleep(CHANNEL_INACTIVITY_TIMEOUT - (Instant::now().duration_since(last_activity))) => {
-                debug!("channel timed out after {CHANNEL_INACTIVITY_TIMEOUT:?} seconds of inactivity");
+            _ = sleep(CHANNEL_INACTIVITY_TIMEOUT.saturating_sub(Instant::now().duration_since(last_activity))) => {
+                debug!("channel timed out after {CHANNEL_INACTIVITY_TIMEOUT:?} of inactivity");
                 break;
             }
         }
@@ -206,12 +221,14 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
     debug!("websocket closed");
 
     // Remove the channel record when the last connection is dropped
-    let num_channel = {
-        let mut channel = state.get_mut(&channel_id).unwrap();
-        channel.num_connections -= 1;
-        channel.num_connections
+    let should_remove = if let Some(mut channel) = state.get_mut(&channel_id) {
+        channel.num_connections = channel.num_connections.saturating_sub(1);
+        channel.num_connections == 0
+    } else {
+        debug!("channel already removed");
+        false
     };
-    if num_channel == 0 {
+    if should_remove {
         debug!("removing channel");
         if let Some((_, channel)) = state.remove(&channel_id) {
             CONCURRENT_CHANNELS
@@ -230,7 +247,19 @@ async fn delete_channel(
     Extension(state): Extension<ChannelState>,
 ) -> impl IntoResponse {
     debug!("deleting channel");
-    state.remove(&channel_id);
+    // Removing the channel drops the broadcast Senders, which causes
+    // active WebSocket loops to receive RecvError::Closed and break.
+    if let Some((_, channel)) = state.remove(&channel_id) {
+        CONCURRENT_CHANNELS
+            .with_label_values(&["extension"])
+            .dec();
+        CHANNEL_DURATION
+            .with_label_values(&["extension"])
+            .observe(channel.channel_created_at.elapsed().as_secs_f64());
+        StatusCode::OK
+    } else {
+        StatusCode::NOT_FOUND
+    }
 }
 
 #[instrument(skip(state, body))]
@@ -240,24 +269,32 @@ async fn post_channel(
     body: Bytes,
 ) -> impl IntoResponse {
     if let Some(channel) = state.get(&channel_id) {
-        let channel = match identity {
+        let message = Message::Binary(body.into());
+
+        // Store as the last message so late-joining WebSocket subscribers get it
+        let last_message = match identity {
+            Identity::Extension => channel.last_extension_message.clone(),
+            Identity::Browser => channel.last_browser_message.clone(),
+        };
+        *last_message.lock().await = Some(message.clone());
+
+        let sender = match identity {
             Identity::Extension => channel.browser.clone(),
             Identity::Browser => channel.extension.clone(),
         };
 
-        match channel.send(Message::Binary(body.into())) {
+        // Send errors just mean no active subscriber yet, which is fine
+        // since we stored it as the last message above
+        match sender.send(message) {
             Ok(_) => {
                 trace!("forwarding HTTP message to websocket");
-                (StatusCode::OK, "")
+                TOTAL_MESSAGES.with_label_values(&[identity.as_str()]).inc();
             }
-            Err(err) => {
-                debug!("Error sending message to websocket: {err}");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Unable to send message to peer",
-                )
+            Err(_) => {
+                trace!("no active subscriber, message stored for later");
             }
         }
+        (StatusCode::OK, "")
     } else {
         (
             StatusCode::NOT_FOUND,

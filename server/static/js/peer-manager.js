@@ -56,9 +56,12 @@ class PeerManager {
 
         this.encryptionKey = encryptionKey
         this.mode = this.encryptionKey ? WEBSOCKET_MODE : WEBRTC_MODE
-        this.fallbackMode = this.mode === WEBRTC_MODE ? WEBSOCKET_MODE : WEBRTC_MODE
+        // Only fall back from WebRTC to WebSocket (not the reverse),
+        // because the extension only supports WebSocket mode.
+        this.fallbackMode = this.mode === WEBRTC_MODE ? WEBSOCKET_MODE : null
         this.ws = null
         this.pubsubState = PUBSUB_STATE.CLOSED
+        this.httpUrl = new URL(`/api/channels/${this.remotePeerId}/browser`, this.url).toString()
     }
 
     static async from(opts) {
@@ -97,8 +100,9 @@ class PeerManager {
         if (++this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
             console.error('exceeded max number of reconnect attempts')
 
-            // Try swtiching to the fallback mode
-            if (this.mode !== this.fallbackMode) {
+            // Try switching to the fallback mode (only WebRTC -> WebSocket is supported,
+            // because the extension only speaks WebSocket)
+            if (this.fallbackMode && this.mode !== this.fallbackMode) {
                 if (this.mode === WEBRTC_MODE) {
                     if (!this.encryptionKey) {
                         console.warn('cannot switch to websocket mode because the browser does not support SubtleCrypto')
@@ -109,12 +113,6 @@ class PeerManager {
                         this.reconnectAttempts = 0
                         return this.connect()
                     }
-                } else {
-                    console.log('switching to webrtc mode')
-                    this.mode = WEBRTC_MODE
-                    this.reconnectDelay = RECONNECT_DELAY_START
-                    this.reconnectAttempts = 0
-                    return this.connect()
                 }
             }
 
@@ -204,24 +202,39 @@ class PeerManager {
 
     async sendMessage(message) {
         if (this.active === false) {
-            // TODO maybe it's better to throw an error here?
             console.error('Not sending message because PeerManager has already been stopped')
-            return
+            return false
         }
         console.log('sending message', message)
 
         if (this.mode === WEBRTC_MODE) {
             if (this.connection && this.connection.open) {
                 this.connection.send(message)
+                return true
             } else {
                 console.log('trying to send message but connection is not open, reconnecting first')
                 await this.reconnect()
                 this.connection.send(message)
+                return true
             }
         } else {
-            await this._connectPubSub()
+            // Send via HTTP POST for immediate delivery confirmation.
+            // The WebSocket connection is kept open only for receiving.
             const encrypted = await encrypt(this.encryptionKey, message)
-            this.ws.send(encrypted)
+            try {
+                const response = await fetch(this.httpUrl, {
+                    method: 'POST',
+                    body: encrypted
+                })
+                if (!response.ok) {
+                    console.error('HTTP send failed:', response.status, await response.text())
+                    return false
+                }
+                return true
+            } catch (err) {
+                console.error('HTTP send error:', err)
+                return false
+            }
         }
     }
 
@@ -382,6 +395,7 @@ class PeerManager {
                 console.log('Using ReconnectingWebSocket')
                 this.ws = new ReconnectingWebSocket(url, [], {
                     minReconnectionDelay: RECONNECT_BACKOFF,
+                    connectionTimeout: 10000,
                     maxRetries: MAX_RECONNECT_ATTEMPTS,
                     debug: true
                 })
