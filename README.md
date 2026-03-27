@@ -15,26 +15,34 @@ The link encoded in the QR code points to https://turbovpb.com/connect and inclu
 
 **TurboVPB never collects or stores the names, phone numbers, or any personal details of people contacted.**
 
+### Architecture
+
+The project is a monorepo with three independent components:
+
+- **Extension** (`extension/`) - Browser extension for Chrome and Firefox, built with TypeScript, Preact, and WXT. Content scripts scrape contact details from supported phone bank platforms and manage the WebSocket connection. Includes a popup for call stats and an options page for message templates.
+- **Relay Server** (`server/`) - Rust server (Axum, Tokio) that acts as a WebSocket pub/sub relay between the extension and the mobile page. It never sees decrypted contact data. Deployed to Fly.io.
+- **Mobile Page** - Static page served at `turbovpb.com/connect` that receives encrypted contacts, decrypts them in the browser, and displays them for easy calling/texting.
+
+```
+Phone Bank Page          Relay Server          Mobile Phone
+┌──────────────┐        ┌─────────────┐       ┌──────────────┐
+│   Extension  │──WSS──▶│  WebSocket  │──WSS──▶│  Static Page │
+│              │        │  Pub/Sub    │        │              │
+│ Scrape contact│        │             │        │ Decrypt with │
+│ Encrypt (AES)│        │ (encrypted  │        │ key from URL │
+│ Send via WS  │        │  pass-thru) │        │ Display info │
+└──────────────┘        └─────────────┘       └──────────────┘
+        │                                              ▲
+        └──── QR code (contains channel ID + key) ─────┘
+```
+
 ### Encrypted WebSocket PubSub
 
-TurboVPB uses is a publish-subscribe pattern where the messages are end-to-end encrypted using symmetric encryption.
+TurboVPB uses a publish-subscribe pattern where the messages are end-to-end encrypted using symmetric encryption.
 
 For each phone bank session, the extension uses the browser's [`SubtleCrypto.generateKey()`](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey) method to create an AES-GCM encryption key with a 256-bit key.
 The encryption key is passed to the static mobile site in the URL fragment/hash at the end of the URL encoded in the QR code.
 In addition, the extension generates a random PubSub channel ID, which is also communicated to the mobile page in the connection URL.
-
-## Thanks
-
-TurboVPB would have been much more difficult (and expensive) to build and run without the sponsored open source plans from:
-
-- [Sentry](https://sentry.io)
-- [BrowserStack](https://browserstack.com)
-
-And the generous free tiers of:
-
-- [Cloudflare](https://cloudflare.com)
-- [Google Cloud](https://cloud.google.com)
-- [ImprovMX](https://improvmx.com)
 
 ## Questions or Feedback?
 
