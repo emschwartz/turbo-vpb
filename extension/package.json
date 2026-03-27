@@ -2,6 +2,7 @@
   "name": "turbovpb-extension",
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "pnpm@9.4.0",
   "description": "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
   "scripts": {
     "dev": "wxt",
