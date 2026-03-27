@@ -24,16 +24,16 @@ The project is a monorepo with three independent components:
 - **Mobile Page** - Static page served at `turbovpb.com/connect` that receives encrypted contacts, decrypts them in the browser, and displays them for easy calling/texting.
 
 ```
-Phone Bank Page          Relay Server          Mobile Phone
-┌──────────────┐        ┌─────────────┐       ┌──────────────┐
-│   Extension  │──WSS──▶│  WebSocket  │──WSS──▶│  Static Page │
-│              │        │  Pub/Sub    │        │              │
-│ Scrape contact│        │             │        │ Decrypt with │
-│ Encrypt (AES)│        │ (encrypted  │        │ key from URL │
-│ Send via WS  │        │  pass-thru) │        │ Display info │
-└──────────────┘        └─────────────┘       └──────────────┘
-        │                                              ▲
-        └──── QR code (contains channel ID + key) ─────┘
+ Phone Bank Page           Relay Server           Mobile Phone
+┌────────────────┐        ┌─────────────┐        ┌──────────────┐
+│    Extension   │──WSS──▶│  WebSocket  │──WSS──▶│  Static Page │
+│                │        │  Pub/Sub    │        │              │
+│ Scrape contact │        │             │        │ Decrypt with │
+│ Encrypt (AES)  │        │ (encrypted  │        │ key from URL │
+│ Send via WS    │        │  pass-thru) │        │ Display info │
+└────────────────┘        └─────────────┘        └──────────────┘
+         │                                               ▲
+         └───── QR code (contains channel ID + key) ─────┘
 ```
 
 ### Encrypted WebSocket PubSub
