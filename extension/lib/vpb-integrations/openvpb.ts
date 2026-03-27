@@ -177,7 +177,10 @@ async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
 }
 
 async function sleep() {
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  // Yield to let synchronous DOM updates from click handlers complete.
+  // Cannot use setTimeout or requestAnimationFrame because Firefox
+  // throttles both to ~1000ms in extension content scripts.
+  await Promise.resolve();
 }
 
 function couldntReachButton() {

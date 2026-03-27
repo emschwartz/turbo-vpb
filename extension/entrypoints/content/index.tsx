@@ -94,7 +94,22 @@ export default defineContentScript({
 
     function watchForNewContacts() {
       checkForNewContact();
-      ctx.setInterval(checkForNewContact, 500);
+
+      // Use MutationObserver for near-instant detection of contact changes.
+      // No debounce needed: scraping is cheap (a few DOM queries) and
+      // setContactDetails already deduplicates via equality check.
+      const observer = new MutationObserver(() => {
+        checkForNewContact();
+      });
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+      ctx.onInvalidated(() => observer.disconnect());
+
+      // Fallback poll for edge cases the observer might miss.
+      ctx.setInterval(checkForNewContact, 2000);
     }
 
     function checkForNewContact() {
@@ -211,8 +226,8 @@ export default defineContentScript({
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
           console.log("Marking result:", message.result);
-          // Ack immediately so the mobile page knows we received it
-          await client.send({
+          // Ack without blocking so markResult can start immediately
+          client.send({
             type: "ack",
             ackType: "callResult",
             seq: message.seq,
