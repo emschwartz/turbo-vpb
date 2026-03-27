@@ -119,7 +119,7 @@ release browser='chrome':
     just server-js
     just server-build
 
-# run e2e tests (builds extension first)
+# run e2e tests (builds extension dev build first, since tests use chrome-mv3-dev)
 test browser='chrome':
-    just ext-build {{browser}}
+    cd extension && pnpm wxt build --mode development
     just e2e
