@@ -42,9 +42,9 @@
         </div>
     </div>
 
-    <div id="statistics" class="text-center mb-8" hidden>
+    <div id="statistics" class="text-center mb-6" hidden>
         <h4 id="num-calls" class="text-3xl font-bold text-slate-900 mb-4">0 Calls</h4>
-        <div class="border border-slate-200 rounded-lg divide-y divide-slate-200">
+        <div class="rounded-lg bg-slate-50 divide-y divide-slate-200">
             <div class="flex justify-between px-4 py-3">
                 <span class="text-slate-500">Contacts Reached</span>
                 <span id="successful-calls" class="text-slate-900 font-medium">0</span>
@@ -123,21 +123,20 @@
         <span id="snackbar-message"></span>
     </div>
 
-    <div id="session-ended" class="p-1" hidden>
-        <div class="border border-slate-200 rounded-lg p-6 text-center">
-            <h4 class="font-semibold text-lg text-slate-900">
-                Session Complete
-            </h4>
-            <p class="mt-2 text-slate-500">
+    <div id="session-ended" hidden>
+        <div class="border border-slate-200 rounded-lg p-4">
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Session Complete</p>
+            <p class="mt-1.5 text-sm text-slate-600">
                 The virtual phone bank tab was closed. Scan another TurboVPB QR Code to make more calls.
             </p>
-            <p class="mt-2 text-slate-500">
+            <p class="mt-1.5 text-sm text-slate-600">
                 If you like TurboVPB, please leave a review in the extension store and share it with others!
             </p>
+            <a id="leave-review-link" href="https://chromewebstore.google.com/detail/turbovpb/deekoplmjnhcnbkpojidakdbllmdhekh" target="_blank" class="inline-block mt-2 text-sm font-medium text-blue-600 hover:text-blue-700 no-underline">Leave a review &rarr;</a>
         </div>
         <div class="border border-slate-200 rounded-lg p-4 mt-3">
-            <p class="text-xs font-medium text-slate-400">From the creator of TurboVPB</p>
-            <p class="mt-1 text-sm text-slate-600">Want to stay up to date on the topics you care about? I'm building <strong>Scour</strong>, a personalized feed that surfaces interesting reads from across the web.</p>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">From the creator of TurboVPB</p>
+            <p class="mt-1.5 text-sm text-slate-600">Want to stay up to date on the topics you care about? I'm building <strong>Scour</strong>, a personalized feed that surfaces interesting reads from across the web.</p>
             <a href="https://scour.ing?ref=turbovpb-connect" target="_blank" class="inline-block mt-2 text-sm font-medium text-blue-600 hover:text-blue-700 no-underline">Check it out &rarr;</a>
         </div>
     </div>

@@ -903,6 +903,13 @@ function markSessionComplete(): void {
   document.getElementById('contact-details')!.remove()
   document.getElementById('session-ended')!.removeAttribute('hidden')
 
+  if (/Firefox/i.test(extensionUserAgent)) {
+    const reviewLink = document.getElementById('leave-review-link') as HTMLAnchorElement | null
+    if (reviewLink) {
+      reviewLink.href = 'https://addons.mozilla.org/en-US/firefox/addon/turbovpb/'
+    }
+  }
+
   stopConnectionTimeout()
 
   if (sessionTimeInterval) {
