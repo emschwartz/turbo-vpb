@@ -7,9 +7,6 @@ export default defineConfig({
   vite: () => ({
     plugins: [preact(), tailwindcss()],
   }),
-  webExt: {
-    startUrls: ["http://localhost:8080/test-phonebank"],
-  },
   manifest: ({ browser, mode }) => ({
     name: "TurboVPB",
     description:

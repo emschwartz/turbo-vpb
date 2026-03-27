@@ -3,6 +3,10 @@ import { browser } from "wxt/browser";
 export default defineBackground({
   type: "module",
   main() {
+    // In dev mode, open the test phonebank page after the extension loads
+    if (import.meta.env.DEV) {
+      browser.tabs.create({ url: "http://localhost:8080/test-phonebank" });
+    }
     // Allow content scripts to access browser.storage.session
     // (by default, only the background script can access it)
     if (browser.storage.session?.setAccessLevel) {
