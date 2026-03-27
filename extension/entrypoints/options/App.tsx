@@ -130,7 +130,7 @@ const AdvancedSettings: FunctionComponent = () => (
           name="server-url"
           id="server-url"
           class="block max-w-lg rounded-lg border-slate-300 shadow-sm px-4 py-3 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          placeholder="https://pubsub.turbovpb.com"
+          placeholder="https://turbovpb.com"
           value={serverUrl as unknown as string}
           onInput={(e) => setServerUrl((e.target as HTMLInputElement).value)}
         />

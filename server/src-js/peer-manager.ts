@@ -8,7 +8,7 @@ const RECONNECT_BACKOFF = 10
 const RECONNECT_DELAY_START = 25
 const MAX_RECONNECT_ATTEMPTS = 2
 
-const DEFAULT_SERVER_URL = typeof window !== 'undefined' && window.location ? window.location.href : 'https://pubsub.turbovpb.com'
+const DEFAULT_SERVER_URL = typeof window !== 'undefined' && window.location ? window.location.href : 'https://turbovpb.com'
 
 const ENCRYPTION_IV_BYTE_LENGTH = 12
 const ENCRYPTION_ALGORITHM = 'AES-GCM'
@@ -50,6 +50,7 @@ class PeerManager {
   onconnect: () => void | Promise<void>
   onerror: (err: PeerErrorWithType) => void
   onreconnecting: (target: string) => void
+  onpeerdisconnected: () => void
 
   constructor({ remotePeerId, encryptionKey, url = DEFAULT_SERVER_URL }: PeerManagerOptions) {
     this.remotePeerId = remotePeerId
@@ -61,6 +62,7 @@ class PeerManager {
     this.onconnect = () => {}
     this.onerror = () => {}
     this.onreconnecting = () => {}
+    this.onpeerdisconnected = () => {}
 
     this.isConnecting = false
     this.reconnectDelay = RECONNECT_DELAY_START
@@ -301,6 +303,17 @@ class PeerManager {
       }
       this.ws.onmessage = async ({ data }: MessageEvent) => {
         try {
+          // Text messages are unencrypted control messages from the server
+          if (typeof data === 'string') {
+            const control = JSON.parse(data)
+            if (control.type === 'peerDisconnected') {
+              console.log('Peer disconnected')
+              this.pubsubState = PubSubState.OPEN
+              this.onpeerdisconnected()
+            }
+            return
+          }
+
           const message = await decrypt(this.encryptionKey!, data)
           console.log('got data from pubsub', message)
 

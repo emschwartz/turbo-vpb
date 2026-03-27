@@ -248,6 +248,11 @@ async function start(): Promise<void> {
       stopConnectionTimeout() // we know we're connected if we got a message
       await handleExtensionMessage(data as ExtensionMessage)
     }
+    peerManager.onpeerdisconnected = () => {
+      console.log('PeerManager.onpeerdisconnected')
+      setStatus('Connecting to Extension', 'warning')
+      setLoading()
+    }
     peerManager.onreconnecting = (target: string) => {
       console.log('PeerManager.onreconnecting', target)
       if (sessionIsComplete()) {
@@ -279,6 +284,13 @@ async function start(): Promise<void> {
     }
 
     peerManager.connect()
+
+    // Notify the extension immediately when this page is closed
+    // (pagehide fires more reliably than beforeunload on mobile browsers)
+    const disconnectUrl = new URL(`/api/channels/${remotePeerId}/browser/disconnect`, window.location.origin).toString()
+    window.addEventListener('pagehide', () => {
+      navigator.sendBeacon(disconnectUrl)
+    })
 
     /**
      * Event Listeners

@@ -1,7 +1,7 @@
 use crate::metrics::{CHANNEL_DURATION, CONCURRENT_CHANNELS, TOTAL_CHANNELS, TOTAL_MESSAGES};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, State};
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Json, Router};
 use dashmap::DashMap;
 use futures::{sink::SinkExt, stream::StreamExt};
@@ -87,6 +87,10 @@ pub fn router() -> Router {
         .route(
             "/api/channels/{channel_id}/{identity}",
             get(ws_handler).post(post_channel),
+        )
+        .route(
+            "/api/channels/{channel_id}/{identity}/disconnect",
+            post(disconnect_channel),
         )
         .route(
             "/c/{channel_id}/{identity}",
@@ -244,6 +248,15 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 
     debug!("websocket closed");
 
+    // Notify the other side that this peer disconnected
+    if let Some(channel) = state.get(&channel_id) {
+        let notify_sender = match identity {
+            Identity::Extension => &channel.browser,
+            Identity::Browser => &channel.extension,
+        };
+        let _ = notify_sender.send(Message::Text(r#"{"type":"peerDisconnected"}"#.into()));
+    }
+
     // Remove the channel record atomically when the last connection is dropped
     if let Some((_, channel)) = state.remove_if_mut(&channel_id, |_, channel| {
         channel.num_connections = channel.num_connections.saturating_sub(1);
@@ -300,5 +313,26 @@ async fn post_channel(
             StatusCode::NOT_FOUND,
             "Channel does not exist or has been closed",
         )
+    }
+}
+
+#[instrument(skip(state))]
+async fn disconnect_channel(
+    Path((channel_id, identity)): Path<(String, Identity)>,
+    State(state): State<ChannelState>,
+) -> impl IntoResponse {
+    if !is_valid_channel_id(&channel_id) {
+        return StatusCode::BAD_REQUEST;
+    }
+    if let Some(channel) = state.get(&channel_id) {
+        let notify_sender = match identity {
+            Identity::Extension => &channel.browser,
+            Identity::Browser => &channel.extension,
+        };
+        let _ = notify_sender.send(Message::Text(r#"{"type":"peerDisconnected"}"#.into()));
+        debug!("sent peerDisconnected via HTTP disconnect");
+        StatusCode::OK
+    } else {
+        StatusCode::NOT_FOUND
     }
 }

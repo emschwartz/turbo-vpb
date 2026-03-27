@@ -13,6 +13,7 @@ export default class PubSubClient {
   onerror: (error: any) => void;
   onclose: () => void;
   onopen: () => void;
+  onpeerdisconnected: () => void;
 
   constructor(
     serverBase: string,
@@ -28,6 +29,7 @@ export default class PubSubClient {
     this.onclose = () => {};
     this.onerror = () => {};
     this.onopen = () => {};
+    this.onpeerdisconnected = () => {};
   }
 
   async connect(): Promise<void> {
@@ -56,10 +58,19 @@ export default class PubSubClient {
     });
     this.ws.addEventListener("message", (async (msg: MessageEvent) => {
       try {
+        // Text messages are unencrypted control messages from the server
+        if (typeof msg.data === "string") {
+          const control = JSON.parse(msg.data);
+          if (control.type === "peerDisconnected") {
+            console.log("Peer disconnected");
+            this.onpeerdisconnected();
+          }
+          return;
+        }
         const decrypted = await decrypt(this.encryptionKey!, msg.data);
         this.onmessage(decrypted);
       } catch (err) {
-        console.error("Failed to decrypt message, ignoring:", err);
+        console.error("Failed to process message, ignoring:", err);
       }
     }) as (event: MessageEvent) => void);
 

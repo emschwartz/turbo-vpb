@@ -180,6 +180,11 @@ export default defineContentScript({
           type: "connect",
         });
       };
+      client.onpeerdisconnected = () => {
+        setStatus("waitingForMessage");
+        gotMessageSinceLastReconnect = false;
+        showQrCodeModal();
+      };
       client.onclose = () => {
         setStatus("disconnected");
         gotMessageSinceLastReconnect = false;
@@ -221,6 +226,14 @@ export default defineContentScript({
 
       await client.connect();
       await setPubsubClient(client);
+
+      // Notify the mobile page immediately when this tab is closed
+      const disconnectUrl = `${serverUrl.value}/api/channels/${client.channelId}/extension/disconnect`;
+      const onPageHide = () => navigator.sendBeacon(disconnectUrl);
+      window.addEventListener("pagehide", onPageHide);
+      ctx.onInvalidated(() =>
+        window.removeEventListener("pagehide", onPageHide),
+      );
     }
 
     async function loadSettings() {
