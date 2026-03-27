@@ -68,9 +68,9 @@ const MessageTemplateList: FunctionComponent<{
         ))}
       </div>
 
-      <div class="mt-4 flex flex-row space-x-4">
+      <div class="mt-6 flex flex-row space-x-4">
         <button
-          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium leading-4 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium leading-4 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           type="button"
           onClick={() => addTemplate(templates)}
         >

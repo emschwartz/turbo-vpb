@@ -39,39 +39,44 @@ const MessageTemplate: FunctionComponent<{
   deleteTemplate: () => void;
 }> = ({ messageTemplate, editTemplate, deleteTemplate }) => {
   return (
-    <div class="">
-      <div class="relative mt-1 -space-y-px rounded-lg bg-white shadow-sm">
-        <input
-          type="text"
-          name="template-label"
-          class="relative block w-full rounded-lg rounded-b-none border-slate-300 bg-transparent focus:z-10 focus:border-blue-500 focus:ring-blue-500"
-          placeholder="Template label to appear on TurboVPB button"
-          value={messageTemplate.label}
-          onInput={(e) => editTemplate({ label: e.currentTarget.value })}
-        />
-        <button
-          class="absolute inset-y-0 right-0 pr-3 flex items-center"
-          onClick={deleteTemplate}
-          title="Delete template"
-        >
-          <TrashIcon class="h-5 w-5 text-slate-400" aria-hidden={true} />
-        </button>
-      </div>
-      <div class="relative rounded-lg -space-y-px rounded-t-none border border-slate-300 px-3 py-2 focus-within:z-10 focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600">
-        <textarea
-          class="block w-full border-0 p-0 text-slate-900 placeholder-slate-400 focus:ring-0"
-          rows={3}
-          placeholder={
-            "Message Contents\n\nHi [Their Name], this is [Your Name] from..."
-          }
-          value={messageTemplate.message}
-          onInput={(e) =>
-            editTemplate({ message: (e.target as HTMLTextAreaElement).value })
-          }
-        />
+    <div>
+      <div class="rounded-lg border border-slate-300 bg-white shadow-sm overflow-hidden focus-within:border-blue-400 focus-within:shadow-md transition-shadow">
+        <div class="relative flex items-center border-b border-slate-200 bg-slate-50">
+          <input
+            type="text"
+            name="template-label"
+            class="block w-full border-0 bg-transparent pl-4 pr-12 py-3.5 font-medium text-slate-900 placeholder-slate-400 focus:ring-0 focus:outline-none sm:text-sm"
+            placeholder="Button label"
+            value={messageTemplate.label}
+            onInput={(e) => editTemplate({ label: e.currentTarget.value })}
+          />
+          <button
+            class="absolute right-0 px-4 flex items-center focus:outline-none"
+            onClick={deleteTemplate}
+            title="Delete template"
+          >
+            <TrashIcon
+              class="h-5 w-5 text-slate-400 hover:text-slate-600"
+              aria-hidden={true}
+            />
+          </button>
+        </div>
+        <div class="px-4 py-3">
+          <textarea
+            class="block w-full border-0 p-0 text-slate-900 placeholder-slate-400 focus:ring-0 focus:outline-none sm:text-sm"
+            rows={3}
+            placeholder={
+              "Message Contents\n\nHi [Their Name], this is [Your Name] from..."
+            }
+            value={messageTemplate.message}
+            onInput={(e) =>
+              editTemplate({ message: (e.target as HTMLTextAreaElement).value })
+            }
+          />
+        </div>
       </div>
 
-      <div class="mt-2 mb-4">
+      <div class="mt-3 mb-4">
         <SelectTexted
           editTemplate={editTemplate}
           selectTexted={messageTemplate.sendTextedResult}
