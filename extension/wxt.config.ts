@@ -14,7 +14,7 @@ export default defineConfig({
     name: "TurboVPB",
     description:
       "Turbocharge phone banking with OpenVPB, VAN, and BlueVote. Call and text with 2 clicks!",
-    version: "0.10.0",
+    version: "0.11.0",
     author: "Evan Schwartz",
     homepage_url: "https://turbovpb.com",
     permissions: ["activeTab", "scripting", "storage"],
