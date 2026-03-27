@@ -32,7 +32,12 @@ export default defineContentScript({
     "https://phonebank.bluevote.com/*",
     "https://*/ContactDetailScript*",
     "https://*.turbovpb.com/test-phonebank",
-    ...(import.meta.env.DEV ? ["http://localhost/test-phonebank*"] : []),
+    ...(import.meta.env.DEV
+      ? [
+          "http://localhost/test-phonebank*",
+          "http://localhost:8080/test-phonebank*",
+        ]
+      : []),
   ],
 
   main(ctx) {

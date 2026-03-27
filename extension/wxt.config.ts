@@ -7,6 +7,9 @@ export default defineConfig({
   vite: () => ({
     plugins: [preact(), tailwindcss()],
   }),
+  runner: {
+    startUrls: ["http://localhost:8080/test-phonebank"],
+  },
   manifest: ({ browser, mode }) => ({
     name: "TurboVPB",
     description:
@@ -22,7 +25,9 @@ export default defineConfig({
       "https://phonebank.bluevote.com/*",
       "*://*.turbovpb.com/*",
       "https://*/ContactDetailScript",
-      ...(mode === "development" ? ["http://localhost/*"] : []),
+      ...(mode === "development"
+        ? ["http://localhost/*", "http://localhost:8080/*"]
+        : []),
     ],
     action: {
       default_title: "TurboVPB",

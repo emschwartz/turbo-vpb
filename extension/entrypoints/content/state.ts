@@ -12,7 +12,9 @@ import {
 import { browser } from "wxt/browser";
 import { randomId } from "../../lib/crypto";
 
-const DEFAULT_SERVER_URL = "https://turbovpb.com";
+const DEFAULT_SERVER_URL = import.meta.env.DEV
+  ? "http://localhost:8080"
+  : "https://turbovpb.com";
 
 export const state = {
   settings: signal(undefined as ExtensionSettings | undefined),

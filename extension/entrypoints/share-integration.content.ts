@@ -25,7 +25,9 @@ export default defineContentScript({
   matches: [
     "https://turbovpb.com/share*",
     "https://*.turbovpb.com/share*",
-    ...(import.meta.env.DEV ? ["http://localhost/share*"] : []),
+    ...(import.meta.env.DEV
+      ? ["http://localhost/share*", "http://localhost:8080/share*"]
+      : []),
   ],
   main() {
     console.log("Loaded share integration");
