@@ -1,10 +1,11 @@
 import { defineConfig } from 'wxt';
 import preact from '@preact/preset-vite';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   srcDir: '.',
   vite: () => ({
-    plugins: [preact()],
+    plugins: [preact(), tailwindcss()],
     resolve: {
       alias: {
         'react': 'preact/compat',

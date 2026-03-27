@@ -22,7 +22,7 @@ const QrCodeInsert: FunctionComponent<{
     leaveTo="opacity-0"
   >
     <div class="flex flex-row flex-shrink m-2">
-      <div class="grid grid-cols-1 place-items-center space-y-2 mx-auto my-2 py-2.5 px-3 text-gray-700">
+      <div class="grid grid-cols-1 place-items-center space-y-2 mx-auto my-2 py-2.5 px-3 text-slate-700 border border-slate-200 rounded-lg bg-white">
         <TurboVpbLogoAndName />
         <ConnectionStatusBadge status={status.value} />
         {status.value !== "connected" ? (

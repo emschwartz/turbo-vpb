@@ -66,7 +66,7 @@ const HelpButton: FunctionComponent = () => (
   <a
     href="https://join.slack.com/t/turbophonebank/shared_invite/zt-1g3ounuk2-KxWo4negWzH_8W4T3A_Sbg"
     target="_blank"
-    class="text-gray-700"
+    class="text-slate-700"
     title="Join us on Slack to ask questions or discuss TurboVPB"
   >
     <QuestionMarkCircleIcon class="w-5" />
@@ -74,7 +74,7 @@ const HelpButton: FunctionComponent = () => (
 );
 
 const NavBar: FunctionComponent = () => (
-  <nav class="flex flex-row items-center p-3 bg-slate-100">
+  <nav class="flex flex-row items-center p-3 bg-white border-b border-slate-200">
     <TurboVpbLogoAndName />
 
     <div class="flex-grow"></div>
@@ -89,17 +89,17 @@ const NavBar: FunctionComponent = () => (
 const CallStats: FunctionComponent = () => (
   <div>
     <dl class="grid grid-cols-1 gap-3">
-      <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow">
-        <dt class="truncate text-sm font-medium text-gray-500">
+      <div class="overflow-hidden rounded-lg bg-slate-50 px-4 py-5 border border-slate-200">
+        <dt class="truncate text-sm font-medium text-slate-500">
           Calls Since {startDate}
         </dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-light text-gray-900">
+        <dd class="mt-1 text-3xl font-semibold tracking-light text-slate-900">
           {totalCalls.value}
         </dd>
       </div>
-      <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow">
-        <dt class="truncate text-sm font-medium text-gray-500">Calls Today</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-light text-gray-900">
+      <div class="overflow-hidden rounded-lg bg-slate-50 px-4 py-5 border border-slate-200">
+        <dt class="truncate text-sm font-medium text-slate-500">Calls Today</dt>
+        <dd class="mt-1 text-3xl font-semibold tracking-light text-slate-900">
           {callsToday.value}
         </dd>
       </div>

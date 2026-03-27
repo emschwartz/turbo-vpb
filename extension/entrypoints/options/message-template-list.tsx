@@ -47,11 +47,11 @@ const MessageTemplateList: FunctionComponent<{
 }> = ({ templates, serverUrl }) => {
   return (
     <div>
-      <h3 class="text-lg font-medium leading-6 text-gray-900">
+      <h3 class="text-lg font-semibold leading-6 text-slate-900">
         Text Message Templates
       </h3>
 
-      <p class="mt-1 text-sm leading-5 text-gray-500">
+      <p class="mt-1 text-sm leading-5 text-slate-500">
         Create message templates to enable 2-click texting. Buttons to send each
         message will appear on TurboVPB on your phone.
       </p>
@@ -70,11 +70,11 @@ const MessageTemplateList: FunctionComponent<{
 
       <div class="mt-4 flex flex-row space-x-4">
         <button
-          className="inline-flex items-center rounded-md border border-transparent bg-blue-100 px-3 py-2 text-sm font-medium leading-4 text-blue-700 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium leading-4 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           type="button"
           onClick={() => addTemplate(templates)}
         >
-          <PlusCircleIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+          <PlusCircleIcon className="-ml-1 mr-2 h-5 w-5 text-slate-400" aria-hidden="true" />
           Add Message Template
         </button>
 

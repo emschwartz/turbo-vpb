@@ -102,7 +102,7 @@ const SiteStatusIndicator: FunctionComponent = () =>
   ) : (
     <button
       title={`TurboVPB is not available on ${domain.value}`}
-      class="inline-flex items-center rounded-md border border-gray-300 bg-gray-100 px-6 py-3 text-base font-medium text-gray-700 shadow-sm focus:outline-none"
+      class="inline-flex items-center rounded-lg border border-slate-200 bg-slate-100 px-6 py-3 text-base font-medium text-slate-700 shadow-sm focus:outline-none"
       disabled
     >
       <div class="-ml-1 mr-3 h-6 w-6 flex-shrink-0">

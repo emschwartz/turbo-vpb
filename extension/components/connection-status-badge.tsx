@@ -8,7 +8,7 @@ const ConnectionStatusBadge: FunctionComponent<{
   if (status == "connectingToServer") {
     return (
       <span
-        className={`rounded-md bg-gray-100 px-2.5 py-0.5 text-sm font-medium text-gray-800 text-center ${className}`}
+        className={`rounded-full bg-slate-100 px-2.5 py-0.5 text-sm font-medium text-slate-800 text-center ${className}`}
       >
         Connecting to server...
       </span>
@@ -16,7 +16,7 @@ const ConnectionStatusBadge: FunctionComponent<{
   } else if (status === "waitingForMessage") {
     return (
       <span
-        className={`rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800 text-center ${className}`}
+        className={`rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800 text-center ${className}`}
       >
         Scan QR code to connect
       </span>
@@ -24,7 +24,7 @@ const ConnectionStatusBadge: FunctionComponent<{
   } else if (status === "connected") {
     return (
       <span
-        className={`rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800 text-center ${className}`}
+        className={`rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800 text-center ${className}`}
       >
         Connected
       </span>
@@ -32,7 +32,7 @@ const ConnectionStatusBadge: FunctionComponent<{
   } else if (status === "disconnected") {
     return (
       <span
-        className={`rounded-md bg-yellow-100 px-2.5 py-0.5 text-sm font-medium text-yellow-800 text-center ${className}`}
+        className={`rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-800 text-center ${className}`}
       >
         Reconnecting...
       </span>

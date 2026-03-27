@@ -5,6 +5,7 @@ import { browser } from 'wxt/browser';
 import MessageTemplateList from './message-template-list';
 import '../../assets/main.css';
 import { InformationCircleIcon } from '@heroicons/react/24/solid';
+import TurboVpbLogoAndName from '../../components/turbovpb-logo-and-name';
 
 const serverUrl = signal("");
 const yourName = signal("");
@@ -54,10 +55,10 @@ function setYourName(name: string) {
 const TextReplacement: FunctionComponent = () => (
   <div>
     <div>
-      <h3 class="text-lg leading-6 font-medium text-gray-900">
+      <h3 class="text-lg leading-6 font-semibold text-slate-900">
         Automatic Text Replacement
       </h3>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-slate-500">
         TurboVPB automatically personalizes your text messages by replacing
         keywords from your message templates with your name and the contact's
         details.
@@ -67,7 +68,7 @@ const TextReplacement: FunctionComponent = () => (
     <div class="mt-6">
       <label
         htmlFor="first-name"
-        class="block text-sm font-medium text-gray-700"
+        class="block text-sm font-medium text-slate-700"
       >
         Your Name
       </label>
@@ -77,7 +78,7 @@ const TextReplacement: FunctionComponent = () => (
           name="first-name"
           id="first-name"
           autoComplete="given-name"
-          class="block max-w-lg rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          class="block max-w-lg rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           placeholder="Enter your first name"
           value={yourName as unknown as string}
           onInput={(e) => setYourName((e.target as HTMLInputElement).value)}
@@ -85,7 +86,7 @@ const TextReplacement: FunctionComponent = () => (
       </div>
     </div>
 
-    <div class="mt-6 rounded-md bg-blue-50 p-4">
+    <div class="mt-6 rounded-lg bg-blue-50 p-4 border-l-4 border-blue-400">
       <div class="flex">
         <div class="flex-shrink-0">
           <InformationCircleIcon
@@ -110,7 +111,7 @@ const TextReplacement: FunctionComponent = () => (
 const AdvancedSettings: FunctionComponent = () => (
   <div>
     <div>
-      <h3 class="text-lg leading-6 font-medium text-gray-900">
+      <h3 class="text-lg leading-6 font-semibold text-slate-900">
         Advanced Settings
       </h3>
     </div>
@@ -118,7 +119,7 @@ const AdvancedSettings: FunctionComponent = () => (
     <div class="mt-6">
       <label
         htmlFor="server-url"
-        class="block text-sm font-medium text-gray-700"
+        class="block text-sm font-medium text-slate-700"
       >
         TurboVPB Server URL
       </label>
@@ -127,7 +128,7 @@ const AdvancedSettings: FunctionComponent = () => (
           type="text"
           name="server-url"
           id="server-url"
-          class="block max-w-lg rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          class="block max-w-lg rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           value={serverUrl as unknown as string}
           onInput={(e) => setServerUrl((e.target as HTMLInputElement).value)}
         />
@@ -138,18 +139,20 @@ const AdvancedSettings: FunctionComponent = () => (
 
 const OptionsPage: FunctionComponent = () => {
   return (
-    <div class="container p-8 space-y-8 divide-gray-200 mx-auto">
-      <TextReplacement />
-
-      <MessageTemplateList templates={messageTemplates} serverUrl={serverUrl} />
-
-      <hr />
-
-      <AdvancedSettings />
-
-      <p class="font-medium text-sm text-gray-500 mt-6">
-        Settings are saved automatically.
-      </p>
+    <div>
+      <nav class="border-b border-slate-200 bg-white px-8 py-3 flex items-center gap-3">
+        <TurboVpbLogoAndName />
+        <span class="text-sm text-slate-400">Settings</span>
+      </nav>
+      <div class="container p-8 space-y-8 divide-slate-200 mx-auto">
+        <TextReplacement />
+        <MessageTemplateList templates={messageTemplates} serverUrl={serverUrl} />
+        <hr />
+        <AdvancedSettings />
+        <p class="font-medium text-sm text-slate-400 mt-6">
+          Settings are saved automatically.
+        </p>
+      </div>
     </div>
   );
 };
