@@ -6,13 +6,13 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = { version = "0.7", features = ["ws"] }
-dashmap = { version = "5.5", features = ["inline"] }
+axum = { version = "0.8", features = ["ws"] }
+dashmap = "6"
 futures = "0.3"
-prometheus = { version = "0.13", default-features = false }
+prometheus = { version = "0.14", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 tinytemplate = "1.2"
-tokio-rusqlite = { version = "0.6", features = ["bundled"] }
+tokio-rusqlite = { version = "0.7", features = ["bundled"] }
 tokio = { version = "1.20", default-features = false, features = [
     "macros",
     "net",
@@ -22,7 +22,7 @@ tokio = { version = "1.20", default-features = false, features = [
     "sync",
     "time",
 ] }
-tower-http = { version = "0.5", features = ["compression-full", "fs", "trace"] }
+tower-http = { version = "0.6", features = ["compression-full", "fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

@@ -77,14 +77,14 @@ pub fn router() -> Router {
             get(|| async { Json(Status { status: "ok" }) }),
         )
         .route(
-            "/api/channels/:channel_id/:identity",
+            "/api/channels/{channel_id}/{identity}",
             get(ws_handler).post(post_channel),
         )
         .route(
-            "/c/:channel_id/:identity",
+            "/c/{channel_id}/{identity}",
             get(ws_handler).post(post_channel),
         )
-        .route("/api/channels/:channel_id", delete(delete_channel))
+        .route("/api/channels/{channel_id}", delete(delete_channel))
         .with_state(ChannelState::default())
 }
 
@@ -214,7 +214,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
             }
             // Send a ping if no outgoing message has been sent before the timeout
             _ = sleep(PING_INTERVAL) => {
-                if ws_sink.send(Message::Ping(Vec::new())).await.is_err() {
+                if ws_sink.send(Message::Ping(Bytes::new())).await.is_err() {
                     break;
                 }
             }
@@ -271,7 +271,7 @@ async fn post_channel(
     body: Bytes,
 ) -> impl IntoResponse {
     if let Some(channel) = state.get(&channel_id) {
-        let message = Message::Binary(body.into());
+        let message = Message::Binary(body);
 
         // Store as the last message so late-joining WebSocket subscribers get it
         let last_message = match identity {

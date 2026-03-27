@@ -6,11 +6,11 @@ use tracing::{error, instrument, trace};
 
 pub fn router(db: Connection) -> Router {
     Router::new()
-        .route("/api/stats/sessions/:session_id/calls", post(post_call))
-        .route("/api/stats/sessions/:session_id/texts", post(post_text))
+        .route("/api/stats/sessions/{session_id}/calls", post(post_call))
+        .route("/api/stats/sessions/{session_id}/texts", post(post_text))
         // Backwards compatibility
-        .route("/sessions/:session_id/calls", post(post_call))
-        .route("/sessions/:session_id/texts", post(post_text))
+        .route("/sessions/{session_id}/calls", post(post_call))
+        .route("/sessions/{session_id}/texts", post(post_text))
         .with_state(db)
 }
 
