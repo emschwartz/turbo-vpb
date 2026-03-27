@@ -35,7 +35,7 @@ COPY --from=css /usr/src/app/static/styles.css static/styles.css
 COPY src src
 COPY content content
 COPY templates templates
-RUN cargo build --release
+RUN touch src/main.rs && cargo build --release
 
 FROM debian:bookworm-slim
 
