@@ -33,11 +33,9 @@
     "wxt": "^0.20.20"
   },
   "dependencies": {
-    "@headlessui/react": "^2.2.9",
-    "@heroicons/react": "^2.2.0",
     "@preact/signals": "^2.9.0",
     "preact": "^10.29.0",
-    "react-qr-code": "^2.0.18",
+    "qrcode-generator": "^2.0.4",
     "reconnecting-websocket": "^4.4.0"
   }
 }

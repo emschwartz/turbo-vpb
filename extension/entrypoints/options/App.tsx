@@ -4,7 +4,7 @@ import { batch, effect, signal } from "@preact/signals";
 import { browser } from "wxt/browser";
 import MessageTemplateList from "./message-template-list";
 import "../../assets/main.css";
-import { InformationCircleIcon } from "@heroicons/react/24/solid";
+import { InformationCircleIcon } from "../../components/icons";
 import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
 
 const serverUrl = signal("");
@@ -92,7 +92,7 @@ const TextReplacement: FunctionComponent = () => (
         <div class="flex-shrink-0">
           <InformationCircleIcon
             class="h-5 w-5 text-blue-400"
-            aria-hidden="true"
+            aria-hidden={true}
           />
         </div>
         <div class="ml-3 flex-1">

@@ -3,7 +3,7 @@ import {
   StarIcon,
   QuestionMarkCircleIcon,
   ChatBubbleLeftRightIcon,
-} from "@heroicons/react/24/outline";
+} from "../../components/icons";
 import { batch, signal, computed } from "@preact/signals";
 import { browser } from "wxt/browser";
 import { DailyCallHistory } from "../../lib/types";

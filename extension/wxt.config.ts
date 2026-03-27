@@ -6,13 +6,6 @@ export default defineConfig({
   srcDir: ".",
   vite: () => ({
     plugins: [preact(), tailwindcss()],
-    resolve: {
-      alias: {
-        react: "preact/compat",
-        "react-dom": "preact/compat",
-        "react/jsx-runtime": "preact/jsx-runtime",
-      },
-    },
   }),
   manifest: ({ browser, mode }) => ({
     name: "TurboVPB",

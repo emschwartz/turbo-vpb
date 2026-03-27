@@ -1,6 +1,6 @@
 import { FunctionComponent } from "preact";
 import { Signal, batch } from "@preact/signals";
-import { PlusCircleIcon } from "@heroicons/react/20/solid";
+import { PlusCircleIconSolid as PlusCircleIcon } from "../../components/icons";
 import MessageTemplate from "../../components/message-template";
 import { MessageTemplateDetails } from "../../lib/types";
 import ShareSettingsButton from "./share-settings-button";
@@ -75,8 +75,8 @@ const MessageTemplateList: FunctionComponent<{
           onClick={() => addTemplate(templates)}
         >
           <PlusCircleIcon
-            className="-ml-1 mr-2 h-5 w-5 text-slate-400"
-            aria-hidden="true"
+            class="-ml-1 mr-2 h-5 w-5 text-slate-400"
+            aria-hidden={true}
           />
           Add Message Template
         </button>

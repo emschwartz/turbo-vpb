@@ -2,10 +2,10 @@ import { batch, signal } from "@preact/signals";
 import { FunctionComponent } from "preact";
 import { browser } from "wxt/browser";
 import {
-  PlusCircleIcon,
+  PlusCircleIconOutline as PlusCircleIcon,
   XCircleIcon,
   QrCodeIcon,
-} from "@heroicons/react/24/outline";
+} from "../../components/icons";
 import { isVanWithCustomDomain } from "../../lib/vpb-integrations";
 import WhiteButton from "./white-button";
 

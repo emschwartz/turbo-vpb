@@ -1,6 +1,6 @@
 import { FunctionComponent } from "preact";
 import { MessageTemplateDetails } from "../lib/types";
-import { TrashIcon, XMarkIcon } from "@heroicons/react/20/solid";
+import { TrashIcon } from "./icons";
 
 let selectTextedCounter = 0;
 
@@ -54,7 +54,7 @@ const MessageTemplate: FunctionComponent<{
           onClick={deleteTemplate}
           title="Delete template"
         >
-          <TrashIcon class="h-5 w-5 text-slate-400" aria-hidden="true" />
+          <TrashIcon class="h-5 w-5 text-slate-400" aria-hidden={true} />
         </button>
       </div>
       <div class="relative rounded-lg -space-y-px rounded-t-none border border-slate-300 px-3 py-2 focus-within:z-10 focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600">
