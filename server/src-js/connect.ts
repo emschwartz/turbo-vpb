@@ -1,11 +1,4 @@
 // Global declarations for libraries loaded via script tags
-declare const ackeeTracker: {
-  create(opts: { server: string; domainId: string }): {
-    record(attrs: Record<string, unknown>): { stop: () => void }
-  }
-  attributes(detailed: boolean): Record<string, unknown> & { siteLocation?: string }
-}
-
 declare const confetti: { start(duration: number, pieces: number): void } | undefined
 
 interface MessageTemplate {
@@ -189,26 +182,6 @@ let waitForNewContact = false // if true, only display contact details if it's a
 let autoSaveTextedResultEnabled = true
 let messageSeq = 0
 const pendingCallResultAcks = new Map<number, ReturnType<typeof setInterval>>()
-
-/**
- * Analytics
- */
-try {
-  const tracker = ackeeTracker.create({
-    server: 'https://analytics.turbovpb.com',
-    domainId: 'ed7f1c2b-46bc-4858-8221-4b9133ac88ca',
-  })
-
-  const url = new URL(window.location.href)
-  url.hash = ''
-  const attributes = ackeeTracker.attributes(true)
-  attributes.siteLocation = url.toString()
-
-  const { stop: stopTracking } = tracker.record(attributes)
-  window.addEventListener('beforeunload', () => stopTracking())
-} catch (err) {
-  console.error('error setting up tracking', err)
-}
 
 window.addEventListener('error', displayError)
 
