@@ -5,10 +5,10 @@ use axum::routing::{delete, get};
 use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Json, Router};
 use dashmap::DashMap;
 use futures::{sink::SinkExt, stream::StreamExt};
-use tokio::sync::broadcast::error::RecvError;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::broadcast::{channel, Sender};
 use tokio::{select, sync::Mutex, time::sleep};
 use tracing::{debug, instrument, trace};
@@ -235,7 +235,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                 .with_label_values(&[identity.as_str()])
                 .dec();
             CHANNEL_DURATION
-                .with_label_values(&[&identity.as_str()])
+                .with_label_values(&[identity.as_str()])
                 .observe(channel.channel_created_at.elapsed().as_secs_f64());
         }
     }
@@ -250,9 +250,7 @@ async fn delete_channel(
     // Removing the channel drops the broadcast Senders, which causes
     // active WebSocket loops to receive RecvError::Closed and break.
     if let Some((_, channel)) = state.remove(&channel_id) {
-        CONCURRENT_CHANNELS
-            .with_label_values(&["extension"])
-            .dec();
+        CONCURRENT_CHANNELS.with_label_values(&["extension"]).dec();
         CHANNEL_DURATION
             .with_label_values(&["extension"])
             .observe(channel.channel_created_at.elapsed().as_secs_f64());

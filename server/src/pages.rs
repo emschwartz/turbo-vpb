@@ -36,7 +36,7 @@ pub fn router() -> Router {
     for (page, content) in PAGES {
         let content = templates
             .render("template", &TemplateParams { content })
-            .expect(&format!("Error rendering page {}", page));
+            .unwrap_or_else(|_| panic!("Error rendering page {}", page));
         let service = get(move || async move { Html(content) });
         if *page == "index" {
             router = router.route("/", service.clone());

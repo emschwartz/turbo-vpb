@@ -18,7 +18,10 @@ async fn main() {
     info!("Starting TurboVPB server");
 
     // Make sure we can access the static file directory
-    let static_dir: PathBuf = env::args().nth(1).unwrap_or_else(|| "static".to_string()).into();
+    let static_dir: PathBuf = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "static".to_string())
+        .into();
     fs::read_dir(&static_dir)
         .await
         .expect("Failed to read static directory")
@@ -29,7 +32,9 @@ async fn main() {
 
     // Serve static files
     let static_file_service = get_service(ServeDir::new(&static_dir))
-        .fallback(get_service(ServeFile::new(static_dir.join("favicons/favicon.ico"))))
+        .fallback(get_service(ServeFile::new(
+            static_dir.join("favicons/favicon.ico"),
+        )))
         .handle_error(internal_service_error);
 
     let website = pages::router()
