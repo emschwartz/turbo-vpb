@@ -37,7 +37,7 @@ const QrCodeModal: FunctionComponent<{
 
       {/* Modal */}
       <div class="fixed inset-0 z-[1000] overflow-y-auto">
-        <div class="flex p-4 text-center sm:items-center sm:p-0">
+        <div class="flex min-h-full justify-center p-4 text-center sm:items-center sm:p-0">
           <div class="relative transform overflow-hidden rounded-lg border border-slate-200 p-4 bg-white text-center shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm sm:p-6">
             <div class="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
               <button
