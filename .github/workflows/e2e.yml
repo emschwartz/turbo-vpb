@@ -31,6 +31,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: |
             extension/pnpm-lock.yaml
+            server/pnpm-lock.yaml
             e2e/package-lock.json
 
       - name: Install extension dependencies
@@ -40,6 +41,14 @@ jobs:
       - name: Build extension
         run: pnpm build && pnpm build --mode development
         working-directory: extension
+
+      - name: Install server JS dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: server
+
+      - name: Build server JS
+        run: pnpm run build
+        working-directory: server
 
       - name: Install e2e dependencies
         run: npm ci

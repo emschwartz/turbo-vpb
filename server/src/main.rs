@@ -1,14 +1,13 @@
 use axum::extract::DefaultBodyLimit;
-use std::{env, net::SocketAddr, path::PathBuf};
-use tokio::fs;
+use std::{env, net::SocketAddr};
 use tokio_rusqlite::{rusqlite, Connection};
-use tower_http::services::{ServeDir, ServeFile};
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
-use tracing::{debug, info};
+use tracing::info;
 
 mod metrics;
 mod pages;
 mod pubsub;
+mod static_assets;
 mod stats;
 
 #[tokio::main]
@@ -16,31 +15,15 @@ async fn main() {
     tracing_subscriber::fmt::init();
     info!("Starting TurboVPB server");
 
-    // Make sure we can access the static file directory
-    let static_dir: PathBuf = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "static".to_string())
-        .into();
-    let _ = fs::read_dir(&static_dir)
-        .await
-        .expect("Failed to read static directory");
-    debug!("Using static directory: {}", static_dir.display());
-
-    // Serve static files
-    let static_file_service = ServeDir::new(&static_dir)
-        .fallback(ServeFile::new(static_dir.join("favicons/favicon.ico")));
-
     let website = pages::router()
-        .fallback_service(static_file_service)
+        .fallback_service(static_assets::service())
         .layer(CompressionLayer::new());
 
     // Initialize SQLite database
     let db_path = env::var("DATABASE_PATH").unwrap_or_else(|_| "data/turbovpb.db".to_string());
-    let db_dir = PathBuf::from(&db_path);
+    let db_dir = std::path::Path::new(&db_path);
     if let Some(parent) = db_dir.parent() {
-        fs::create_dir_all(parent)
-            .await
-            .expect("Failed to create database directory");
+        std::fs::create_dir_all(parent).expect("Failed to create database directory");
     }
     let db = Connection::open(&db_path)
         .await

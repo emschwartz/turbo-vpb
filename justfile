@@ -6,7 +6,7 @@ dev browser='chrome':
     set -euxo pipefail
     trap "kill 0" SIGINT
     MV3_FLAG=$([[ "{{browser}}" == "firefox" ]] && echo "--mv3" || echo "")
-    RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml -- server/static &
+    RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml &
     if [[ "{{browser}}" == "firefox" ]]; then
         cd extension && pnpm wxt build --browser firefox --mv3 --mode development \
             && npx web-ext run --source-dir .output/firefox-mv3-dev --start-url http://localhost:8080/test-phonebank
@@ -46,7 +46,7 @@ ext-package browser='chrome': (ext-build browser)
 
 # run the server locally
 server-run:
-    RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml -- server/static
+    RUST_LOG=turbovpb_server=trace cargo run --manifest-path server/Cargo.toml
 
 # build the server
 server-build:
