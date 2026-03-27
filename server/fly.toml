@@ -2,7 +2,6 @@ app = "turbovpb-server"
 
 [env]
 RUST_LOG = "turbovpb_server=info"
-RUST_BACKTRACE = "1"
 DATABASE_PATH = "/data/turbovpb.db"
 
 [mounts]

@@ -1,7 +1,7 @@
 use crate::metrics::{CHANNEL_DURATION, CONCURRENT_CHANNELS, TOTAL_CHANNELS, TOTAL_MESSAGES};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, State};
-use axum::routing::{delete, get};
+use axum::routing::get;
 use axum::{body::Bytes, http::StatusCode, response::IntoResponse, Json, Router};
 use dashmap::DashMap;
 use futures::{sink::SinkExt, stream::StreamExt};
@@ -17,6 +17,8 @@ const PING_INTERVAL: Duration = Duration::from_secs(20);
 const CHANNEL_INACTIVITY_TIMEOUT: Duration = Duration::from_secs(60 * 30);
 const CHANNEL_CAPACITY: usize = 16;
 const MAX_MESSAGE_SIZE: usize = 16_384;
+const MAX_CHANNEL_ID_LENGTH: usize = 64;
+const MAX_CONNECTIONS_PER_CHANNEL: usize = 4;
 
 type ChannelState = Arc<DashMap<String, Channel>>;
 struct Channel {
@@ -65,6 +67,12 @@ impl Identity {
     }
 }
 
+fn is_valid_channel_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= MAX_CHANNEL_ID_LENGTH
+        && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+}
+
 #[derive(Serialize)]
 struct Status {
     status: &'static str,
@@ -84,7 +92,6 @@ pub fn router() -> Router {
             "/c/{channel_id}/{identity}",
             get(ws_handler).post(post_channel),
         )
-        .route("/api/channels/{channel_id}", delete(delete_channel))
         .with_state(ChannelState::default())
 }
 
@@ -92,8 +99,11 @@ async fn ws_handler(
     Path((channel_id, identity)): Path<(String, Identity)>,
     ws: WebSocketUpgrade,
     State(state): State<ChannelState>,
-) -> impl IntoResponse {
-    ws.on_upgrade(move |ws| websocket(channel_id, identity, ws, state.clone()))
+) -> Result<impl IntoResponse, StatusCode> {
+    if !is_valid_channel_id(&channel_id) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    Ok(ws.on_upgrade(move |ws| websocket(channel_id, identity, ws, state.clone())))
 }
 
 #[instrument(skip(ws, state))]
@@ -113,6 +123,11 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
                 ..Default::default()
             }
         });
+
+        if channel.num_connections >= MAX_CONNECTIONS_PER_CHANNEL {
+            debug!("too many connections for channel, rejecting");
+            return;
+        }
         channel.num_connections += 1;
 
         match identity {
@@ -244,33 +259,15 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
     }
 }
 
-#[instrument(skip(state))]
-async fn delete_channel(
-    Path(channel_id): Path<String>,
-    State(state): State<ChannelState>,
-) -> impl IntoResponse {
-    debug!("deleting channel");
-    // Removing the channel drops the broadcast Senders, which causes
-    // active WebSocket loops to receive RecvError::Closed and break.
-    if let Some((_, channel)) = state.remove(&channel_id) {
-        CONCURRENT_CHANNELS
-            .with_label_values(&[channel.created_by_identity])
-            .dec();
-        CHANNEL_DURATION
-            .with_label_values(&[channel.created_by_identity])
-            .observe(channel.channel_created_at.elapsed().as_secs_f64());
-        StatusCode::OK
-    } else {
-        StatusCode::NOT_FOUND
-    }
-}
-
 #[instrument(skip(state, body))]
 async fn post_channel(
     Path((channel_id, identity)): Path<(String, Identity)>,
     State(state): State<ChannelState>,
     body: Bytes,
 ) -> impl IntoResponse {
+    if !is_valid_channel_id(&channel_id) {
+        return (StatusCode::BAD_REQUEST, "Invalid channel ID");
+    }
     if let Some(channel) = state.get(&channel_id) {
         let message = Message::Binary(body);
 

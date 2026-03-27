@@ -35,9 +35,18 @@ export const state = {
   lastCallResult: signal(undefined as string | undefined),
 };
 
-export const serverUrl = computed(
-  () => state.settings.value?.serverUrl || DEFAULT_SERVER_URL,
-);
+export const serverUrl = computed(() => {
+  const url = state.settings.value?.serverUrl;
+  if (
+    url &&
+    !url.startsWith("https://") &&
+    !url.startsWith("http://localhost")
+  ) {
+    console.error("Custom server URL must use HTTPS, falling back to default");
+    return DEFAULT_SERVER_URL;
+  }
+  return url || DEFAULT_SERVER_URL;
+});
 
 export const connectUrl = computed(() => {
   const details = state.connectionDetails.value;

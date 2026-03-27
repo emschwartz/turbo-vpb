@@ -26,7 +26,6 @@ const enum PubSubState {
 }
 
 interface PeerManagerOptions {
-  debugMode: boolean
   remotePeerId: string
   encryptionKey: string | CryptoKey | null
   url?: string
@@ -35,7 +34,6 @@ interface PeerManagerOptions {
 type PeerErrorWithType = Error & { type?: string }
 
 class PeerManager {
-  private debugMode: boolean
   private remotePeerId: string
   private url: string
   private active: boolean
@@ -53,8 +51,7 @@ class PeerManager {
   onerror: (err: PeerErrorWithType) => void
   onreconnecting: (target: string) => void
 
-  constructor({ debugMode, remotePeerId, encryptionKey, url = DEFAULT_SERVER_URL }: PeerManagerOptions) {
-    this.debugMode = debugMode
+  constructor({ remotePeerId, encryptionKey, url = DEFAULT_SERVER_URL }: PeerManagerOptions) {
     this.remotePeerId = remotePeerId
     this.url = url
 

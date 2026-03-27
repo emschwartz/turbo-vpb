@@ -26,7 +26,9 @@ FROM debian:bookworm-slim AS css
 ARG TAILWIND_VERSION=4.2.2
 WORKDIR /usr/src/app
 ADD https://github.com/tailwindlabs/tailwindcss/releases/download/v${TAILWIND_VERSION}/tailwindcss-linux-x64 /usr/local/bin/tailwindcss
-RUN chmod +x /usr/local/bin/tailwindcss
+# Verify binary integrity (update hash when bumping TAILWIND_VERSION)
+RUN echo "4ab84f2b496c402d3ec4fd25e0e5559fe1184d886dadae8fb4438344ec044c22  /usr/local/bin/tailwindcss" | sha256sum -c - \
+    && chmod +x /usr/local/bin/tailwindcss
 COPY styles styles
 COPY content content
 COPY templates templates

@@ -79,7 +79,7 @@ const TextReplacement: FunctionComponent = () => (
           name="first-name"
           id="first-name"
           autoComplete="given-name"
-          class="block max-w-lg rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          class="block max-w-lg rounded-lg border-slate-300 shadow-sm px-4 py-3 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           placeholder="Enter your first name"
           value={yourName as unknown as string}
           onInput={(e) => setYourName((e.target as HTMLInputElement).value)}
@@ -126,13 +126,21 @@ const AdvancedSettings: FunctionComponent = () => (
       </label>
       <div class="mt-1">
         <input
-          type="text"
+          type="url"
           name="server-url"
           id="server-url"
-          class="block max-w-lg rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          class="block max-w-lg rounded-lg border-slate-300 shadow-sm px-4 py-3 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          placeholder="https://pubsub.turbovpb.com"
           value={serverUrl as unknown as string}
           onInput={(e) => setServerUrl((e.target as HTMLInputElement).value)}
         />
+        {serverUrl.value &&
+          !serverUrl.value.startsWith("https://") &&
+          !serverUrl.value.startsWith("http://localhost") && (
+            <p class="mt-1 text-sm text-red-600">
+              Server URL must use HTTPS to protect the encryption key.
+            </p>
+          )}
       </div>
     </div>
   </div>
@@ -141,19 +149,19 @@ const AdvancedSettings: FunctionComponent = () => (
 const OptionsPage: FunctionComponent = () => {
   return (
     <div>
-      <nav class="border-b border-slate-200 bg-white px-8 py-3 flex items-center gap-3">
+      <nav class="border-b border-slate-200 bg-white px-8 py-5 flex items-center gap-3">
         <TurboVpbLogoAndName />
         <span class="text-sm text-slate-400">Settings</span>
       </nav>
-      <div class="container p-8 space-y-8 divide-slate-200 mx-auto">
+      <div class="max-w-3xl px-8 py-10 space-y-10 mx-auto">
         <TextReplacement />
         <MessageTemplateList
           templates={messageTemplates}
           serverUrl={serverUrl}
         />
-        <hr />
+        <hr class="border-slate-200" />
         <AdvancedSettings />
-        <p class="font-medium text-sm text-slate-400 mt-6">
+        <p class="font-medium text-sm text-slate-400 pb-4">
           Settings are saved automatically.
         </p>
       </div>

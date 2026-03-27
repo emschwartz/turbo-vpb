@@ -15,5 +15,6 @@ dist
 .superpowers
 docs/superpowers/plans
 server/data/
+data/
 server/static/js/
 extension/test-results/

@@ -199,23 +199,49 @@ export default defineContentScript({
         const dialog = document.createElement("dialog");
         dialog.style.cssText =
           "border:none;border-radius:8px;padding:2rem;max-width:540px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.2);";
-        dialog.innerHTML = `
-          <h3 class="alert-heading">Overwrite Current Settings?</h3>
-          <p class="lead">You have ${previousTemplates.length} Text Message Template${
-            previousTemplates.length > 1 ? "s" : ""
-          } configured.<br>Do you want to overwrite your current settings?</p>
-          <p class="lead mb-0">Click here to export your current settings<br>and save the link to use them again later:</p>
-          <a href="${createShareUrl(previousTemplates)}" target="_blank" class="btn btn-success btn-lg btn-block py-3 mt-3"><b>${UPLOAD_ICON} &nbsp; Export Current Settings</b></a>
-          <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
-            <button class="btn btn-secondary m-2 cancel-btn">Cancel</button>
-            <button class="btn btn-primary m-2 overwrite-btn" disabled>${DOWNLOAD_ICON} Overwrite Settings</button>
-          </div>`;
-        document.body.appendChild(dialog);
 
-        const cancelBtn =
-          dialog.querySelector<HTMLButtonElement>(".cancel-btn")!;
-        const overwriteBtn =
-          dialog.querySelector<HTMLButtonElement>(".overwrite-btn")!;
+        const heading = document.createElement("h3");
+        heading.className = "alert-heading";
+        heading.textContent = "Overwrite Current Settings?";
+        dialog.appendChild(heading);
+
+        const description = document.createElement("p");
+        description.className = "lead";
+        description.innerHTML = `You have ${previousTemplates.length} Text Message Template${
+          previousTemplates.length > 1 ? "s" : ""
+        } configured.<br>Do you want to overwrite your current settings?`;
+        dialog.appendChild(description);
+
+        const exportHint = document.createElement("p");
+        exportHint.className = "lead mb-0";
+        exportHint.innerHTML =
+          "Click here to export your current settings<br>and save the link to use them again later:";
+        dialog.appendChild(exportHint);
+
+        const exportLink = document.createElement("a");
+        exportLink.href = createShareUrl(previousTemplates);
+        exportLink.target = "_blank";
+        exportLink.className = "btn btn-success btn-lg btn-block py-3 mt-3";
+        exportLink.innerHTML = `<b>${UPLOAD_ICON} &nbsp; Export Current Settings</b>`;
+        dialog.appendChild(exportLink);
+
+        const buttonRow = document.createElement("div");
+        buttonRow.style.cssText =
+          "display:flex;justify-content:flex-end;margin-top:1rem;";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn btn-secondary m-2";
+        cancelBtn.textContent = "Cancel";
+        buttonRow.appendChild(cancelBtn);
+
+        const overwriteBtn = document.createElement("button");
+        overwriteBtn.className = "btn btn-primary m-2";
+        overwriteBtn.disabled = true;
+        overwriteBtn.innerHTML = `${DOWNLOAD_ICON} Overwrite Settings`;
+        buttonRow.appendChild(overwriteBtn);
+
+        dialog.appendChild(buttonRow);
+        document.body.appendChild(dialog);
 
         // Delay enabling overwrite button to prevent accidental clicks
         setTimeout(() => {

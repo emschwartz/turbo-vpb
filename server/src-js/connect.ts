@@ -105,7 +105,6 @@ const CALL_RESULT_ICONS: Record<string, string> = {
 /**
  * URL Parameters
  */
-const debugMode = window.location.href.includes('debug')
 const searchParams = new URL(window.location.href).searchParams
 const sessionId = searchParams.get('session') || ''
 const extensionVersion = searchParams.get('version') || '<0.6.3'
@@ -225,7 +224,6 @@ async function start(): Promise<void> {
   } else {
     // Create PeerManager and set up event handlers
     peerManager = await PeerManager.from({
-      debugMode,
       remotePeerId,
       encryptionKey,
     })
