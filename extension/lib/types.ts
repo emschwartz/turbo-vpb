@@ -1,10 +1,30 @@
 export type PhonebankType = "openvpb" | "everyaction" | "bluevote";
 
-export type ConnectionStatus =
-  | "connectingToServer"
-  | "waitingForMessage"
-  | "connected"
-  | "disconnected";
+export type ServerStatus =
+  | { state: "connecting" }
+  | { state: "connected" }
+  | { state: "error"; error: string };
+
+export type PeerStatus = { state: "waiting" } | { state: "connected" };
+
+export type ScrapingStatus =
+  | { state: "searching" }
+  | { state: "found" }
+  | { state: "not_found"; platform: PhonebankType; pageHints: PageHints };
+
+export type PageHints = {
+  url: string;
+  bodyClasses: string;
+  elementIds: string[];
+  selectorsExpected: string[];
+  phoneNumberLocations: PhoneNumberLocation[];
+  htmlStructure: string;
+};
+
+export type PhoneNumberLocation = {
+  number: string;
+  domPath: string;
+};
 
 export type ContactDetails = {
   phoneNumber: string;
@@ -43,3 +63,9 @@ export type ExtensionSettings = {
 };
 
 export type SiteStatus = "enabled" | "disabled" | "unsupported";
+
+export type ConnectionStatus =
+  | "connectingToServer"
+  | "waitingForMessage"
+  | "connected"
+  | "disconnected";

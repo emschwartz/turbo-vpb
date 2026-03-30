@@ -88,6 +88,10 @@ export function onCallResult(
   );
 }
 
+export function expectedSelectors(): string[] {
+  return ["#main-phone", 'a[href^="tel:"]', "#voter-name"];
+}
+
 async function sleep() {
   await new Promise((resolve) => setTimeout(resolve, 10));
 }

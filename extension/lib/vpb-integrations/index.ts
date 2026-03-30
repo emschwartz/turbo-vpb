@@ -13,6 +13,7 @@ interface VpbIntegration {
   onCallResult(
     callback: (contacted: boolean, result?: string) => void | Promise<void>,
   ): void;
+  expectedSelectors(): string[];
 }
 
 const integrations: { [Property in PhonebankType]: VpbIntegration } = {

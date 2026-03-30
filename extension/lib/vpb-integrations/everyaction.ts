@@ -124,6 +124,15 @@ export function onCallResult(
   }
 }
 
+export function expectedSelectors(): string[] {
+  return [
+    "#current-number",
+    'a[href^="tel:"]',
+    ".person-phone-panel",
+    "#spanTableAdditionalInfo",
+  ];
+}
+
 async function sleep() {
   await new Promise((resolve) => setTimeout(resolve, 10));
 }

@@ -160,6 +160,18 @@ export function onCallResult(
   if (crButton) setupButton(setupContactResultsButton, crButton);
 }
 
+export function expectedSelectors(): string[] {
+  return [
+    "#openVpbPhoneLink",
+    "#openvpbphonelink",
+    "#openvpb-phone-link-current",
+    'a[href^="tel:"]',
+    "#contactName",
+    "#openvpb-target-details",
+    ".openvpb-sidebar-fields",
+  ];
+}
+
 async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
   couldntReachButton()?.click();
 
