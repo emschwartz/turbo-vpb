@@ -1,60 +1,137 @@
+<!--
+  Test page that replicates the real VoteBuilder/VAN Virtual Phone Bank layout.
+  Structure taken from a saved VoteBuilder Maryland page to ensure the extension's
+  EveryAction scraper stays in sync with the actual DOM.
+-->
 <div>
   <!-- VAN detection markers (checked by isVanWithCustomDomain) -->
-  <div class="van-header"></div>
-  <div class="van-inner">
+  <div class="van-header">
+    <div class="page-title-container">
+      <div class="page-title-group">
+        <h3 class="page-title-sub"><span>Virtual Phone Bank</span></h3>
+        <h2 class="page-title"><span>Test Phone Bank</span></h2>
+      </div>
+    </div>
+    <div class="van-header-actions">
+      <div id="tableSubmitLowerDisplay">
+        <div class="hide-xs hide-sm inline-block">
+          <input id="ctl00_ContentPlaceHolderVANPage_scriptSectionbtnSaveNextHH"
+                 type="submit" class="btn btn-primary" value="Save &amp; Next Call" />
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <!-- EveryAction-style layout: .grid-half is where TurboVPB injects its UI -->
+  <div class="van-inner contact-detail-script">
     <div class="grid-half">
-      <div class="col-lg-6 col-md-6 col-sm-12 panel panel-details panel-default">
 
-        <!-- Contact name: everyaction scraper reads .person-phone-panel > firstChild -->
-        <div class="person-phone-panel">
-          <div id="contactName"></div>
+      <!-- Left column: contact info + result codes -->
+      <div class="col-lg-6 col-md-6 col-sm-12 margin-right-tiny">
+        <section class="tab-content">
+          <div class="tab-pane active margin-right-tiny">
+            <header class="panel panel-default">
+              <div class="panel-content">
+
+                <!--
+                  .person-phone-panel structure matches real VoteBuilder:
+                  - First child <h1> contains name with " – Age Gender" suffix
+                  - #current-number is nested inside as a second <h1>
+                  The EveryAction scraper reads:
+                    .person-phone-panel > firstElementChild.textContent -> strips suffix via regex
+                    #current-number > firstElementChild.textContent -> phone number
+                -->
+                <div class="person-phone-panel">
+                  <h1><span id="contactName">Alice Johnson – 35 F</span></h1>
+                  <span id="numbersSection">
+                    <div id="numbers-section">
+                      <h1 id="current-number" class="text-right">
+                        <a id="phoneLink" href="tel:+15551234567">(555)-123-4567</a>
+                      </h1>
+                      <h3 id="numbers-counts" class="text-right faded">Number 1 of 1</h3>
+                    </div>
+                  </span>
+                </div>
+
+                <span class="bold text-gray6">
+                  <div>VANID: <span id="SpanVanIDTopOfPage">10000001</span></div>
+                </span>
+
+                <!-- Result codes section -->
+                <div id="TRResults">
+                  <div id="results-section" class="panel-body">
+                    <button id="switch" class="btn btn-warning btn-ghost" type="button">I Couldn't Reach Alice</button>
+
+                    <div id="resultCodesPanel" style="display: none;">
+                      <div class="script-result">
+                        <input id="left-voicemail" value="Left Voicemail" type="radio" name="script-contact-result" />
+                        <label for="left-voicemail"> Left Voicemail</label>
+                      </div>
+                      <div class="script-result">
+                        <input id="refused" value="Refused" type="radio" name="script-contact-result" />
+                        <label for="refused"> Refused</label>
+                      </div>
+                      <div class="script-result">
+                        <input id="busy" value="Busy" type="radio" name="script-contact-result" />
+                        <label for="busy"> Busy</label>
+                      </div>
+                      <div class="script-result">
+                        <input id="texted" value="Texted" type="radio" name="script-contact-result" />
+                        <label for="texted"> Texted</label>
+                      </div>
+
+                      <button id="cancel-has-made-contact">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </header>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right column: additional info (matches #spanTableAdditionalInfo structure) -->
+      <div class="col-lg-6 col-md-6 col-sm-12 margin-right-tiny">
+        <div class="panel panel-details panel-default">
+          <div class="panel-heading panel-heading-narrow page-section-heading">
+            <div class="page-section-label">Additional Info</div>
+          </div>
+          <div class="panel-content">
+            <span id="spanTableAdditionalInfo">
+              <div class="input-unit">
+                <label class="input-label">Voting Address</label>
+                <div id="votingAddress" class="form-control">123 Main St</div>
+              </div>
+              <div class="input-unit">
+                <label class="input-label">Voting City, State, Zip</label>
+                <div id="votingCityStateZip" class="form-control">Springfield, IL 62701</div>
+              </div>
+            </span>
+          </div>
         </div>
-
-        <!-- Phone: everyaction scraper reads #current-number > firstChild.textContent -->
-        <div id="current-number">
-          <a id="phoneLink" href="tel:+15551234567">(555)-123-4567</a>
-        </div>
-
       </div>
+
     </div>
-
-    <!-- "Couldn't Reach" button: everyaction scraper clicks #switch to reveal result codes -->
-    <button id="switch" class="btn btn-warning">Couldn't Reach Contact</button>
-
-    <!-- Result codes panel (hidden until "Couldn't Reach" is clicked) -->
-    <div id="resultCodesPanel" style="display: none;">
-      <div class="script-result">
-        <input id="left-voicemail" value="Left Voicemail" type="radio" name="script-contact-result" />
-        <label for="left-voicemail">Left Voicemail</label>
-      </div>
-      <div class="script-result">
-        <input id="refused" value="Refused" type="radio" name="script-contact-result" />
-        <label for="refused">Refused</label>
-      </div>
-      <div class="script-result">
-        <input id="busy" value="Busy" type="radio" name="script-contact-result" />
-        <label for="busy">Busy</label>
-      </div>
-      <div class="script-result">
-        <input id="texted" value="Texted" type="radio" name="script-contact-result" />
-        <label for="texted">Texted</label>
-      </div>
-
-      <button id="cancel-has-made-contact">Cancel</button>
-      <input id="ctl00_ContentPlaceHolderVANPage_scriptSectionbtnSaveNextHH"
-             type="submit" class="btn" value="Save &amp; Next" />
-    </div>
-
   </div>
 </div>
 
 <script>
   var TEST_CONTACTS = [
-    { name: { first: "Alice", last: "Johnson" }, phone: "(555)-123-4567" },
-    { name: { first: "Bob", last: "Smith" }, phone: "(555)-987-6543" },
-    { name: { first: "Carol", last: "Williams" }, phone: "(555)-246-8135" },
+    {
+      first: "Alice", last: "Johnson", age: 35, gender: "F",
+      phone: "(555)-123-4567", vanId: "10000001",
+      address: "123 Main St", cityStateZip: "Springfield, IL 62701"
+    },
+    {
+      first: "Bob", last: "Smith", age: 42, gender: "M",
+      phone: "(555)-987-6543", vanId: "10000002",
+      address: "456 Oak Ave", cityStateZip: "Portland, OR 97201"
+    },
+    {
+      first: "Carol", middle: "Ann", last: "Williams", age: 28, gender: "F",
+      phone: "(555)-246-8135", vanId: "10000003",
+      address: "789 Pine Rd", cityStateZip: "Austin, TX 78701"
+    },
   ];
   var contactIndex = 0;
 
@@ -77,10 +154,25 @@
   function nextContact() {
     var contact = TEST_CONTACTS[contactIndex % TEST_CONTACTS.length];
     contactIndex++;
-    document.getElementById("contactName").innerText = contact.name.first + " " + contact.name.last;
+
+    // Build display name: "First [Middle] Last – Age Gender" (matches real VoteBuilder)
+    var displayName = contact.first;
+    if (contact.middle) displayName += " " + contact.middle;
+    displayName += " " + contact.last + " \u2013 " + contact.age + " " + contact.gender;
+
+    document.getElementById("contactName").innerText = displayName;
+
     var phoneEl = document.getElementById("phoneLink");
     phoneEl.href = "tel:" + contact.phone;
     phoneEl.innerText = contact.phone;
+
+    document.getElementById("SpanVanIDTopOfPage").innerText = contact.vanId;
+    document.getElementById("votingAddress").innerText = contact.address;
+    document.getElementById("votingCityStateZip").innerText = contact.cityStateZip;
+
+    // Update "Couldn't Reach" button text (matches VoteBuilder pattern)
+    document.getElementById("switch").innerText = "I Couldn't Reach " + contact.first;
   }
+
   nextContact();
 </script>

@@ -263,8 +263,10 @@ test("call result cycles contacts on VAN-style page", async () => {
       { timeout: 15_000 },
     );
 
+    // The name span includes an age/gender suffix (e.g. "Bob Smith – 42 M")
+    // matching real VoteBuilder layout, so use toContainText
     const phonebankName = vanPage.locator("#contactName");
-    await expect(phonebankName).toHaveText(
+    await expect(phonebankName).toContainText(
       `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
       { timeout: 15_000 },
     );
