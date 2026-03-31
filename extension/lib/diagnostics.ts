@@ -21,7 +21,7 @@ export function buildDiagnosticClipboard(params: DiagnosticParams): string {
     "--- TurboVPB Diagnostic Details ---",
     `Server status: ${formatServerStatus(serverStatus)}`,
     `Peer status: ${peerStatus.state}`,
-    `Contact scraping: ${scrapingStatus.state}`,
+    `Contact scraping: ${formatScrapingStatus(scrapingStatus)}`,
     `Extension version: ${extensionVersion}`,
     `Browser: ${userAgent}`,
   ];
@@ -55,6 +55,13 @@ export function buildDiagnosticClipboard(params: DiagnosticParams): string {
   }
 
   return lines.join("\n");
+}
+
+function formatScrapingStatus(status: ScrapingStatus): string {
+  if (status.state === "found" && status.confidence === "low") {
+    return "found (low confidence, using fallback)";
+  }
+  return status.state;
 }
 
 function formatServerStatus(status: ServerStatus): string {

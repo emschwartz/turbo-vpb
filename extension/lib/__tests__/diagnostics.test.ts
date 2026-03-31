@@ -9,7 +9,7 @@ describe("buildDiagnosticClipboard", () => {
   const baseParams = {
     serverStatus: { state: "connected" } as ServerStatus,
     peerStatus: { state: "connected" } as PeerStatus,
-    scrapingStatus: { state: "found" } as ScrapingStatus,
+    scrapingStatus: { state: "found", confidence: "high" } as ScrapingStatus,
     extensionVersion: "0.11.0",
     userAgent: "Mozilla/5.0 Chrome/120.0",
   };
@@ -31,6 +31,25 @@ describe("buildDiagnosticClipboard", () => {
     expect(text).toContain(
       "Server status: error (WebSocket timed out after 15s)",
     );
+  });
+
+  it("includes confidence level when scraping found with low confidence", () => {
+    const text = buildDiagnosticClipboard({
+      ...baseParams,
+      scrapingStatus: { state: "found", confidence: "low" },
+    });
+    expect(text).toContain(
+      "Contact scraping: found (low confidence, using fallback)",
+    );
+  });
+
+  it("does not add confidence note when high confidence", () => {
+    const text = buildDiagnosticClipboard({
+      ...baseParams,
+      scrapingStatus: { state: "found", confidence: "high" },
+    });
+    expect(text).toContain("Contact scraping: found");
+    expect(text).not.toContain("fallback");
   });
 
   it("includes page hints when scraping fails", () => {

@@ -156,6 +156,7 @@ export default defineContentScript({
               hide={state.showQrCodeModal}
               status={state.status}
               connectUrl={connectUrl}
+              scrapingConfidence={state.scrapingConfidence}
             />
             <QrCodeModal
               open={state.showQrCodeModal}

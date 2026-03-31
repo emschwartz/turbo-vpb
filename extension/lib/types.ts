@@ -9,7 +9,7 @@ export type PeerStatus = { state: "waiting" } | { state: "connected" };
 
 export type ScrapingStatus =
   | { state: "searching" }
-  | { state: "found" }
+  | { state: "found"; confidence: ScrapeConfidence }
   | { state: "not_found"; platform: PhonebankType; pageHints: PageHints };
 
 export type PageHints = {
@@ -26,11 +26,14 @@ export type PhoneNumberLocation = {
   domPath: string;
 };
 
+export type ScrapeConfidence = "high" | "low";
+
 export type ContactDetails = {
   phoneNumber: string;
   firstName: string;
   lastName: string;
   additionalFields: { [key: string]: string };
+  confidence: ScrapeConfidence;
 };
 
 export type Stats = {

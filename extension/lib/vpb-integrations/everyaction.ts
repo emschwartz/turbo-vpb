@@ -1,4 +1,5 @@
 import { ContactDetails } from "../types";
+import { findPhoneNumber, findName } from "./generic-scraper";
 
 const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i;
 
@@ -56,8 +57,29 @@ export function scrapeContactDetails(): ContactDetails | undefined {
       firstName,
       lastName: lastName ?? "",
       additionalFields,
+      confidence: "high",
     };
   }
+
+  // Fallback: use generic heuristics
+  const fallbackPhone = findPhoneNumber(document.body);
+  if (!fallbackPhone) return undefined;
+
+  const telLink =
+    document.body.querySelector<HTMLAnchorElement>(`a[href^="tel:"]`);
+  const fallbackName = telLink ? findName(telLink) : undefined;
+  if (!fallbackName) return undefined;
+
+  console.warn(
+    "TurboVPB: primary selectors failed, using fallback for everyaction",
+  );
+  return {
+    phoneNumber: fallbackPhone,
+    firstName: fallbackName.firstName,
+    lastName: fallbackName.lastName,
+    additionalFields: {},
+    confidence: "low",
+  };
 }
 
 export async function scrapeResultCodes(): Promise<string[] | undefined> {

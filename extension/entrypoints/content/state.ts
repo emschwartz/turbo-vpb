@@ -7,6 +7,7 @@ import {
   ContactDetails,
   DailyCallHistory,
   ExtensionSettings,
+  ScrapeConfidence,
   Stats,
 } from "../../lib/types";
 import { browser } from "wxt/browser";
@@ -35,6 +36,7 @@ export const state = {
   resultCodes: signal(undefined as string[] | undefined),
   currentContact: signal(undefined as ContactDetails | undefined),
   lastCallResult: signal(undefined as string | undefined),
+  scrapingConfidence: signal("high" as ScrapeConfidence),
 };
 
 export const serverUrl = computed(() => {
@@ -146,8 +148,8 @@ export function setContactDetails(contactDetails: ContactDetails | undefined) {
     const oldContact = state.currentContact.value;
     if (contactDetails && !contactsAreEqual(oldContact, contactDetails)) {
       console.log("New contact", contactDetails);
-
       state.currentContact.value = contactDetails;
+      state.scrapingConfidence.value = contactDetails.confidence;
     }
   });
 }
