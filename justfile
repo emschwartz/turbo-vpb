@@ -45,6 +45,20 @@ ext-package browser='chrome': (ext-build browser)
     rm -f extension/turbovpb-{{browser}}.zip
     cd extension/.output/{{browser}}-mv3 && zip -r9 ../../turbovpb-{{browser}}.zip *
 
+# package extension source code (unminified) for store review
+ext-source:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -f extension/turbovpb-source.zip
+    cd extension && zip -r9 turbovpb-source.zip . \
+        -x "node_modules/*" \
+        -x ".output/*" \
+        -x ".wxt/*" \
+        -x "test-results/*" \
+        -x "*.zip" \
+        -x ".DS_Store" \
+        -x "web-ext-artifacts/*"
+
 # --- Server ---
 
 # run the server locally
