@@ -12,6 +12,11 @@ const SAVED_ICON = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi 
   <path fill-rule="evenodd" d="M10.354 6.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7 8.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
 </svg>`;
 
+function createIcon(svgMarkup: string): SVGSVGElement {
+  const doc = new DOMParser().parseFromString(svgMarkup, "image/svg+xml");
+  return doc.documentElement.cloneNode(true) as SVGSVGElement;
+}
+
 const YOUR_NAME_REGEX =
   /([\[\(\{\<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}\>]+)/i;
 
@@ -69,7 +74,11 @@ export default defineContentScript({
       );
       if (alreadyUsingTheseTemplates) {
         console.log("Already using these templates");
-        importButton.innerHTML = `<h3>${SAVED_ICON} &nbsp; Already Using These Settings</h3>`;
+        importButton.textContent = "";
+        const doneH3 = document.createElement("h3");
+        doneH3.appendChild(createIcon(SAVED_ICON));
+        doneH3.append(" \u00a0 Already Using These Settings");
+        importButton.appendChild(doneH3);
         importButton.classList.replace("btn-primary", "btn-success");
         return;
       }
@@ -102,7 +111,11 @@ export default defineContentScript({
           });
 
           importButton.classList.replace("btn-primary", "btn-success");
-          importButton.innerHTML = `<h3>${SAVED_ICON} &nbsp; Settings Saved</h3>`;
+          importButton.textContent = "";
+          const savedH3 = document.createElement("h3");
+          savedH3.appendChild(createIcon(SAVED_ICON));
+          savedH3.append(" \u00a0 Settings Saved");
+          importButton.appendChild(savedH3);
           importButton.setAttribute("disabled", "true");
         }
       });
@@ -157,19 +170,39 @@ export default defineContentScript({
         const dialog = document.createElement("dialog");
         dialog.style.cssText =
           "border:none;border-radius:8px;padding:2rem;max-width:480px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,0.2);";
-        dialog.innerHTML = `
-          <h3 class="alert-heading">Enter Your First Name</h3>
-          <p class="lead">TurboVPB will automatically replace <code>[Your Name]</code><br>from the message templates with your actual name.</p>
-          <input type="text" id="first-name-input" class="p-2 form-control form-control-lg text-center" placeholder="First Name"/>
-          <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
-            <button class="btn btn-primary m-2 save-name-btn" disabled>Save</button>
-          </div>`;
-        document.body.appendChild(dialog);
+        const dialogHeading = document.createElement("h3");
+        dialogHeading.className = "alert-heading";
+        dialogHeading.textContent = "Enter Your First Name";
+        dialog.appendChild(dialogHeading);
 
-        const nameInput =
-          dialog.querySelector<HTMLInputElement>("#first-name-input")!;
-        const saveBtn =
-          dialog.querySelector<HTMLButtonElement>(".save-name-btn")!;
+        const dialogDesc = document.createElement("p");
+        dialogDesc.className = "lead";
+        dialogDesc.append("TurboVPB will automatically replace ");
+        const codeEl = document.createElement("code");
+        codeEl.textContent = "[Your Name]";
+        dialogDesc.appendChild(codeEl);
+        dialogDesc.appendChild(document.createElement("br"));
+        dialogDesc.append("from the message templates with your actual name.");
+        dialog.appendChild(dialogDesc);
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.id = "first-name-input";
+        nameInput.className = "p-2 form-control form-control-lg text-center";
+        nameInput.placeholder = "First Name";
+        dialog.appendChild(nameInput);
+
+        const saveBtnRow = document.createElement("div");
+        saveBtnRow.style.cssText =
+          "display:flex;justify-content:flex-end;margin-top:1rem;";
+        const saveBtn = document.createElement("button");
+        saveBtn.className = "btn btn-primary m-2 save-name-btn";
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Save";
+        saveBtnRow.appendChild(saveBtn);
+        dialog.appendChild(saveBtnRow);
+
+        document.body.appendChild(dialog);
 
         nameInput.addEventListener("input", () => {
           firstName = nameInput.value;
@@ -213,22 +246,30 @@ export default defineContentScript({
 
         const description = document.createElement("p");
         description.className = "lead";
-        description.innerHTML = `You have ${previousTemplates.length} Text Message Template${
-          previousTemplates.length > 1 ? "s" : ""
-        } configured.<br>Do you want to overwrite your current settings?`;
+        description.append(
+          `You have ${previousTemplates.length} Text Message Template${
+            previousTemplates.length > 1 ? "s" : ""
+          } configured.`,
+        );
+        description.appendChild(document.createElement("br"));
+        description.append("Do you want to overwrite your current settings?");
         dialog.appendChild(description);
 
         const exportHint = document.createElement("p");
         exportHint.className = "lead mb-0";
-        exportHint.innerHTML =
-          "Click here to export your current settings<br>and save the link to use them again later:";
+        exportHint.append("Click here to export your current settings");
+        exportHint.appendChild(document.createElement("br"));
+        exportHint.append("and save the link to use them again later:");
         dialog.appendChild(exportHint);
 
         const exportLink = document.createElement("a");
         exportLink.href = createShareUrl(previousTemplates);
         exportLink.target = "_blank";
         exportLink.className = "btn btn-success btn-lg btn-block py-3 mt-3";
-        exportLink.innerHTML = `<b>${UPLOAD_ICON} &nbsp; Export Current Settings</b>`;
+        const exportBold = document.createElement("b");
+        exportBold.appendChild(createIcon(UPLOAD_ICON));
+        exportBold.append(" \u00a0 Export Current Settings");
+        exportLink.appendChild(exportBold);
         dialog.appendChild(exportLink);
 
         const buttonRow = document.createElement("div");
@@ -243,7 +284,8 @@ export default defineContentScript({
         const overwriteBtn = document.createElement("button");
         overwriteBtn.className = "btn btn-primary m-2";
         overwriteBtn.disabled = true;
-        overwriteBtn.innerHTML = `${DOWNLOAD_ICON} Overwrite Settings`;
+        overwriteBtn.appendChild(createIcon(DOWNLOAD_ICON));
+        overwriteBtn.append(" Overwrite Settings");
         buttonRow.appendChild(overwriteBtn);
 
         dialog.appendChild(buttonRow);
