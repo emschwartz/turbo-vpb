@@ -38,8 +38,12 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: extension
 
-      - name: Build extension
+      - name: Build Chrome extension (production + dev)
         run: pnpm build && pnpm build --mode development
+        working-directory: extension
+
+      - name: Build Firefox extension (dev)
+        run: pnpm wxt build --browser firefox --mv3 --mode development
         working-directory: extension
 
       - name: Install server JS dependencies
@@ -54,15 +58,19 @@ jobs:
         run: npm ci
         working-directory: e2e
 
-      - name: Install Playwright Chromium
-        run: npx playwright install chromium --with-deps
+      - name: Install Playwright browsers
+        run: npx playwright install chromium firefox --with-deps
         working-directory: e2e
 
       - name: Install xvfb
         run: sudo apt-get update && sudo apt-get install -y xvfb
 
-      - name: Run E2E tests
-        run: xvfb-run --auto-servernum npx playwright test
+      - name: Run Chrome E2E tests
+        run: xvfb-run --auto-servernum npx playwright test tests/e2e.spec.ts tests/custom-van-domain.spec.ts
+        working-directory: e2e
+
+      - name: Run Firefox E2E tests
+        run: xvfb-run --auto-servernum npx playwright test tests/firefox.spec.ts
         working-directory: e2e
 
       - name: Upload test artifacts

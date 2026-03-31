@@ -111,13 +111,18 @@ server-js-install:
 
 # --- E2E Tests ---
 
-# install e2e test dependencies
+# install e2e test dependencies and browsers
 e2e-install:
-    cd e2e && npm install
+    cd e2e && npm install && npx playwright install chromium firefox
 
-# run e2e tests (headless, auto-starts server)
+# run Chrome e2e tests (auto-starts server; uses xvfb-run on Linux CI)
 e2e:
-    cd e2e && npm test
+    #!/usr/bin/env bash
+    XVFB=""
+    if [[ "$(uname)" == "Linux" ]] && command -v xvfb-run &>/dev/null; then
+        XVFB="xvfb-run --auto-servernum --"
+    fi
+    cd e2e && $XVFB npm test
 
 # run e2e tests with visible browser
 e2e-headed:
@@ -169,9 +174,14 @@ test browser='chrome':
         just e2e
     fi
 
-# run Firefox e2e tests (headless, auto-starts server)
+# run Firefox e2e tests (auto-starts server; uses xvfb-run on Linux CI)
 e2e-firefox:
-    cd e2e && npm run test:firefox
+    #!/usr/bin/env bash
+    XVFB=""
+    if [[ "$(uname)" == "Linux" ]] && command -v xvfb-run &>/dev/null; then
+        XVFB="xvfb-run --auto-servernum --"
+    fi
+    cd e2e && $XVFB npm run test:firefox
 
 # run both Chrome and Firefox e2e tests
 test-all:
