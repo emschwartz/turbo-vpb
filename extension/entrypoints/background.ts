@@ -3,15 +3,32 @@ import { browser } from "wxt/browser";
 export default defineBackground({
   type: "module",
   main() {
-    // Allow content scripts to access browser.storage.session
-    // (by default, only the background script can access it)
-    if (browser.storage.session?.setAccessLevel) {
-      browser.storage.session
-        .setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })
-        .catch((err) =>
-          console.error("Failed to set storage.session access level:", err),
-        );
-    }
+    // Proxy storage.session for content scripts via message passing.
+    // Content scripts can't access storage.session directly in Firefox
+    // (setAccessLevel doesn't exist), so all session storage goes through
+    // the background script which has unrestricted access.
+    browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (message?.type === "sessionStorage.get") {
+        browser.storage.session
+          .get(message.key)
+          .then(sendResponse)
+          .catch((err) => {
+            console.error("sessionStorage.get error:", err);
+            sendResponse({});
+          });
+        return true; // async response
+      }
+      if (message?.type === "sessionStorage.set") {
+        browser.storage.session
+          .set(message.data)
+          .then(() => sendResponse(true))
+          .catch((err) => {
+            console.error("sessionStorage.set error:", err);
+            sendResponse(false);
+          });
+        return true;
+      }
+    });
 
     // WXT handles content script registration via the manifest.
     // We only need to handle dynamic injection into already-open tabs

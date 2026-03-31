@@ -105,78 +105,45 @@ test("content script injects on VAN test page via localhost match", async () => 
   await page.close();
 });
 
-test("storage.session persists across page reloads", async () => {
-  // This test verifies that storage.session data written by the content script
-  // survives a page reload. In Chrome, this requires setAccessLevel() which
-  // Firefox doesn't implement. If this test fails, it confirms the bug.
+test("content script survives page reload", async () => {
+  // Verifies the content script re-injects and initializes after a page
+  // reload. This exercises the storage.session message passing path: the
+  // content script uses runtime.sendMessage to proxy session storage through
+  // the background script (needed because Firefox content scripts can't
+  // access storage.session directly).
   const page = await firefoxContext.newPage();
   await page.goto(`${SERVER_URL}/test-phonebank`);
 
-  // Wait for the content script to fully initialize
   await expect(page.locator("#turbovpb-insert")).toBeAttached({
     timeout: 15_000,
   });
-  // Wait for the pubsub client to connect and store connection details
-  await page.waitForTimeout(3000);
 
-  // Read the connection details that the content script stored
-  const detailsBefore = await page.evaluate(async () => {
-    try {
-      // Access the extension's storage.session from the content script context.
-      // This uses the browser global that WXT injects into the content script.
-      const result = await (globalThis as any).browser?.storage?.session?.get(
-        "turboVpbConnection",
-      );
-      return result?.turboVpbConnection ?? null;
-    } catch (e) {
-      return { error: String(e) };
-    }
+  // Reload the page (simulates VoteBuilder's "Save & Next" which reloads)
+  await page.reload();
+
+  // Content script should re-inject and initialize without errors
+  await expect(page.locator("#turbovpb-insert")).toBeAttached({
+    timeout: 15_000,
   });
 
-  console.log("Connection details before reload:", JSON.stringify(detailsBefore));
-
-  // Reload the page
+  // Verify the console has no uncaught errors from the content script
+  const errors: string[] = [];
+  page.on("console", (msg) => {
+    if (msg.type() === "error" && msg.text().includes("TurboVPB")) {
+      errors.push(msg.text());
+    }
+  });
   await page.reload();
   await expect(page.locator("#turbovpb-insert")).toBeAttached({
     timeout: 15_000,
   });
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(1000);
 
-  // Read connection details again
-  const detailsAfter = await page.evaluate(async () => {
-    try {
-      const result = await (globalThis as any).browser?.storage?.session?.get(
-        "turboVpbConnection",
-      );
-      return result?.turboVpbConnection ?? null;
-    } catch (e) {
-      return { error: String(e) };
-    }
-  });
-
-  console.log("Connection details after reload:", JSON.stringify(detailsAfter));
-
-  if (detailsBefore?.error || detailsAfter?.error) {
-    console.log(
-      "CONFIRMED: storage.session is NOT accessible from Firefox content scripts.",
-      "The extension needs a workaround (message passing to background script).",
-    );
-  } else if (detailsBefore?.channelId && detailsAfter?.channelId) {
-    if (detailsBefore.channelId === detailsAfter.channelId) {
-      console.log("storage.session works: connection details persisted across reload");
-    } else {
-      console.log(
-        "storage.session accessible but connection details changed " +
-          "(extension generated new channel after reload)",
-      );
-    }
-  } else {
-    console.log(
-      "Connection details not found. " +
-        "browser.storage.session may not be available:",
-      { detailsBefore, detailsAfter },
-    );
-  }
+  // Filter out expected connection errors (no server configured)
+  const unexpectedErrors = errors.filter(
+    (e) => !e.includes("Failed to connect to server"),
+  );
+  expect(unexpectedErrors).toEqual([]);
 
   await page.close();
 });
