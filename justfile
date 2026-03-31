@@ -148,6 +148,12 @@ release browser='chrome':
     just server-js
     just server-build
 
+# build and package both extensions + source zip for store submission
+publish:
+    just ext-package chrome
+    just ext-package firefox
+    just ext-source
+
 # run e2e tests (builds extension dev build first, since tests use chrome-mv3-dev)
 test browser='chrome':
     #!/usr/bin/env bash
