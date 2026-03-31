@@ -73,6 +73,10 @@ server-build:
 server-deploy:
     cd server && fly deploy
 
+# ssh into the server via fly.io
+ssh:
+    cd server && fly ssh console
+
 # build server docker image
 server-docker-build:
     docker build -t turbovpb-server server
