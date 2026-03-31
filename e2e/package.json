@@ -3,8 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test": "playwright test tests/e2e.spec.ts tests/custom-van-domain.spec.ts",
+    "test:headed": "playwright test --headed tests/e2e.spec.ts tests/custom-van-domain.spec.ts",
+    "test:firefox": "playwright test tests/firefox.spec.ts",
+    "test:firefox:headed": "playwright test --headed tests/firefox.spec.ts",
+    "test:all": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0"

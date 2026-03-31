@@ -163,4 +163,13 @@ test browser='chrome':
     #!/usr/bin/env bash
     MV3_FLAG=$([[ "{{browser}}" == "firefox" ]] && echo "--mv3" || echo "")
     cd extension && pnpm wxt build --browser {{browser}} --mode development $MV3_FLAG
-    just e2e
+    if [[ "{{browser}}" == "firefox" ]]; then
+        cd e2e && npm run test:firefox
+    else
+        just e2e
+    fi
+
+# run both Chrome and Firefox e2e tests
+test-all:
+    just test chrome
+    just test firefox
