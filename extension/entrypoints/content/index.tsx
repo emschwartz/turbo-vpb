@@ -53,7 +53,11 @@ export default defineContentScript({
     if (import.meta.env.DEV) {
       listenForTestMessages(ctx);
     }
-    loadSettings()
+    // Wait for both settings and persisted connection details to load
+    // before connecting. The connection details come from storage.session
+    // via message passing (async), so we must await them to reuse an
+    // existing channelId after a page reload.
+    Promise.all([loadSettings(), state.connectionDetails.loaded])
       .then(connectPubsubClient)
       .catch((err) => {
         console.error("Failed to connect to server:", err);
@@ -255,9 +259,14 @@ export default defineContentScript({
     // Dev-only: allow tests to set extension storage from the page context
     // via window.postMessage. Tree-shaken out of production builds.
     function listenForTestMessages(ctx: any) {
-      const handler = (event: MessageEvent) => {
+      const handler = async (event: MessageEvent) => {
         if (event.data?.type === "turbovpb-test:storage.local.set") {
           browser.storage.local.set(event.data.data).catch(console.error);
+        } else if (event.data?.type === "turbovpb-test:inject-content-script") {
+          browser.runtime.sendMessage({
+            type: "injectContentScript",
+            urlPattern: event.data.urlPattern,
+          });
         }
       };
       window.addEventListener("message", handler);

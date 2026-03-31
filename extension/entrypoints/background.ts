@@ -28,6 +28,36 @@ export default defineBackground({
           });
         return true;
       }
+      if (message?.type === "injectContentScript") {
+        (async () => {
+          try {
+            const tabs = await browser.tabs.query({
+              url: message.urlPattern || "http://localhost/*",
+            });
+            for (const tab of tabs) {
+              if (!tab.id) continue;
+              const [result] = await browser.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => !!document.getElementById("turbovpb-insert"),
+              });
+              if (result?.result) continue;
+              await browser.scripting.insertCSS({
+                target: { tabId: tab.id },
+                files: ["/content-scripts/content.css"],
+              });
+              await browser.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ["/content-scripts/content.js"],
+              });
+            }
+            sendResponse(true);
+          } catch (err) {
+            console.error("injectContentScript error:", err);
+            sendResponse(false);
+          }
+        })();
+        return true;
+      }
       if (message?.type === "sessionStorage.set") {
         browser.storage.session
           .set(message.data)

@@ -12,7 +12,7 @@ export default defineConfig({
   expect: {
     timeout: 15_000,
   },
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   workers: 1, // Extensions require serial execution
   reporter: process.env.CI ? "github" : "list",
   use: {

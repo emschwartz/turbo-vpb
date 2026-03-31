@@ -74,27 +74,14 @@ test.afterAll(async () => {
   await extensionContext?.close();
 });
 
-async function getConnectUrl(_page: Page): Promise<string> {
-  // Poll chrome.storage.session via the service worker
-  const details = await serviceWorker.evaluate(async () => {
-    for (let i = 0; i < 30; i++) {
-      const result = await (globalThis as any).chrome.storage.session.get(
-        "turboVpbConnection",
-      );
-      const stored = result?.turboVpbConnection;
-      if (stored && stored.channelId && stored.encryptionKey) {
-        return stored;
-      }
-      await new Promise((r) => setTimeout(r, 500));
-    }
-    return null;
-  });
-
-  if (!details) {
-    throw new Error("Extension did not store connection details");
+async function getConnectUrl(page: Page): Promise<string> {
+  const link = page.locator('#turbovpb-insert a[href*="/connect"]');
+  await expect(link).toBeAttached({ timeout: 15_000 });
+  const href = await link.getAttribute("href");
+  if (!href) {
+    throw new Error("Connect URL link has no href");
   }
-
-  return `${SERVER_URL}/connect#${details.channelId}&${details.encryptionKey}`;
+  return href;
 }
 
 async function openConnectPage(connectUrl: string) {

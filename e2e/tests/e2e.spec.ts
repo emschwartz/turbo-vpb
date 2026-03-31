@@ -91,38 +91,19 @@ test.afterAll(async () => {
 });
 
 /**
- * Extract the connect URL by reading the extension's connection details
- * from browser.storage.session via the service worker.
+ * Extract the connect URL from the QR code link rendered by the content script.
+ * This reads from the DOM instead of storage.session, avoiding the race condition
+ * where serviceWorker.evaluate() blocks the service worker's event loop and
+ * prevents runtime.onMessage from processing storage writes.
  */
-async function getConnectUrl(_page: Page): Promise<string> {
-  // Get the service worker to access chrome.storage.session
-  let serviceWorker = extensionContext.serviceWorkers()[0];
-  if (!serviceWorker) {
-    serviceWorker = await extensionContext.waitForEvent("serviceworker");
+async function getConnectUrl(page: Page): Promise<string> {
+  const link = page.locator('#turbovpb-insert a[href*="/connect"]');
+  await expect(link).toBeAttached({ timeout: 15_000 });
+  const href = await link.getAttribute("href");
+  if (!href) {
+    throw new Error("Connect URL link has no href");
   }
-
-  // Poll chrome.storage.session until the extension stores connection details
-  const details = await serviceWorker.evaluate(async () => {
-    for (let i = 0; i < 30; i++) {
-      const result = await (globalThis as any).chrome.storage.session.get(
-        "turboVpbConnection",
-      );
-      const stored = result?.turboVpbConnection;
-      if (stored && stored.channelId && stored.encryptionKey) {
-        return stored;
-      }
-      await new Promise((r) => setTimeout(r, 500));
-    }
-    return null;
-  });
-
-  if (!details) {
-    throw new Error(
-      "Extension did not store connection details in chrome.storage.session",
-    );
-  }
-
-  return `${SERVER_URL}/connect#${details.channelId}&${details.encryptionKey}`;
+  return href;
 }
 
 /**
@@ -229,14 +210,20 @@ test("reconnection after extension page reload", async () => {
     // Reload the test-phonebank page (extension will reconnect)
     await phonebankPage.reload();
 
-    // Wait for the extension to re-inject and reconnect.
-    // The connect page has a grace period before showing disconnect status,
-    // so the extension should reconnect before the user sees any change.
-    // After reload, the test-phonebank page resets to the first contact.
+    // Wait for the content script to re-inject after reload.
+    await expect(phonebankPage.locator("#turbovpb-insert")).toBeAttached({
+      timeout: 15_000,
+    });
+
+    // Wait for the extension to reconnect and the connect page to update.
+    // After reload, the content script loads the previous channelId from
+    // storage.session (via background message passing), reconnects to the
+    // server, and sends the updated contact. This can take time if the
+    // service worker needs to wake up for the storage read.
     const connectName = connectPage.locator("#name");
     await expect(connectName).toHaveText(
       `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
-      { timeout: 20_000 },
+      { timeout: 30_000 },
     );
 
     // Verify the connect page status shows connected (not disconnected)

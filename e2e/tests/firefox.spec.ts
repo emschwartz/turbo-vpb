@@ -83,6 +83,25 @@ function findFreePort(): Promise<number> {
 }
 
 /**
+ * Inject the content script into tabs matching a URL pattern by sending a
+ * message through the dev-only postMessage bridge on a page where the content
+ * script is already running (phonebankPage).
+ */
+async function injectContentScript(urlPattern: string) {
+  await phonebankPage.evaluate(
+    (pattern) => {
+      window.postMessage(
+        { type: "turbovpb-test:inject-content-script", urlPattern: pattern },
+        "*",
+      );
+    },
+    urlPattern,
+  );
+  // Give the background script time to inject
+  await phonebankPage.waitForTimeout(2000);
+}
+
+/**
  * Read the connect URL from the QR code link rendered by the content script.
  * Falls back to polling since the QR code appears after the pubsub client connects.
  */
@@ -392,5 +411,102 @@ test("extension shows waiting status when connect page closes", async () => {
     } catch {
       // already closed
     }
+  }
+});
+
+// --- VAN custom domain tests ---
+// These test the EveryAction/VoteBuilder scraper on the VAN-style test page,
+// which requires manual content script injection since its path doesn't match
+// any content_scripts patterns.
+
+test("content script not auto-injected on VAN custom domain path", async () => {
+  const vanPage = await firefoxContext.newPage();
+  await vanPage.goto(`${SERVER_URL}/test-van-custom-domain`);
+
+  const hasVanMarkers = await vanPage.evaluate(
+    () =>
+      document.querySelector(".van-header") !== null ||
+      document.querySelector(".van-inner") !== null,
+  );
+  expect(hasVanMarkers).toBe(true);
+
+  // Content script should NOT auto-inject (path doesn't match patterns)
+  await vanPage.waitForTimeout(3000);
+  const hasContentScript = await vanPage.evaluate(
+    () => !!document.getElementById("turbovpb-insert"),
+  );
+  expect(hasContentScript).toBe(false);
+
+  await vanPage.close();
+});
+
+test("VAN-style page works after manual content script injection", async () => {
+  const vanPage = await firefoxContext.newPage();
+  await vanPage.goto(`${SERVER_URL}/test-van-custom-domain`);
+
+  // Inject content script via the background script.
+  // Use pattern without port: Firefox ignores ports in match patterns (Bug 1362809).
+  await injectContentScript("http://localhost/test-van-custom-domain*");
+
+  const connectUrl = await getConnectUrl(vanPage);
+  expect(connectUrl).toContain("/connect");
+
+  // Open the connect page and verify the EveryAction-scraped contact appears
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    const nameElement = connectPage.locator("#name");
+    await expect(nameElement).toBeVisible({ timeout: 15_000 });
+    await expect(nameElement).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+    );
+
+    const phoneElement = connectPage.locator("#phone-number");
+    await expect(phoneElement).toHaveText(FIRST_CONTACT.phone);
+  } finally {
+    await connectBrowser.close();
+    await vanPage.close();
+  }
+});
+
+test("call result cycles contacts on VAN-style page", async () => {
+  const vanPage = await firefoxContext.newPage();
+  await vanPage.goto(`${SERVER_URL}/test-van-custom-domain`);
+
+  await injectContentScript("http://localhost/test-van-custom-domain*");
+
+  const connectUrl = await getConnectUrl(vanPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    await expect(
+      connectPage.locator("#call-result-links button"),
+    ).toHaveCount(3, { timeout: 10_000 });
+
+    await connectPage
+      .locator("#call-result-links button", { hasText: "Left Voicemail" })
+      .click();
+
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // The name span includes an age/gender suffix matching real VoteBuilder
+    const phonebankName = vanPage.locator("#contactName");
+    await expect(phonebankName).toContainText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+  } finally {
+    await connectBrowser.close();
+    await vanPage.close();
   }
 });
