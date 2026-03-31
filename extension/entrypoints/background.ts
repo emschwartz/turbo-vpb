@@ -18,6 +18,16 @@ export default defineBackground({
           });
         return true; // async response
       }
+      if (message?.type === "storage.local.set") {
+        browser.storage.local
+          .set(message.data)
+          .then(() => sendResponse(true))
+          .catch((err) => {
+            console.error("storage.local.set error:", err);
+            sendResponse(false);
+          });
+        return true;
+      }
       if (message?.type === "sessionStorage.set") {
         browser.storage.session
           .set(message.data)

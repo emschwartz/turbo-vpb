@@ -50,6 +50,9 @@ export default defineContentScript({
     watchForResultCodes();
     watchForNewContacts();
     listenForExtensionMessages();
+    if (import.meta.env.DEV) {
+      listenForTestMessages(ctx);
+    }
     loadSettings()
       .then(connectPubsubClient)
       .catch((err) => {
@@ -247,6 +250,18 @@ export default defineContentScript({
 
       await client.connect();
       await setPubsubClient(client);
+    }
+
+    // Dev-only: allow tests to set extension storage from the page context
+    // via window.postMessage. Tree-shaken out of production builds.
+    function listenForTestMessages(ctx: any) {
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === "turbovpb-test:storage.local.set") {
+          browser.storage.local.set(event.data.data).catch(console.error);
+        }
+      };
+      window.addEventListener("message", handler);
+      ctx.onInvalidated(() => window.removeEventListener("message", handler));
     }
 
     async function loadSettings() {

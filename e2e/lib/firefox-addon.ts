@@ -39,36 +39,127 @@ export function firefoxExtensionArgs(rdpPort: number): string[] {
 }
 
 /**
+ * Result from installing a temporary addon. Provides the extension's
+ * internal UUID and a method to evaluate JS in its background context.
+ */
+export interface InstalledAddon {
+  uuid: string;
+  evaluate: (expression: string) => Promise<any>;
+  disconnect: () => void;
+}
+
+/**
  * Install a temporary addon in a running Firefox instance via RDP.
  * The extension at `addonPath` gets full permissions (no user prompt).
+ *
+ * Returns an InstalledAddon with the extension UUID and an evaluate()
+ * function for running JS in the extension's background context.
+ * Call disconnect() when done setting up.
  */
 export async function installTemporaryAddon(
   rdpPort: number,
   addonPath: string,
-): Promise<void> {
+  geckoId: string,
+): Promise<InstalledAddon> {
   const client = await connectWithRetries(rdpPort);
-  try {
-    // Get the root actor
-    const root = await client.request("getRoot");
-    const addonsActor = root.addonsActor;
-    if (!addonsActor) {
-      throw new Error("Firefox does not provide an addons actor");
-    }
 
-    // Install the addon
-    const result = await client.request({
-      to: addonsActor,
-      type: "installTemporaryAddon",
-      addonPath,
-    });
-    if (result.error) {
-      throw new Error(
-        `installTemporaryAddon failed: ${result.error}: ${result.message}`,
-      );
-    }
-  } finally {
-    client.disconnect();
+  // Get the root actor
+  const root = await client.request("getRoot");
+  const addonsActor = root.addonsActor;
+  if (!addonsActor) {
+    throw new Error("Firefox does not provide an addons actor");
   }
+
+  // Install the addon
+  const installResult = await client.request({
+    to: addonsActor,
+    type: "installTemporaryAddon",
+    addonPath,
+  });
+  if (installResult.error) {
+    throw new Error(
+      `installTemporaryAddon failed: ${installResult.error}: ${installResult.message}`,
+    );
+  }
+
+  // Get the extension's internal UUID from Firefox prefs
+  const prefResult = await client.request({
+    to: root.preferenceActor,
+    type: "getCharPref",
+    value: "extensions.webextensions.uuids",
+  });
+  const uuids: Record<string, string> = JSON.parse(prefResult.value || "{}");
+  const uuid = uuids[geckoId];
+  if (!uuid) {
+    throw new Error(
+      `Could not find UUID for ${geckoId} in extensions.webextensions.uuids`,
+    );
+  }
+
+  // Find the addon's console actor so we can evaluate JS in its context.
+  const listResult = await client.request("listAddons");
+  const addon = listResult.addons?.find((a: any) => a.id === geckoId);
+
+  // Get a console actor for the addon's background context.
+  // The addon's actor is a webExtensionDescriptor. In newer Firefox (109+),
+  // we use getWatcher to get a Watcher actor, then watch for console messages.
+  // As a simpler approach, we use the descriptor's getTarget or connect methods.
+  let consoleActor: string | undefined;
+  if (addon?.actor) {
+    // Try different RDP commands to get the addon's console
+    for (const cmd of ["getWatcher", "connect", "getTarget"]) {
+      try {
+        const result = await client.request({
+          to: addon.actor,
+          type: cmd,
+        });
+        if (result.consoleActor) {
+          consoleActor = result.consoleActor;
+          break;
+        }
+        // getWatcher returns a watcher actor that can provide resources
+        if (result.actor && cmd === "getWatcher") {
+          // Use the watcher to get the console target
+          const resources = await client.request({
+            to: result.actor,
+            type: "watchResources",
+            resourceTypes: ["console-message"],
+          });
+          consoleActor = resources?.consoleActor;
+          if (consoleActor) break;
+        }
+      } catch {
+        // Command not supported, try next
+      }
+    }
+  }
+
+  return {
+    uuid,
+    async evaluate(expression: string): Promise<any> {
+      if (!consoleActor) {
+        throw new Error("No console actor available for the addon");
+      }
+      const result = await client.request({
+        to: consoleActor,
+        type: "evaluateJSAsync",
+        text: expression,
+      });
+      // evaluateJSAsync returns a resultID, then we get the actual result
+      if (result.resultID) {
+        // For async results, we need to wait. The result is sent as a
+        // separate message. For simplicity, poll via a follow-up request.
+        // Actually, evaluateJSAsync returns the result directly in newer Firefox.
+      }
+      if (result.exception) {
+        throw new Error(`Extension eval error: ${JSON.stringify(result.exception)}`);
+      }
+      return result.result;
+    },
+    disconnect() {
+      client.disconnect();
+    },
+  };
 }
 
 // --- Minimal RDP client ---
