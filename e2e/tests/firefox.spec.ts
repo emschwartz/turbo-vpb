@@ -470,6 +470,108 @@ test("VAN-style page works after manual content script injection", async () => {
   }
 });
 
+test("duplicate callResult messages do not mark additional contacts", async () => {
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+    await expect(connectPage.locator("#call-result-links button")).toHaveCount(
+      3,
+      { timeout: 10_000 },
+    );
+
+    // Click "Left Voicemail" - marks Alice, advances to Bob
+    await connectPage
+      .locator("#call-result-links button", { hasText: "Left Voicemail" })
+      .click();
+
+    const contactName = phonebankPage.locator("#contactName");
+    await expect(contactName).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Inject duplicate callResult messages with Alice's phone number.
+    // These should be ignored because the current contact is Bob.
+    for (let i = 0; i < 3; i++) {
+      await phonebankPage.evaluate(
+        ({ phone, seq }) => {
+          window.postMessage(
+            {
+              type: "turbovpb-test:inject-call-result",
+              message: {
+                type: "callResult",
+                result: "Left Voicemail",
+                phoneNumber: phone,
+                seq,
+              },
+            },
+            "*",
+          );
+        },
+        { phone: FIRST_CONTACT.phone, seq: 900 + i },
+      );
+    }
+
+    await phonebankPage.waitForTimeout(2000);
+
+    // Verify the page still shows Bob (did NOT advance to Carol)
+    await expect(contactName).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+    );
+  } finally {
+    await connectBrowser.close();
+  }
+});
+
+test("callResult with mismatched phone number does not mark contact", async () => {
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Inject a callResult with a completely wrong phone number
+    await phonebankPage.evaluate(() => {
+      window.postMessage(
+        {
+          type: "turbovpb-test:inject-call-result",
+          message: {
+            type: "callResult",
+            result: "Left Voicemail",
+            phoneNumber: "9999999999",
+            seq: 800,
+          },
+        },
+        "*",
+      );
+    });
+
+    await phonebankPage.waitForTimeout(2000);
+
+    // Verify Alice is still the current contact (was NOT marked)
+    const contactName = phonebankPage.locator("#contactName");
+    await expect(contactName).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+    );
+  } finally {
+    await connectBrowser.close();
+  }
+});
+
 test("call result cycles contacts on VAN-style page", async () => {
   const vanPage = await firefoxContext.newPage();
   await vanPage.goto(`${SERVER_URL}/test-van-custom-domain`);

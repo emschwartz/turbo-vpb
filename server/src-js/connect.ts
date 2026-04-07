@@ -11,6 +11,8 @@ interface ExtensionMessage {
   type?: string
   ackType?: string
   seq?: number
+  status?: 'applied' | 'rejected'
+  phoneNumber?: string
   yourName?: string
   messageTemplates?: MessageTemplate[]
   callNumber?: number
@@ -180,6 +182,7 @@ let lastCallDuration = 0
 let lastCallResult: string | null = null
 let pendingSaveMessage: string | null = null
 let waitForNewContact = false // if true, only display contact details if it's a new phone number
+let loadingTimer: ReturnType<typeof setTimeout> | undefined
 let autoSaveTextedResultEnabled = true
 let messageSeq = 0
 let peerDisconnectedTimer: ReturnType<typeof setTimeout> | undefined
@@ -463,6 +466,11 @@ async function handleExtensionMessage(data: ExtensionMessage): Promise<void> {
     return
   }
 
+  if (data.type === 'callResultResponse') {
+    handleCallResultResponse(data)
+    // Fall through to process bundled contact, stats, etc. below.
+  }
+
   if (data.type === 'connect') {
     console.log('received connect message from extension')
     peerManager!.sendMessage({ type: 'connect' })
@@ -519,6 +527,7 @@ async function handleExtensionMessage(data: ExtensionMessage): Promise<void> {
     // Show the contact if it's a new one or we aren't waiting for a new one
     if (newPhoneNumber !== phoneNumber || !waitForNewContact) {
       waitForNewContact = false
+      clearTimeout(loadingTimer)
 
       phoneNumber = newPhoneNumber
       firstName = data.contact.firstName
@@ -739,6 +748,7 @@ async function sendCallResult(result: string, showSaveMessageNow?: boolean): Pro
     callNumber,
     seq,
     timestamp: new Date().toISOString(),
+    phoneNumber,
   }
 
   await peerManager!.sendMessage(message)
@@ -760,6 +770,17 @@ async function sendCallResult(result: string, showSaveMessageNow?: boolean): Pro
   waitForNewContact = true
   setLoading()
 
+  // Safety net: if neither a response nor a new contact arrives within 10s,
+  // clear loading state to prevent being stuck forever.
+  clearTimeout(loadingTimer)
+  loadingTimer = setTimeout(() => {
+    if (waitForNewContact) {
+      console.warn('Loading timeout: no new contact received within 10s')
+      waitForNewContact = false
+      setLoadingFinished()
+    }
+  }, 10_000)
+
   if (showSaveMessageNow) {
     showSaveMessage(result)
   }
@@ -776,6 +797,31 @@ function handleAckMessage(data: ExtensionMessage): void {
       pendingCallResultAcks.delete(data.seq)
     }
   }
+}
+
+function handleCallResultResponse(data: ExtensionMessage): void {
+  if (typeof data.seq !== 'number') return
+
+  // Stop retries for this seq
+  const timer = pendingCallResultAcks.get(data.seq)
+  if (timer) {
+    console.log(`callResult seq=${data.seq} responded: ${data.status}`)
+    clearInterval(timer)
+    pendingCallResultAcks.delete(data.seq)
+  }
+
+  if (data.status === 'rejected') {
+    // The extension did not mark this result (phone mismatch).
+    // Clear loading state and re-show the current contact.
+    console.log(`callResult seq=${data.seq} rejected, re-showing current contact`)
+    waitForNewContact = false
+    clearTimeout(loadingTimer)
+    setLoadingFinished()
+  }
+  // For 'applied': the loading state is cleared when the bundled contact
+  // (or a subsequent standalone contact message) is processed by the
+  // existing contact handling code in handleExtensionMessage.
+  // If no contact is bundled, the loading timeout handles it.
 }
 
 async function saveCallStats(): Promise<void> {

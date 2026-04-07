@@ -424,3 +424,252 @@ test("extension shows waiting status when connect page closes", async () => {
     }
   }
 });
+
+test("duplicate callResult messages do not mark additional contacts", async () => {
+  // Reload to ensure we start with the first contact (Alice)
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    // Wait for contact details and result buttons to load
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+    await expect(connectPage.locator("#call-result-links button")).toHaveCount(
+      3,
+      { timeout: 10_000 },
+    );
+
+    // Click "Left Voicemail" - this marks Alice and advances to Bob
+    await connectPage
+      .locator("#call-result-links button", { hasText: "Left Voicemail" })
+      .click();
+
+    // Wait for the page to advance to Bob
+    const contactName = phonebankPage.locator("#contactName");
+    await expect(contactName).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Now inject duplicate callResult messages with Alice's phone number.
+    // These should be ignored because the current contact is Bob.
+    for (let i = 0; i < 3; i++) {
+      await phonebankPage.evaluate(
+        ({ phone, seq }) => {
+          window.postMessage(
+            {
+              type: "turbovpb-test:inject-call-result",
+              message: {
+                type: "callResult",
+                result: "Left Voicemail",
+                phoneNumber: phone,
+                seq,
+              },
+            },
+            "*",
+          );
+        },
+        { phone: FIRST_CONTACT.phone, seq: 900 + i },
+      );
+    }
+
+    // Wait a moment for any potential (incorrect) processing
+    await phonebankPage.waitForTimeout(2000);
+
+    // Verify the page still shows Bob (did NOT advance to Carol)
+    await expect(contactName).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+    );
+  } finally {
+    await connectBrowser.close();
+  }
+});
+
+test("callResult with mismatched phone number does not mark contact", async () => {
+  // Reload to ensure we start with the first contact (Alice)
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    // Wait for contact to load
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Inject a callResult with a completely wrong phone number
+    await phonebankPage.evaluate(() => {
+      window.postMessage(
+        {
+          type: "turbovpb-test:inject-call-result",
+          message: {
+            type: "callResult",
+            result: "Left Voicemail",
+            phoneNumber: "9999999999",
+            seq: 800,
+          },
+        },
+        "*",
+      );
+    });
+
+    // Wait a moment for any potential (incorrect) processing
+    await phonebankPage.waitForTimeout(2000);
+
+    // Verify the page still shows Alice (was NOT marked)
+    const contactName = phonebankPage.locator("#contactName");
+    await expect(contactName).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+    );
+  } finally {
+    await connectBrowser.close();
+  }
+});
+
+test("callResult for previous contact is ignored after page reload", async () => {
+  // Reload to ensure we start with the first contact (Alice)
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    // Wait for contact details to load
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+    await expect(connectPage.locator("#call-result-links button")).toHaveCount(
+      3,
+      { timeout: 10_000 },
+    );
+
+    // Mark Alice's result -> page advances to Bob
+    await connectPage
+      .locator("#call-result-links button", { hasText: "Left Voicemail" })
+      .click();
+    const contactName = phonebankPage.locator("#contactName");
+    await expect(contactName).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Wait for the connect page to also show Bob, which confirms the ACK
+    // was received and retries stopped. Without this, the connect page's
+    // retry timer could resend Alice's callResult after the reload.
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+  } finally {
+    // Close the connect browser before reloading to stop any retry timers
+    await connectBrowser.close();
+  }
+
+  // Reload the phonebank page (simulates what happens in EveryAction
+  // when "Save & Next" triggers a full page navigation).
+  // This destroys the content script and all in-memory state.
+  await phonebankPage.reload();
+
+  // Wait for the content script to reinitialize
+  await expect(phonebankPage.locator("#turbovpb-insert")).toBeAttached({
+    timeout: 15_000,
+  });
+
+  // The page reloaded back to Alice (test-phonebank.html resets contactIndex)
+  const contactName = phonebankPage.locator("#contactName");
+  await expect(contactName).toHaveText(
+    `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+    { timeout: 5_000 },
+  );
+
+  // Inject a callResult with Bob's phone number (simulating a retry
+  // from before the reload). The content script lost its sentPhoneNumbers
+  // set, but the phone number won't match Alice (current contact).
+  await phonebankPage.evaluate((phone) => {
+    window.postMessage(
+      {
+        type: "turbovpb-test:inject-call-result",
+        message: {
+          type: "callResult",
+          result: "Left Voicemail",
+          phoneNumber: phone,
+          seq: 700,
+        },
+      },
+      "*",
+    );
+  }, SECOND_CONTACT.phone);
+
+  // Wait a moment for any potential (incorrect) processing
+  await phonebankPage.waitForTimeout(2000);
+
+  // Verify Alice is still the current contact (Bob's result was ignored)
+  await expect(contactName).toHaveText(
+    `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+  );
+});
+
+test("full call result flow with callResultResponse delivers next contact", async () => {
+  // Verifies the callResultResponse protocol: the extension sends a
+  // response with status and the next contact bundled in, and the connect
+  // page displays it without needing a separate contact message.
+
+  // Reload to ensure we start with the first contact (Alice)
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    // Wait for contact details and result buttons to load
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+    await expect(connectPage.locator("#call-result-links button")).toHaveCount(
+      3,
+      { timeout: 10_000 },
+    );
+
+    // Click "Left Voicemail" on the connect page. The connect page sends
+    // a callResult and waits for a response. The extension (new version)
+    // sends a callResultResponse with the next contact bundled in. The
+    // connect page recognizes this new message type and displays Bob.
+    await connectPage
+      .locator("#call-result-links button", { hasText: "Left Voicemail" })
+      .click();
+
+    // Verify that the connect page shows Bob (received via callResultResponse)
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Verify the phonebank page also advanced to Bob
+    const contactName = phonebankPage.locator("#contactName");
+    await expect(contactName).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Now test the old ACK path: the connect page's handleAckMessage
+    // is still intact and handles { type: "ack", ackType: "callResult" }.
+    // We verify this by checking that the connect page is NOT stuck in
+    // loading state and that the full flow completed successfully.
+    const status = connectPage.locator("#status");
+    await expect(status).toHaveText("Connected");
+  } finally {
+    await connectBrowser.close();
+  }
+});

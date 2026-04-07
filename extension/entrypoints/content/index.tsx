@@ -2,6 +2,7 @@ import { render } from "preact";
 import { batch, effect } from "@preact/signals";
 import { browser } from "wxt/browser";
 import { importKey } from "../../lib/crypto";
+import { normalizePhoneNumber } from "../../lib/phone";
 import PubSubClient from "../../lib/pubsub-client";
 import { selectIntegration } from "../../lib/vpb-integrations";
 import QrCodeModal from "../../components/qr-code-modal";
@@ -79,13 +80,124 @@ export default defineContentScript({
     // Register call result handler once, outside of effects
     vpb.onCallResult(setLastCallResult);
 
+    // Track phone numbers we've sent to the mobile browser,
+    // so we can distinguish late/duplicate results from unknown ones.
+    const sentPhoneNumbers = new Set<string>();
+
     // Send the contact details whenever there is a new contact
     effect(() => {
       if (state.pubsubClient.value && detailsToSend.value) {
         console.log("Sending contact details", detailsToSend.value);
+        const phone = detailsToSend.value.contact?.phoneNumber;
+        if (phone) {
+          sentPhoneNumbers.add(normalizePhoneNumber(phone));
+        }
         state.pubsubClient.value?.send(detailsToSend.value);
       }
     });
+
+    async function handleCallResult(message: any) {
+      const incomingPhone = message.phoneNumber
+        ? normalizePhoneNumber(message.phoneNumber)
+        : undefined;
+      const currentPhone = state.currentContact.value?.phoneNumber
+        ? normalizePhoneNumber(state.currentContact.value.phoneNumber)
+        : undefined;
+
+      // Legacy callResult without phoneNumber (older connect page).
+      // Mark the result and send old-style ACK for backwards compatibility.
+      if (!incomingPhone) {
+        console.warn("callResult missing phoneNumber, marking anyway");
+        state.pubsubClient.value?.send({
+          type: "ack",
+          ackType: "callResult",
+          seq: message.seq,
+        });
+        try {
+          await vpb.markResult(message.result);
+        } catch (err) {
+          console.error("Failed to mark result:", err);
+        }
+        return;
+      }
+
+      // Phone mismatch: reject the result
+      if (incomingPhone !== currentPhone) {
+        const reason = sentPhoneNumbers.has(incomingPhone)
+          ? "already_processed"
+          : "unknown_phone";
+        console.log(
+          `Rejecting callResult (${reason}):`,
+          incomingPhone,
+          "current:",
+          currentPhone,
+        );
+        state.pubsubClient.value?.send({
+          type: "callResultResponse",
+          seq: message.seq,
+          status: "rejected",
+          phoneNumber: incomingPhone,
+        });
+        return;
+      }
+
+      // Phone match: mark the result, then send response with next contact
+      console.log("Marking result:", message.result);
+      try {
+        await vpb.markResult(message.result);
+      } catch (err) {
+        console.error("Failed to mark result:", err);
+      }
+
+      // Wait briefly for the next contact to appear (MutationObserver
+      // fires after markResult clicks "Save & Next").
+      const nextContact = await waitForContactChange(currentPhone, 2000);
+
+      // Build the response payload. Spread detailsToSend first so our
+      // callResultResponse fields (especially type) take precedence.
+      const details = nextContact ? detailsToSend.value : {};
+      state.pubsubClient.value?.send({
+        ...details,
+        type: "callResultResponse",
+        seq: message.seq,
+        status: "applied",
+        phoneNumber: incomingPhone,
+      });
+    }
+
+    function waitForContactChange(
+      currentNormalizedPhone: string,
+      timeoutMs: number,
+    ): Promise<boolean> {
+      return new Promise((resolve) => {
+        // Check if the contact already changed
+        const check = () => {
+          const phone = state.currentContact.value?.phoneNumber;
+          return phone
+            ? normalizePhoneNumber(phone) !== currentNormalizedPhone
+            : false;
+        };
+        if (check()) {
+          resolve(true);
+          return;
+        }
+
+        const timer = setTimeout(() => {
+          cleanup();
+          resolve(false);
+        }, timeoutMs);
+
+        const cleanup = effect(() => {
+          if (check()) {
+            clearTimeout(timer);
+            // Dispose this effect on next microtask to avoid
+            // calling dispose inside its own execution.
+            queueMicrotask(() => cleanup());
+            resolve(true);
+          }
+        });
+      });
+    }
 
     function listenForExtensionMessages() {
       const handler = (message: any) => {
@@ -233,18 +345,7 @@ export default defineContentScript({
           console.log("Sending contact details in response to connect message");
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
-          console.log("Marking result:", message.result);
-          // Ack without blocking so markResult can start immediately
-          client.send({
-            type: "ack",
-            ackType: "callResult",
-            seq: message.seq,
-          });
-          try {
-            await vpb.markResult(message.result);
-          } catch (err) {
-            console.error("Failed to mark result:", err);
-          }
+          await handleCallResult(message);
         } else if (message.type === "ack") {
           // Ack messages are handled by PubSubClient internally
         } else {
@@ -267,6 +368,8 @@ export default defineContentScript({
             type: "injectContentScript",
             urlPattern: event.data.urlPattern,
           });
+        } else if (event.data?.type === "turbovpb-test:inject-call-result") {
+          await handleCallResult(event.data.message);
         }
       };
       window.addEventListener("message", handler);
