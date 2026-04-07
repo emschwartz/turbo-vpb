@@ -7,7 +7,10 @@ export default defineBackground({
     // Content scripts can't access storage.session directly in Firefox
     // (setAccessLevel doesn't exist), so all session storage goes through
     // the background script which has unrestricted access.
-    browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (sender.id !== browser.runtime.id) {
+        return;
+      }
       if (message?.type === "sessionStorage.get") {
         browser.storage.session
           .get(message.key)
