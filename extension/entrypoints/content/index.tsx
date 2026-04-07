@@ -387,6 +387,13 @@ export default defineContentScript({
     // via window.postMessage. Tree-shaken out of production builds.
     function listenForTestMessages(ctx: any) {
       const handler = async (event: MessageEvent) => {
+        // Only accept test messages from localhost
+        if (
+          !event.origin.startsWith("http://localhost") &&
+          !event.origin.startsWith("http://127.0.0.1")
+        ) {
+          return;
+        }
         if (event.data?.type === "turbovpb-test:storage.local.set") {
           browser.storage.local.set(event.data.data).catch(console.error);
         } else if (event.data?.type === "turbovpb-test:inject-content-script") {
