@@ -18,3 +18,4 @@ server/data/
 data/
 server/static/js/
 extension/test-results/
+.worktrees/
