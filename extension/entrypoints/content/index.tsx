@@ -57,7 +57,24 @@ export default defineContentScript({
     // before connecting. The connection details come from storage.session
     // via message passing (async), so we must await them to reuse an
     // existing channelId after a page reload.
-    Promise.all([loadSettings(), state.connectionDetails.loaded])
+    const loadProcessedSeqs = browser.runtime
+      .sendMessage({
+        type: "sessionStorage.get",
+        key: "processedCallResultSeqs",
+      })
+      .then((result: Record<string, unknown>) => {
+        const stored = result?.processedCallResultSeqs;
+        if (Array.isArray(stored)) {
+          for (const seq of stored) processedCallResultSeqs.add(seq);
+        }
+      })
+      .catch(console.error);
+
+    Promise.all([
+      loadSettings(),
+      state.connectionDetails.loaded,
+      loadProcessedSeqs,
+    ])
       .then(connectPubsubClient)
       .catch((err) => {
         console.error("Failed to connect to server:", err);
@@ -78,6 +95,11 @@ export default defineContentScript({
     });
     // Register call result handler once, outside of effects
     vpb.onCallResult(setLastCallResult);
+
+    // Track processed callResult seq numbers to ignore retries and server
+    // replays after page reload. Persisted via session storage so it survives
+    // the page navigation triggered by "Save & Next".
+    const processedCallResultSeqs = new Set<number>();
 
     // Send the contact details whenever there is a new contact
     effect(() => {
@@ -233,9 +255,41 @@ export default defineContentScript({
           console.log("Sending contact details in response to connect message");
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
+          // Deduplicate retried callResult messages. The mobile phone retries
+          // unacked messages, but markResult clicks "Save & Next" which may
+          // reload the page and cancel the ack HTTP request. Without this
+          // check, each retry would advance to another contact.
+          if (
+            typeof message.seq === "number" &&
+            processedCallResultSeqs.has(message.seq)
+          ) {
+            console.log(
+              `Ignoring duplicate callResult seq=${message.seq}, re-sending ack`,
+            );
+            await client.send({
+              type: "ack",
+              ackType: "callResult",
+              seq: message.seq,
+            });
+            return;
+          }
+          if (typeof message.seq === "number") {
+            processedCallResultSeqs.add(message.seq);
+            // Persist so a page reload (from Save & Next) still deduplicates
+            browser.runtime
+              .sendMessage({
+                type: "sessionStorage.set",
+                data: {
+                  processedCallResultSeqs: [...processedCallResultSeqs],
+                },
+              })
+              .catch(console.error);
+          }
+
           console.log("Marking result:", message.result);
-          // Ack without blocking so markResult can start immediately
-          client.send({
+          // Await the ack so it is sent before markResult clicks "Save & Next",
+          // which may trigger a page reload and cancel in-flight requests.
+          await client.send({
             type: "ack",
             ackType: "callResult",
             seq: message.seq,
