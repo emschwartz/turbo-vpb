@@ -389,6 +389,139 @@ test("connect page shows session complete when phonebank page closes", async () 
   }
 });
 
+/**
+ * Helper: send a raw callResult message from the connect page to the extension.
+ * Uses the connect page's global `peerManager` (which already has the
+ * encryption key) to avoid reimplementing encryption in the test.
+ */
+async function sendRawCallResult(
+  connectPage: Page,
+  result: string,
+  seq: number,
+) {
+  await connectPage.evaluate(
+    ({ result, seq }) => {
+      // peerManager is a top-level var in connect.js (non-module script)
+      return (window as any).peerManager.sendMessage({
+        type: "callResult",
+        result,
+        seq,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    { result, seq },
+  );
+}
+
+test("duplicate callResult with same seq number is ignored", async () => {
+  // Reload to reset contact index to Alice
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    // Wait for Alice to appear on the connect page
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+    await expect(connectPage.locator("#call-result-links button")).toHaveCount(
+      3,
+      { timeout: 10_000 },
+    );
+
+    // Send a callResult with seq=100 — should advance to Bob
+    await sendRawCallResult(connectPage, "Left Voicemail", 100);
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Send a duplicate callResult with the same seq=100 — should be ignored
+    await sendRawCallResult(connectPage, "Left Voicemail", 100);
+
+    // Wait and verify we're still on Bob (not Carol)
+    await connectPage.waitForTimeout(3000);
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+    );
+
+    // Send a new callResult with seq=101 — should advance to Carol
+    await sendRawCallResult(connectPage, "Left Voicemail", 101);
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${THIRD_CONTACT.firstName} ${THIRD_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+  } finally {
+    await connectBrowser.close();
+  }
+});
+
+test("connect message resets dedup so previously seen seq works again", async () => {
+  // Reload to reset contact index to Alice
+  await phonebankPage.reload();
+
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    // Wait for Alice
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${FIRST_CONTACT.firstName} ${FIRST_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+    await expect(connectPage.locator("#call-result-links button")).toHaveCount(
+      3,
+      { timeout: 10_000 },
+    );
+
+    // Send callResult with seq=200 — advances to Bob
+    await sendRawCallResult(connectPage, "Left Voicemail", 200);
+    await expect(connectPage.locator("#name")).toHaveText(
+      `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+      { timeout: 15_000 },
+    );
+
+    // Close and reopen the connect page (simulates phone page refresh,
+    // which resets the phone's seq counter and sends a fresh connect message)
+    await connectBrowser.close();
+
+    const { browser: connectBrowser2, page: connectPage2 } =
+      await openConnectPage(connectUrl);
+
+    try {
+      // Wait for Bob to appear (current contact on extension)
+      await expect(connectPage2.locator("#name")).toHaveText(
+        `${SECOND_CONTACT.firstName} ${SECOND_CONTACT.lastName}`,
+        { timeout: 15_000 },
+      );
+      await expect(
+        connectPage2.locator("#call-result-links button"),
+      ).toHaveCount(3, { timeout: 10_000 });
+
+      // Re-send callResult with seq=200 (same seq as before). Because the
+      // connect page reconnected (sent a connect message), the extension
+      // should have cleared its dedup set. This should advance to Carol.
+      await sendRawCallResult(connectPage2, "Left Voicemail", 200);
+      await expect(connectPage2.locator("#name")).toHaveText(
+        `${THIRD_CONTACT.firstName} ${THIRD_CONTACT.lastName}`,
+        { timeout: 15_000 },
+      );
+    } finally {
+      await connectBrowser2.close();
+    }
+  } finally {
+    try {
+      await connectBrowser.close();
+    } catch {
+      // already closed
+    }
+  }
+});
+
 test("extension shows waiting status when connect page closes", async () => {
   await phonebankPage.reload();
 

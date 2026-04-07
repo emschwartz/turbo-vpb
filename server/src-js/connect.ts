@@ -737,6 +737,7 @@ async function sendCallResult(result: string, showSaveMessageNow?: boolean): Pro
     type: 'callResult',
     result,
     callNumber,
+    phoneNumber,
     seq,
     timestamp: new Date().toISOString(),
   }

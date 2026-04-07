@@ -252,6 +252,9 @@ export default defineContentScript({
 
         // Send the details as soon as we receive a connect message
         if (message.type === "connect" && detailsToSend.value.contact) {
+          // Phone (re)connected — reset dedup set since the phone's seq
+          // counter resets on page load and old numbers may be reused.
+          processedCallResultSeqs.clear();
           console.log("Sending contact details in response to connect message");
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
@@ -284,6 +287,27 @@ export default defineContentScript({
                 },
               })
               .catch(console.error);
+          }
+
+          // Verify the callResult is for the contact currently on the page.
+          // The phone normalizes numbers to digits-only; compare the same way.
+          const currentPhone = state.currentContact.value?.phoneNumber
+            ?.replace(/\D/g, "")
+            .replace(/^1?(\d{10})$/, "1$1");
+          if (
+            message.phoneNumber &&
+            currentPhone &&
+            message.phoneNumber !== currentPhone
+          ) {
+            console.warn(
+              `Ignoring callResult for ${message.phoneNumber} — current contact is ${currentPhone}`,
+            );
+            await client.send({
+              type: "ack",
+              ackType: "callResult",
+              seq: message.seq,
+            });
+            return;
           }
 
           console.log("Marking result:", message.result);
