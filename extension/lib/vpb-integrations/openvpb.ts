@@ -155,10 +155,13 @@ export function onCallResult(
     }
     // If the call result is unselected again, the other buttons will
     // be re-rendered so we need to set the whole thing up again
-    cancelButton()?.addEventListener("click", async () => {
-      await sleep();
-      onCallResult(callback);
-    });
+    const cancel = cancelButton();
+    if (cancel) {
+      setupButton(async () => {
+        await sleep();
+        onCallResult(callback);
+      }, cancel);
+    }
   };
   // Add an event listener and add a marker class so we don't accidentally
   // add multiple event listeners
