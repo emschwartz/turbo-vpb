@@ -8,6 +8,7 @@ import { selectIntegration } from "../../lib/vpb-integrations";
 import QrCodeModal from "../../components/qr-code-modal";
 import QrCodeInsert from "../../components/qr-code-insert";
 import { DailyCallHistory, MessageTemplateDetails } from "../../lib/types";
+import { SentPhoneTracker } from "../../lib/sent-phone-tracker";
 import {
   hideQrCodeModal,
   setContactDetails,
@@ -64,12 +65,13 @@ export default defineContentScript({
         console.error("Failed to connect to server:", err);
         setStatus("disconnected");
       });
-    effect(() => {
+    const disposeHideQrCode = effect(() => {
       if (state.status.value === "connected") {
         hideQrCodeModal();
       }
     });
-    effect(() => {
+    ctx.onInvalidated(disposeHideQrCode);
+    const disposeSaveStats = effect(() => {
       browser.storage.local
         .set({
           totalCalls: state.totalCalls.value,
@@ -77,15 +79,16 @@ export default defineContentScript({
         })
         .catch(console.error);
     });
+    ctx.onInvalidated(disposeSaveStats);
     // Register call result handler once, outside of effects
     vpb.onCallResult(setLastCallResult);
 
     // Track phone numbers we've sent to the mobile browser,
     // so we can distinguish late/duplicate results from unknown ones.
-    const sentPhoneNumbers = new Set<string>();
+    const sentPhoneNumbers = new SentPhoneTracker(500);
 
     // Send the contact details whenever there is a new contact
-    effect(() => {
+    const disposeSendContact = effect(() => {
       if (state.pubsubClient.value && detailsToSend.value) {
         console.log("Sending contact details", detailsToSend.value);
         const phone = detailsToSend.value.contact?.phoneNumber;
@@ -95,6 +98,7 @@ export default defineContentScript({
         state.pubsubClient.value?.send(detailsToSend.value);
       }
     });
+    ctx.onInvalidated(disposeSendContact);
 
     async function handleCallResult(message: any) {
       const incomingPhone = message.phoneNumber
@@ -291,6 +295,8 @@ export default defineContentScript({
       }
     }
 
+    let connectingPromise: Promise<void> | null = null;
+
     // Load the settings from localStorage and connect to the server
     async function connectPubsubClient() {
       if (isConnectedToServer.value) {
@@ -298,6 +304,20 @@ export default defineContentScript({
         return;
       }
 
+      if (connectingPromise) {
+        console.log("Connection already in progress, waiting");
+        return connectingPromise;
+      }
+
+      connectingPromise = doConnect();
+      try {
+        await connectingPromise;
+      } finally {
+        connectingPromise = null;
+      }
+    }
+
+    async function doConnect() {
       const client = new PubSubClient(
         serverUrl.value,
         state.connectionDetails.value?.channelId,
@@ -315,10 +335,16 @@ export default defineContentScript({
         }
 
         // Send a message to the browser in case we reloaded the page
-        // and the browser page is already open and connected
-        await client.send({
-          type: "connect",
-        });
+        // and the browser page is already open and connected.
+        // Retry once if the first attempt fails.
+        let sent = await client.send({ type: "connect" });
+        if (!sent) {
+          console.warn("Connect send failed, retrying once");
+          sent = await client.send({ type: "connect" });
+        }
+        if (!sent) {
+          console.error("Connect send failed after retry");
+        }
       };
       client.onpeerdisconnected = () => {
         setStatus("waitingForMessage");
