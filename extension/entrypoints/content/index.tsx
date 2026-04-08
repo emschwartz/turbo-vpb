@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { batch, effect } from "@preact/signals";
-import { browser } from "wxt/browser";
+import { browser, type PublicPath } from "wxt/browser";
 import { importKey } from "../../lib/crypto";
 import { normalizePhoneNumber } from "../../lib/phone";
 import PubSubClient from "../../lib/pubsub-client";
@@ -272,9 +272,24 @@ export default defineContentScript({
       const parent = vpb.turboVpbContainerLocation();
       if (parent) {
         console.log("Rendering turbovpb container");
-        // TODO ensure this doesn't render multiple times
+        const host = document.createElement("div");
+        host.id = "turbovpb-insert";
+        const shadow = host.attachShadow({ mode: "closed" });
+
+        // Import the extension's stylesheet into the shadow root
+        const style = document.createElement("link");
+        style.rel = "stylesheet";
+        style.href = browser.runtime.getURL(
+          "/content-scripts/content.css" as PublicPath,
+        );
+        shadow.appendChild(style);
+
+        const mountPoint = document.createElement("div");
+        shadow.appendChild(mountPoint);
+
+        parent.appendChild(host);
         render(
-          <div id="turbovpb-insert">
+          <>
             <QrCodeInsert
               hide={state.showQrCodeModal}
               status={state.status}
@@ -286,8 +301,8 @@ export default defineContentScript({
               status={state.status}
               connectUrl={connectUrl}
             />
-          </div>,
-          parent,
+          </>,
+          mountPoint,
         );
         return true;
       } else {
