@@ -1,5 +1,6 @@
 import { ContactDetails } from "../types";
 import { findPhoneNumber, findName } from "./generic-scraper";
+import { sanitizeText, sanitizePhone } from "./sanitize";
 
 const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i;
 
@@ -51,11 +52,13 @@ export function scrapeContactDetails(): ContactDetails | undefined {
       }
     }
   }
-  if (phoneNumber && firstName) {
+  const cleanPhone = sanitizePhone(phoneNumber);
+  const cleanFirst = sanitizeText(firstName);
+  if (cleanPhone && cleanFirst) {
     return {
-      phoneNumber,
-      firstName,
-      lastName: lastName ?? "",
+      phoneNumber: cleanPhone,
+      firstName: cleanFirst,
+      lastName: sanitizeText(lastName) ?? "",
       additionalFields,
       confidence: "high",
     };

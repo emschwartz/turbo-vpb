@@ -1,5 +1,6 @@
 import { ContactDetails } from "../types";
 import { findPhoneNumber, findName } from "./generic-scraper";
+import { sanitizeText, sanitizePhone } from "./sanitize";
 
 export const type = "bluevote";
 
@@ -27,11 +28,13 @@ export function scrapeContactDetails(): ContactDetails | undefined {
   const firstName = name?.split(" ")[0];
   const lastName = name?.split(" ").slice(1).join(" ");
 
-  if (phoneNumber && firstName) {
+  const cleanPhone = sanitizePhone(phoneNumber);
+  const cleanFirst = sanitizeText(firstName);
+  if (cleanPhone && cleanFirst) {
     return {
-      phoneNumber,
-      firstName,
-      lastName: lastName ?? "",
+      phoneNumber: cleanPhone,
+      firstName: cleanFirst,
+      lastName: sanitizeText(lastName) ?? "",
       additionalFields: {},
       confidence: "high",
     };
