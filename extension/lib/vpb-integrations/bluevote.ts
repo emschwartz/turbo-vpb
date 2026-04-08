@@ -1,10 +1,10 @@
 import { ContactDetails } from "../types";
-import { findPhoneNumber, findName } from "./generic-scraper";
+import { fallbackScrape } from "./generic-scraper";
 import { sanitizeText, sanitizePhone } from "./sanitize";
 
 export const type = "bluevote";
 
-export function turboVpbContainerLocation() {
+export function turboVpbContainerLocation(): Element | undefined {
   const container = document.querySelector(".caller-info");
   if (!container) {
     return;
@@ -40,25 +40,7 @@ export function scrapeContactDetails(): ContactDetails | undefined {
     };
   }
 
-  // Fallback: use generic heuristics
-  const fallbackPhone = findPhoneNumber(document.body);
-  if (!fallbackPhone) return undefined;
-
-  const telLink =
-    document.body.querySelector<HTMLAnchorElement>(`a[href^="tel:"]`);
-  const fallbackName = telLink ? findName(telLink) : undefined;
-  if (!fallbackName) return undefined;
-
-  console.warn(
-    "TurboVPB: primary selectors failed, using fallback for bluevote",
-  );
-  return {
-    phoneNumber: sanitizePhone(fallbackPhone)!,
-    firstName: sanitizeText(fallbackName.firstName)!,
-    lastName: sanitizeText(fallbackName.lastName) ?? "",
-    additionalFields: {},
-    confidence: "low",
-  };
+  return fallbackScrape("bluevote");
 }
 
 export async function scrapeResultCodes(): Promise<string[] | undefined> {
@@ -92,7 +74,7 @@ export async function markResult(result: string) {
 
 export function onCallResult(
   callback: (contacted: boolean, result?: string) => void | Promise<void>,
-) {
+): void {
   let result: string | null = null;
 
   // Listen for when the result code radio buttons are selected
@@ -118,7 +100,10 @@ export function expectedSelectors(): string[] {
 }
 
 async function sleep() {
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  // Yield to let synchronous DOM updates from click handlers complete.
+  // Cannot use setTimeout or requestAnimationFrame because Firefox
+  // throttles both to ~1000ms in extension content scripts.
+  await Promise.resolve();
 }
 
 function nonContactRadioButtons(): HTMLInputElement[] {

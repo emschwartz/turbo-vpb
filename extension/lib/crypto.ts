@@ -4,7 +4,7 @@ const ENCRYPTION_ALGORITHM = "AES-GCM";
 const BASE64_URL_CHARACTERS =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-export async function generateKey() {
+export async function generateKey(): Promise<CryptoKey> {
   if (!crypto || !crypto.subtle) {
     throw new Error(`SubtleCrypto API is required to generate key`);
   }
@@ -19,12 +19,12 @@ export async function generateKey() {
   );
 }
 
-export async function exportKey(key: CryptoKey) {
+export async function exportKey(key: CryptoKey): Promise<string> {
   const buffer = await crypto.subtle.exportKey("raw", key);
   return encodeBase64Url(buffer);
 }
 
-export async function importKey(key: string) {
+export async function importKey(key: string): Promise<CryptoKey> {
   const buffer = decodeBase64Url(key);
   return crypto.subtle.importKey("raw", buffer, ENCRYPTION_ALGORITHM, true, [
     "encrypt",
@@ -32,7 +32,10 @@ export async function importKey(key: string) {
   ]);
 }
 
-export async function encrypt(encryptionKey: CryptoKey, message: any) {
+export async function encrypt(
+  encryptionKey: CryptoKey,
+  message: any,
+): Promise<Uint8Array<ArrayBuffer>> {
   if (typeof message === "object") {
     message = JSON.stringify(message);
   }
@@ -78,7 +81,7 @@ export async function decrypt<T>(
   return JSON.parse(string);
 }
 
-export function randomId(byteLength: number) {
+export function randomId(byteLength: number): string {
   const array = new Uint8Array(byteLength);
   crypto.getRandomValues(array);
   return [...array].map((byte) => byte.toString(16).padStart(2, "0")).join("");

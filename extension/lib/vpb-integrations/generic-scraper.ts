@@ -1,3 +1,6 @@
+import { ContactDetails } from "../types";
+import { sanitizeText, sanitizePhone } from "./sanitize";
+
 const TURBOVPB_CONTAINER_ID = "turbovpb-insert";
 const PHONE_CONTEXT_REGEX = /phone|call/i;
 const NAME_ELEMENT_SELECTORS = "h1, h2, h3, h4, strong, b";
@@ -64,4 +67,29 @@ export function findName(
   }
 
   return undefined;
+}
+
+/**
+ * Fallback scraper used when platform-specific selectors fail.
+ * Looks for any tel: link and a nearby name-like element.
+ */
+export function fallbackScrape(platform: string): ContactDetails | undefined {
+  const phone = findPhoneNumber(document.body);
+  if (!phone) return undefined;
+
+  const telLink =
+    document.body.querySelector<HTMLAnchorElement>(`a[href^="tel:"]`);
+  const name = telLink ? findName(telLink) : undefined;
+  if (!name) return undefined;
+
+  console.warn(
+    `TurboVPB: primary selectors failed, using fallback for ${platform}`,
+  );
+  return {
+    phoneNumber: sanitizePhone(phone)!,
+    firstName: sanitizeText(name.firstName)!,
+    lastName: sanitizeText(name.lastName) ?? "",
+    additionalFields: {},
+    confidence: "low",
+  };
 }

@@ -271,44 +271,44 @@ export default defineContentScript({
         return true;
       }
       const parent = vpb.turboVpbContainerLocation();
-      if (parent) {
-        console.log("Rendering turbovpb container");
-        const host = document.createElement("div");
-        host.id = "turbovpb-insert";
-        const shadow = host.attachShadow({ mode: "open" });
-
-        // Import the extension's stylesheet into the shadow root
-        const style = document.createElement("link");
-        style.rel = "stylesheet";
-        style.href = browser.runtime.getURL(
-          "/content-scripts/content.css" as PublicPath,
-        );
-        shadow.appendChild(style);
-
-        const mountPoint = document.createElement("div");
-        shadow.appendChild(mountPoint);
-
-        parent.appendChild(host);
-        render(
-          <>
-            <QrCodeInsert
-              hide={state.showQrCodeModal}
-              status={state.status}
-              connectUrl={connectUrl}
-              scrapingConfidence={state.scrapingConfidence}
-            />
-            <QrCodeModal
-              open={state.showQrCodeModal}
-              status={state.status}
-              connectUrl={connectUrl}
-            />
-          </>,
-          mountPoint,
-        );
-        return true;
-      } else {
+      if (!parent) {
         return false;
       }
+
+      console.log("Rendering turbovpb container");
+      const host = document.createElement("div");
+      host.id = "turbovpb-insert";
+      const shadow = host.attachShadow({ mode: "open" });
+
+      // Import the extension's stylesheet into the shadow root
+      const style = document.createElement("link");
+      style.rel = "stylesheet";
+      style.href = browser.runtime.getURL(
+        "/content-scripts/content.css" as PublicPath,
+      );
+      shadow.appendChild(style);
+
+      const mountPoint = document.createElement("div");
+      shadow.appendChild(mountPoint);
+
+      parent.appendChild(host);
+      render(
+        <>
+          <QrCodeInsert
+            hide={state.showQrCodeModal}
+            status={state.status}
+            connectUrl={connectUrl}
+            scrapingConfidence={state.scrapingConfidence}
+          />
+          <QrCodeModal
+            open={state.showQrCodeModal}
+            status={state.status}
+            connectUrl={connectUrl}
+          />
+        </>,
+        mountPoint,
+      );
+      return true;
     }
 
     let connectingPromise: Promise<void> | null = null;

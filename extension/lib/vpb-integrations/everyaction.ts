@@ -1,12 +1,12 @@
 import { ContactDetails } from "../types";
-import { findPhoneNumber, findName } from "./generic-scraper";
+import { fallbackScrape } from "./generic-scraper";
 import { sanitizeText, sanitizePhone } from "./sanitize";
 
 const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i;
 
 export const type = "everyaction";
 
-export function turboVpbContainerLocation() {
+export function turboVpbContainerLocation(): Element | undefined {
   const grid = document.getElementsByClassName("grid-half")[0];
   if (!grid) {
     return;
@@ -64,25 +64,7 @@ export function scrapeContactDetails(): ContactDetails | undefined {
     };
   }
 
-  // Fallback: use generic heuristics
-  const fallbackPhone = findPhoneNumber(document.body);
-  if (!fallbackPhone) return undefined;
-
-  const telLink =
-    document.body.querySelector<HTMLAnchorElement>(`a[href^="tel:"]`);
-  const fallbackName = telLink ? findName(telLink) : undefined;
-  if (!fallbackName) return undefined;
-
-  console.warn(
-    "TurboVPB: primary selectors failed, using fallback for everyaction",
-  );
-  return {
-    phoneNumber: sanitizePhone(fallbackPhone)!,
-    firstName: sanitizeText(fallbackName.firstName)!,
-    lastName: sanitizeText(fallbackName.lastName) ?? "",
-    additionalFields: {},
-    confidence: "low",
-  };
+  return fallbackScrape("everyaction");
 }
 
 export async function scrapeResultCodes(): Promise<string[] | undefined> {
@@ -127,7 +109,7 @@ async function getResultCodes(): Promise<{ [key: string]: HTMLElement }> {
 
 export function onCallResult(
   callback: (contacted: boolean, result?: string) => void | Promise<void>,
-) {
+): void {
   const markerClass = "turbovpb-click-handler";
   const saveNext = saveNextButton();
   if (saveNext && !saveNext.classList.contains(markerClass)) {
@@ -159,7 +141,10 @@ export function expectedSelectors(): string[] {
 }
 
 async function sleep() {
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  // Yield to let synchronous DOM updates from click handlers complete.
+  // Cannot use setTimeout or requestAnimationFrame because Firefox
+  // throttles both to ~1000ms in extension content scripts.
+  await Promise.resolve();
 }
 
 function couldntReachButton() {

@@ -106,16 +106,8 @@ export default class PubSubClient {
     this.ws.close();
   }
 
-  getChannelId() {
-    return this.channelId;
-  }
-
   async exportEncryptionKey() {
     return await exportKey(this.encryptionKey!);
-  }
-
-  disconnect() {
-    this.ws.close();
   }
 
   // Send messages via HTTP POST for immediate delivery confirmation.

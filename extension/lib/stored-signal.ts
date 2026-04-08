@@ -16,10 +16,10 @@ export type StoredSignal<T> = Signal<T> & { loaded: Promise<void> };
  * @param storageKey - The storage key to store the value under.
  * @param defaultValue - The default value to use if the key is not found in storage.
  */
-export const sessionStoredSignal = <T>(
+export function sessionStoredSignal<T>(
   storageKey: string,
   defaultValue: T,
-): StoredSignal<T> => {
+): StoredSignal<T> {
   const s = signal(defaultValue) as StoredSignal<T>;
 
   // Load the previous value from storage.session via the background script.
@@ -53,4 +53,4 @@ export const sessionStoredSignal = <T>(
   });
 
   return s;
-};
+}

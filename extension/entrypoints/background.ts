@@ -1,5 +1,22 @@
 import { browser } from "wxt/browser";
 
+async function injectContentScriptIntoTab(tabId: number): Promise<void> {
+  const [result] = await browser.scripting.executeScript({
+    target: { tabId },
+    func: () => !!document.getElementById("turbovpb-insert"),
+  });
+  if (result?.result) return;
+
+  await browser.scripting.insertCSS({
+    target: { tabId },
+    files: ["/content-scripts/content.css"],
+  });
+  await browser.scripting.executeScript({
+    target: { tabId },
+    files: ["/content-scripts/content.js"],
+  });
+}
+
 export default defineBackground({
   type: "module",
   main() {
@@ -39,19 +56,7 @@ export default defineBackground({
             });
             for (const tab of tabs) {
               if (!tab.id) continue;
-              const [result] = await browser.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: () => !!document.getElementById("turbovpb-insert"),
-              });
-              if (result?.result) continue;
-              await browser.scripting.insertCSS({
-                target: { tabId: tab.id },
-                files: ["/content-scripts/content.css"],
-              });
-              await browser.scripting.executeScript({
-                target: { tabId: tab.id },
-                files: ["/content-scripts/content.js"],
-              });
+              await injectContentScriptIntoTab(tab.id);
             }
             sendResponse(true);
           } catch (err) {
@@ -91,24 +96,7 @@ export default defineBackground({
         if (!hasPermission) continue;
 
         try {
-          // Check if content script is already injected
-          const [result] = await browser.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => !!document.getElementById("turbovpb-insert"),
-          });
-          if (result?.result) {
-            console.log("Content script already injected in tab:", tab.id);
-            continue;
-          }
-
-          await browser.scripting.insertCSS({
-            target: { tabId: tab.id },
-            files: ["/content-scripts/content.css"],
-          });
-          await browser.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ["/content-scripts/content.js"],
-          });
+          await injectContentScriptIntoTab(tab.id);
           console.log("Injected content script into tab:", tab.id, tab.url);
         } catch (err) {
           console.error(

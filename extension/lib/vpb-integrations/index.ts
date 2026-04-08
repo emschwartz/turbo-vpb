@@ -55,6 +55,12 @@ export function selectPhonebankType(
  */
 export function selectIntegration(url = window.location.href): VpbIntegration {
   const type = selectPhonebankType(url);
+  if (!type) {
+    console.warn(
+      "TurboVPB: could not detect phonebank type from URL, falling back to everyaction:",
+      url,
+    );
+  }
   return integrations[type || "everyaction"];
 }
 

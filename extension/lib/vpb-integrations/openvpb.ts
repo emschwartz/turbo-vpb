@@ -1,12 +1,12 @@
 import { ContactDetails } from "../types";
-import { findPhoneNumber, findName } from "./generic-scraper";
+import { fallbackScrape } from "./generic-scraper";
 import { sanitizeText, sanitizePhone } from "./sanitize";
 
 const DESIGNATED_CONTACT_REGEX = /designated[ _-]?contact/i;
 
 export const type = "openvpb";
 
-export function turboVpbContainerLocation() {
+export function turboVpbContainerLocation(): Element | undefined {
   const container = document.getElementById("openvpbsidebarcontainer");
   if (!container) {
     return;
@@ -67,25 +67,7 @@ export function scrapeContactDetails(): ContactDetails | undefined {
     };
   }
 
-  // Fallback: use generic heuristics
-  const fallbackPhone = findPhoneNumber(document.body);
-  if (!fallbackPhone) return undefined;
-
-  const telLink =
-    document.body.querySelector<HTMLAnchorElement>(`a[href^="tel:"]`);
-  const fallbackName = telLink ? findName(telLink) : undefined;
-  if (!fallbackName) return undefined;
-
-  console.warn(
-    "TurboVPB: primary selectors failed, using fallback for openvpb",
-  );
-  return {
-    phoneNumber: sanitizePhone(fallbackPhone)!,
-    firstName: sanitizeText(fallbackName.firstName)!,
-    lastName: sanitizeText(fallbackName.lastName) ?? "",
-    additionalFields: {},
-    confidence: "low",
-  };
+  return fallbackScrape("openvpb");
 }
 
 // The result codes are in the following format:
@@ -130,7 +112,7 @@ export async function markResult(resultCode: string) {
 
 export function onCallResult(
   callback: (contacted: boolean, result?: string) => void | Promise<void>,
-) {
+): void {
   // Determine which call result is selected
   const handler = () => {
     const selectedRadioButton = document.querySelector(

@@ -65,8 +65,6 @@ export type ExtensionSettings = {
   serverUrl?: string;
 };
 
-export type SiteStatus = "enabled" | "disabled" | "unsupported";
-
 export type ConnectionStatus =
   | "connectingToServer"
   | "waitingForMessage"
