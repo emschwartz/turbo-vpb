@@ -17,6 +17,9 @@ export default defineConfig({
     version: "0.11.3",
     author: "Evan Schwartz",
     homepage_url: "https://turbovpb.com",
+    content_security_policy: {
+      extension_pages: "script-src 'self'; object-src 'none'",
+    },
     permissions: ["activeTab", "scripting", "storage"],
     host_permissions: [
       "https://www.openvpb.com/*",
