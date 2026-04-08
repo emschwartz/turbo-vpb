@@ -20,6 +20,12 @@ export default defineConfig({
     content_security_policy: {
       extension_pages: "script-src 'self'; object-src 'none'",
     },
+    web_accessible_resources: [
+      {
+        resources: ["content-scripts/content.css"],
+        matches: ["<all_urls>"],
+      },
+    ],
     permissions: ["activeTab", "scripting", "storage"],
     host_permissions: [
       "https://www.openvpb.com/*",

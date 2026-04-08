@@ -27,6 +27,7 @@ import {
 import "../../assets/main.css";
 
 export default defineContentScript({
+  cssInjectionMode: "manual",
   matches: [
     "https://www.openvpb.com/VirtualPhoneBank*",
     "https://*.everyaction.com/ContactDetailScript*",
