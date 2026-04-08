@@ -204,9 +204,9 @@ if (document.readyState !== 'loading') {
     displayError(err)
   })
 } else {
-  console.log('document not yet ready, waiting for start event')
+  console.log('document not yet ready, waiting for DOMContentLoaded')
   async function onLoad() {
-    document.removeEventListener('load', onLoad)
+    document.removeEventListener('DOMContentLoaded', onLoad)
     try {
       await start()
     } catch (err) {
@@ -214,7 +214,7 @@ if (document.readyState !== 'loading') {
     }
   }
 
-  document.addEventListener('load', onLoad)
+  document.addEventListener('DOMContentLoaded', onLoad)
 }
 
 async function start(): Promise<void> {
@@ -521,7 +521,7 @@ async function handleExtensionMessage(data: ExtensionMessage): Promise<void> {
 
     // New contact
     if (newPhoneNumber !== phoneNumber) {
-      saveCallStats()
+      await saveCallStats()
     }
 
     // Show the contact if it's a new one or we aren't waiting for a new one
@@ -855,11 +855,11 @@ async function saveCallStats(): Promise<void> {
     await Promise.all(requests)
   } catch (err) {
     console.error('Error saving call stats', err)
+  } finally {
+    lastCallDuration = 0
+    lastCallResult = null
+    lastCallStartTime = null
   }
-
-  lastCallDuration = 0
-  lastCallResult = null
-  lastCallStartTime = null
 }
 
 
@@ -1015,6 +1015,7 @@ async function fetchRetry(url: string, params: RequestInit, times = 3): Promise<
         return response
       } else {
         console.error('fetch response was not ok')
+        error = new Error(`HTTP ${response.status}`)
       }
     } catch (err) {
       error = err
