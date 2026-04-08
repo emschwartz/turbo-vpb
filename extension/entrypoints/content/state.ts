@@ -52,6 +52,13 @@ export const serverUrl = computed(() => {
   return url || DEFAULT_SERVER_URL;
 });
 
+// SECURITY NOTE: The encryption key is placed in the URL fragment (hash)
+// so the server never receives it. Accepted tradeoffs:
+// - The key is visible in the QR code displayed on the phone bank page
+// - Browser history stores the full URL including the hash
+// - Other extensions with tabs permission can read the URL
+// This is an intentional design choice: fragment-based key exchange avoids
+// server-side key exposure, and the QR code is the primary pairing mechanism.
 export const connectUrl = computed(() => {
   const details = state.connectionDetails.value;
   if (!details) {
