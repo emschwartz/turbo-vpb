@@ -23,7 +23,7 @@ export default defineConfig({
       "https://*.everyaction.com/*",
       "https://www.votebuilder.com/*",
       "https://phonebank.bluevote.com/*",
-      "*://*.turbovpb.com/*",
+      "https://*.turbovpb.com/*",
       "https://*/ContactDetailScript",
       ...(mode === "development"
         ? ["http://localhost/*", "http://localhost:8080/*"]
