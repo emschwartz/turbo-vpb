@@ -230,10 +230,11 @@ class PeerManager {
       console.log('connecting to:', url)
       let startTime = Date.now()
       let openTime: number | undefined
+      let reconnectedFromError = false
       this.ws = new WebSocket(url)
       this.ws.binaryType = 'arraybuffer'
 
-      this.ws.onopen = () => {
+      this.ws.onopen = async () => {
         openTime = Date.now()
         console.log(`websocket open (took ${Date.now() - startTime}ms)`)
 
@@ -241,7 +242,12 @@ class PeerManager {
 
         // We only consider it connected when we get a message from the extension
         this.onreconnecting('Extension')
-        this.sendMessage({ type: 'connect' })
+        const sent = await this.sendMessage({ type: 'connect' })
+        if (!sent) {
+          console.error('Failed to send connect message, triggering reconnect')
+          this.pubsubState = PubSubState.CLOSED
+          this.reconnect(new Error('Failed to send connect message'))
+        }
       }
       this.ws.onclose = (event: CloseEvent) => {
         const reason = event ? event.reason : ''
@@ -252,7 +258,9 @@ class PeerManager {
         }
         startTime = Date.now()
         this.pubsubState = PubSubState.CLOSED
-        this.reconnect(new Error(`WebSocket closed (reason: ${reason || 'unknown'})`))
+        if (!reconnectedFromError) {
+          this.reconnect(new Error(`WebSocket closed (reason: ${reason || 'unknown'})`))
+        }
       }
       this.ws.onerror = (event: Event) => {
         let err: Error
@@ -278,10 +286,11 @@ class PeerManager {
         this.pubsubState = PubSubState.CLOSED
 
         if (this.ws!.readyState !== WebSocket.CONNECTING) {
+          reconnectedFromError = true
           this.reconnect(err)
+        } else {
+          reject(err)
         }
-
-        reject(err)
       }
       this.ws.onmessage = async ({ data }: MessageEvent) => {
         try {
