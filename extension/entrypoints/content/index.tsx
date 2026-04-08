@@ -274,7 +274,7 @@ export default defineContentScript({
         console.log("Rendering turbovpb container");
         const host = document.createElement("div");
         host.id = "turbovpb-insert";
-        const shadow = host.attachShadow({ mode: "closed" });
+        const shadow = host.attachShadow({ mode: "open" });
 
         // Import the extension's stylesheet into the shadow root
         const style = document.createElement("link");
