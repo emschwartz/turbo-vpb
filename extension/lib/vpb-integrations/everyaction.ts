@@ -77,9 +77,9 @@ export function scrapeContactDetails(): ContactDetails | undefined {
     "TurboVPB: primary selectors failed, using fallback for everyaction",
   );
   return {
-    phoneNumber: fallbackPhone,
-    firstName: fallbackName.firstName,
-    lastName: fallbackName.lastName,
+    phoneNumber: sanitizePhone(fallbackPhone)!,
+    firstName: sanitizeText(fallbackName.firstName)!,
+    lastName: sanitizeText(fallbackName.lastName) ?? "",
     additionalFields: {},
     confidence: "low",
   };
