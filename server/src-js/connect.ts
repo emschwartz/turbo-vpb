@@ -160,6 +160,7 @@ let extensionAway = false
 let messageTemplates: MessageTemplate[] = []
 let phoneNumber: string | undefined
 let firstName: string | undefined
+let lastName: string | undefined
 let additionalFields: Record<string, string> | null = null
 let yourName = ''
 // resultCode -> number of times used
@@ -549,18 +550,22 @@ async function handleExtensionMessage(data: ExtensionMessage): Promise<void> {
       newPhoneNumber = '1' + newPhoneNumber
     }
 
-    // New contact
-    if (newPhoneNumber !== phoneNumber) {
+    // New contact (people in the same household can share a phone number)
+    const isNewContact = newPhoneNumber !== phoneNumber
+      || data.contact.firstName !== firstName
+      || data.contact.lastName !== lastName
+    if (isNewContact) {
       await saveCallStats()
     }
 
     // Show the contact if it's a new one or we aren't waiting for a new one
-    if (newPhoneNumber !== phoneNumber || !waitForNewContact) {
+    if (isNewContact || !waitForNewContact) {
       waitForNewContact = false
       clearTimeout(loadingTimer)
 
       phoneNumber = newPhoneNumber
       firstName = data.contact.firstName
+      lastName = data.contact.lastName
 
       if (data.contact.additionalFields && typeof data.contact.additionalFields === 'object') {
         const details: Record<string, string> = {}
