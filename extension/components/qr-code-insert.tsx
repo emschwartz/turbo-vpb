@@ -30,7 +30,7 @@ const QrCodeInsert: FunctionComponent<{
             <summary class="cursor-pointer">Show QR code</summary>
             <ConnectQrCode connectUrl={connectUrl} size={200} />
           </details>
-        ) : status.value !== "connected" ? (
+        ) : status.value !== "connected" && status.value !== "reloadPage" ? (
           <ConnectQrCode connectUrl={connectUrl} size={200} />
         ) : null}
       </div>

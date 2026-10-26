@@ -72,4 +72,7 @@ export type ConnectionStatus =
   // switched to the dialer or messaging app)
   | "phoneAway"
   | "connected"
-  | "disconnected";
+  | "disconnected"
+  // The extension was updated or reloaded, which cuts off the content script
+  // already running in the page, so the page has to be reloaded
+  | "reloadPage";

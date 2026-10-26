@@ -175,3 +175,57 @@ test("call result is marked in the tab showing that contact when two phone bank 
     await secondTab.close();
   }
 });
+
+test("call results aren't marked against a stale contact after the extension is updated", async () => {
+  // Its own browser, since reloading the extension affects every tab
+  const context = await chromium.launchPersistentContext("", {
+    headless: false,
+    args: [
+      `--disable-extensions-except=${EXTENSION_PATH}`,
+      `--load-extension=${EXTENSION_PATH}`,
+      "--no-first-run",
+      "--disable-gpu",
+      "--no-default-browser-check",
+    ],
+  });
+  try {
+    let serviceWorker = context.serviceWorkers()[0];
+    if (!serviceWorker) {
+      serviceWorker = await context.waitForEvent("serviceworker");
+    }
+    await serviceWorker.evaluate(
+      (serverUrl) =>
+        (globalThis as any).chrome.storage.local.set({ serverUrl }),
+      SERVER_URL,
+    );
+    const phonebankPage = await context.newPage();
+    await phonebankPage.goto(`${SERVER_URL}/test-phonebank`);
+    const phone = await connectPhone(await getConnectUrl(phonebankPage));
+    try {
+      await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+
+      // The browser updates the extension mid-shift. The content script
+      // already running in the tab is cut off from the extension: it stops
+      // seeing new contacts on the page and can't save anything.
+      await serviceWorker.evaluate(() =>
+        (globalThis as any).chrome.runtime.reload(),
+      );
+      const sidebar = phonebankPage.locator("#turbovpb-insert");
+      await expect(sidebar).toContainText("Reload the page", {
+        timeout: 10_000,
+      });
+      await expect(phone.page.locator("#status")).toHaveText(
+        "Extension disconnected",
+        { timeout: 10_000 },
+      );
+
+      // So the volunteer can't tap results that would be marked against
+      // whichever contact the page has moved on to
+      await expect(phone.page.locator("#contact-details")).toBeHidden();
+    } finally {
+      await phone.browser.close();
+    }
+  } finally {
+    await context.close();
+  }
+});

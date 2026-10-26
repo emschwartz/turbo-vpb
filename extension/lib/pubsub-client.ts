@@ -103,7 +103,7 @@ export default class PubSubClient {
   }
 
   close() {
-    this.ws.close();
+    this.ws?.close();
   }
 
   async exportEncryptionKey() {
