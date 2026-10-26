@@ -39,8 +39,6 @@ const MESSAGE_TEMPLATES = [
     label: "Quick Text",
     message: "Hi [their name], just reaching out!",
     sendTextedResult: true,
-    // The connect page uses the "result" field for auto-save
-    result: "Texted",
   },
 ];
 
@@ -278,7 +276,7 @@ test("text message with auto-save sends call result and loads next contact", asy
     // Note which contact is currently loaded
     const currentName = await connectPage.locator("#name").textContent();
 
-    // Click the "Quick Text" link which has result: "Texted" (auto-save enabled)
+    // Click the "Quick Text" link, which has "Select Texted result code" on
     // Prevent the default navigation to sms:// which would fail in the test browser
     const quickTextLink = textLinks.nth(1);
     await quickTextLink.evaluate((el: HTMLAnchorElement) => {
@@ -296,6 +294,7 @@ test("text message with auto-save sends call result and loads next contact", asy
     // which will mark the result and load the next contact
     const connectName = connectPage.locator("#name");
     await expect(connectName).not.toHaveText(currentName, { timeout: 15_000 });
+    await expect(phonebankPage.locator("#texted")).toBeChecked();
   } finally {
     await connectBrowser.close();
   }

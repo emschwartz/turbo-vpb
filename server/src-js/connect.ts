@@ -4,6 +4,9 @@ declare const confetti: { start(duration: number, pieces: number): void } | unde
 interface MessageTemplate {
   label: string
   message: string
+  // Set by the extension's "Select Texted result code" option
+  sendTextedResult?: boolean
+  // Older format of the same option
   result?: string
 }
 
@@ -637,7 +640,8 @@ function createTextMessageLinks(
   } else {
     document.getElementById('text-message-instructions')!.setAttribute('hidden', 'true')
   }
-  for (const { label, message, result } of messageTemplates) {
+  for (const { label, message, sendTextedResult, ...template } of messageTemplates) {
+    const result = template.result || (sendTextedResult ? 'Texted' : undefined)
     const a = document.createElement('a')
     a.className = 'block w-full border border-slate-300 hover:border-slate-400 text-slate-700 text-center rounded-lg py-3 my-3 font-medium no-underline'
     a.role = 'button'

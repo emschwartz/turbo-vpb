@@ -65,7 +65,6 @@ const MESSAGE_TEMPLATES = [
     label: "Quick Text",
     message: "Hi [their name], just reaching out!",
     sendTextedResult: true,
-    result: "Texted",
   },
 ];
 
