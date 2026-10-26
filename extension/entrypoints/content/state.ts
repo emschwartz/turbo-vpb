@@ -142,15 +142,20 @@ export function handlePhoneConnected() {
 
 // The phone's socket drops every time the volunteer switches to the dialer
 // or messaging app, and it reconnects on its own when they switch back.
-// So once paired, a disconnect only updates the status (the sidebar insert
-// shows the QR code again) instead of covering the page with the modal.
+// So once paired, a disconnect only updates the status instead of covering
+// the page with the modal.
 export function handlePhoneDisconnected() {
   batch(() => {
-    setStatus("waitingForMessage");
+    setWaitingForPhone();
     if (!isPaired.value) {
       showQrCodeModal();
     }
   });
+}
+
+// Connected to the server but not (yet) to the phone
+export function setWaitingForPhone() {
+  setStatus(isPaired.value ? "phoneAway" : "waitingForMessage");
 }
 
 export function setLastCallResult(contacted: boolean, result?: string) {
@@ -241,5 +246,6 @@ function contactsAreEqual(
 export const isConnectedToServer = computed(
   () =>
     state.status.value === "connected" ||
-    state.status.value === "waitingForMessage",
+    state.status.value === "waitingForMessage" ||
+    state.status.value === "phoneAway",
 );

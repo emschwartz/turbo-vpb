@@ -26,6 +26,7 @@ import {
   autoShowQrCodeModal,
   handlePhoneConnected,
   handlePhoneDisconnected,
+  setWaitingForPhone,
 } from "./state";
 import "../../assets/main.css";
 
@@ -354,7 +355,7 @@ export default defineContentScript({
       client.onopen = async () => {
         console.log("connected");
         if (!gotMessageSinceLastReconnect) {
-          setStatus("waitingForMessage");
+          setWaitingForPhone();
         }
 
         // Send a message to the browser in case we reloaded the page

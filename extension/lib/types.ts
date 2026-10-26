@@ -68,5 +68,8 @@ export type ExtensionSettings = {
 export type ConnectionStatus =
   | "connectingToServer"
   | "waitingForMessage"
+  // Paired, but the phone is temporarily disconnected (e.g. the volunteer
+  // switched to the dialer or messaging app)
+  | "phoneAway"
   | "connected"
   | "disconnected";
