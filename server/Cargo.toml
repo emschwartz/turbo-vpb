@@ -28,6 +28,9 @@ tower-http = { version = "0.6", features = ["compression-full", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+[dev-dependencies]
+tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect"] }
+
 [profile.release]
 lto = true
 codegen-units = 1

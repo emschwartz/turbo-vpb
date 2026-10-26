@@ -1274,6 +1274,7 @@ dependencies = [
  "tinytemplate",
  "tokio",
  "tokio-rusqlite",
+ "tokio-tungstenite",
  "tower",
  "tower-http",
  "tracing",

@@ -360,10 +360,10 @@ test("multiple contacts cycle correctly with stats", async () => {
 });
 
 test("connect page shows session complete when phonebank page closes", async () => {
-  const pbPage = await firefoxContext.newPage();
-  await pbPage.goto(`${SERVER_URL}/test-phonebank`);
-
-  const connectUrl = await getConnectUrl(pbPage);
+  // Every phonebank tab in this browser session shares the same channel
+  // (via storage.session), and the phone stays connected as long as one of
+  // them is open. So close the only one, and reopen it for the other tests.
+  const connectUrl = await getConnectUrl(phonebankPage);
   const { browser: connectBrowser, page: connectPage } =
     await openConnectPage(connectUrl);
 
@@ -372,7 +372,7 @@ test("connect page shows session complete when phonebank page closes", async () 
       timeout: 15_000,
     });
 
-    await pbPage.close();
+    await phonebankPage.close();
 
     await expect(connectPage.locator("#status")).toHaveText("Session Complete", {
       timeout: 15_000,
@@ -380,6 +380,10 @@ test("connect page shows session complete when phonebank page closes", async () 
     await expect(connectPage.locator("#session-ended")).toBeVisible();
   } finally {
     await connectBrowser.close();
+    if (phonebankPage.isClosed()) {
+      phonebankPage = await firefoxContext.newPage();
+      await phonebankPage.goto(`${SERVER_URL}/test-phonebank`);
+    }
   }
 });
 

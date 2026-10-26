@@ -27,6 +27,11 @@ struct Channel {
     /// Keep track of the number of open channel so we can drop the
     /// channel record when the last connection is dropped.
     num_connections: usize,
+    /// Open connections per side. A side can briefly have two connections,
+    /// e.g. when a phone reconnects after switching networks before the
+    /// server notices that the old socket is dead.
+    extension_connections: usize,
+    browser_connections: usize,
     channel_created_at: std::time::Instant,
     created_by_identity: &'static str,
     // Version <=0.9.6 of the extension expects the server to store
@@ -37,12 +42,23 @@ struct Channel {
     last_browser_message: Arc<Mutex<Option<Message>>>,
 }
 
+impl Channel {
+    fn connections_mut(&mut self, identity: Identity) -> &mut usize {
+        match identity {
+            Identity::Extension => &mut self.extension_connections,
+            Identity::Browser => &mut self.browser_connections,
+        }
+    }
+}
+
 impl Default for Channel {
     fn default() -> Self {
         Self {
             extension: channel(CHANNEL_CAPACITY).0,
             browser: channel(CHANNEL_CAPACITY).0,
             num_connections: 0,
+            extension_connections: 0,
+            browser_connections: 0,
             channel_created_at: Instant::now(),
             created_by_identity: "extension",
             last_browser_message: Default::default(),
@@ -133,6 +149,7 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
             return;
         }
         channel.num_connections += 1;
+        *channel.connections_mut(identity) += 1;
 
         match identity {
             Identity::Extension => (
@@ -248,13 +265,19 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
 
     debug!("websocket closed");
 
-    // Notify the other side that this peer disconnected
-    if let Some(channel) = state.get(&channel_id) {
-        let notify_sender = match identity {
-            Identity::Extension => &channel.browser,
-            Identity::Browser => &channel.extension,
-        };
-        let _ = notify_sender.send(Message::Text(r#"{"type":"peerDisconnected"}"#.into()));
+    // Notify the other side that this peer disconnected, unless this side
+    // still has another connection open (e.g. a stale socket closing after
+    // the peer already reconnected on a new one)
+    if let Some(mut channel) = state.get_mut(&channel_id) {
+        let connections = channel.connections_mut(identity);
+        *connections = connections.saturating_sub(1);
+        if *connections == 0 {
+            let notify_sender = match identity {
+                Identity::Extension => &channel.browser,
+                Identity::Browser => &channel.extension,
+            };
+            let _ = notify_sender.send(Message::Text(r#"{"type":"peerDisconnected"}"#.into()));
+        }
     }
 
     // Remove the channel record atomically when the last connection is dropped
@@ -334,5 +357,104 @@ async fn disconnect_channel(
         StatusCode::OK
     } else {
         StatusCode::NOT_FOUND
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::net::{TcpListener, TcpStream};
+    use tokio::time::timeout;
+    use tokio_tungstenite::{connect_async, tungstenite, MaybeTlsStream, WebSocketStream};
+
+    type Client = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
+    async fn start_server() -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, router()).await.unwrap() });
+        format!("ws://{addr}/api/channels/test-channel")
+    }
+
+    async fn connect(base: &str, identity: &str) -> Client {
+        let (ws, _) = connect_async(format!("{base}/{identity}")).await.unwrap();
+        ws
+    }
+
+    /// Waits for the next text (control) message, ignoring pings
+    async fn next_control_message(ws: &mut Client, wait: Duration) -> Option<String> {
+        timeout(wait, async {
+            while let Some(message) = ws.next().await {
+                if let tungstenite::Message::Text(text) = message.unwrap() {
+                    return text.to_string();
+                }
+            }
+            panic!("websocket closed");
+        })
+        .await
+        .ok()
+    }
+
+    // Give the server time to register a connection or a close
+    async fn settle() {
+        sleep(Duration::from_millis(100)).await;
+    }
+
+    #[tokio::test]
+    async fn notifies_extension_when_phone_disconnects() {
+        let base = start_server().await;
+        let mut extension = connect(&base, "extension").await;
+        let phone = connect(&base, "browser").await;
+        settle().await;
+
+        drop(phone);
+
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(r#"{"type":"peerDisconnected"}"#.to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn stale_phone_socket_closing_does_not_notify_extension() {
+        let base = start_server().await;
+        let mut extension = connect(&base, "extension").await;
+        // The phone reconnected (e.g. after switching networks during a
+        // call) before the server noticed its old socket was gone
+        let mut old_phone = connect(&base, "browser").await;
+        let new_phone = connect(&base, "browser").await;
+        settle().await;
+
+        old_phone.close(None).await.unwrap();
+
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_millis(500)).await,
+            None,
+            "extension was told the phone disconnected while it is still connected"
+        );
+
+        // Once the phone's last connection closes, the extension is notified
+        drop(new_phone);
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(r#"{"type":"peerDisconnected"}"#.to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn stale_extension_socket_closing_does_not_notify_phone() {
+        let base = start_server().await;
+        let mut phone = connect(&base, "browser").await;
+        let mut old_extension = connect(&base, "extension").await;
+        let _new_extension = connect(&base, "extension").await;
+        settle().await;
+
+        old_extension.close(None).await.unwrap();
+
+        assert_eq!(
+            next_control_message(&mut phone, Duration::from_millis(500)).await,
+            None,
+            "phone was told the extension disconnected while it is still connected"
+        );
     }
 }
