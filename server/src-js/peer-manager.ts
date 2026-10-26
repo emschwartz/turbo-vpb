@@ -108,6 +108,13 @@ class PeerManager {
     if (++this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
       console.error('exceeded max number of reconnect attempts')
 
+      // Reset so a later reconnect (e.g. when the page becomes visible
+      // again) starts over instead of waiting on this attempt forever
+      this.isConnecting = false
+      this.reconnectAttempts = 0
+      this.reconnectDelay = RECONNECT_DELAY_START
+      this.resolveReconnects()
+
       if (err) {
         this.onerror(err)
       } else {
@@ -136,6 +143,7 @@ class PeerManager {
 
     if (this.isConnected()) {
       console.log('already connected')
+      this.isConnecting = false
     } else {
       console.log('connecting via websocket')
 
@@ -149,8 +157,12 @@ class PeerManager {
       }
     }
 
-    // Resolve all of the reconnect calls that were
-    // called while we were already reconnecting
+    this.resolveReconnects()
+  }
+
+  // Resolve all of the reconnect calls that were
+  // called while we were already reconnecting
+  private resolveReconnects(): void {
     let resolve: (() => void) | undefined
     while ((resolve = this.reconnectResolves.pop())) {
       resolve()
@@ -230,7 +242,22 @@ class PeerManager {
       console.log('connecting to:', url)
       let startTime = Date.now()
       let openTime: number | undefined
-      let reconnectedFromError = false
+      let settled = false
+      let failed = false
+      // Until this promise settles, connect() is waiting on it with
+      // isConnecting set, so a failure must reject it (connect() then retries).
+      // Calling reconnect() instead would wait for that connect() forever.
+      const handleFailure = (err: Error) => {
+        this.pubsubState = PubSubState.CLOSED
+        if (failed) return
+        failed = true
+        if (!settled) {
+          settled = true
+          reject(err)
+        } else {
+          this.reconnect(err)
+        }
+      }
       this.ws = new WebSocket(url)
       this.ws.binaryType = 'arraybuffer'
 
@@ -245,8 +272,7 @@ class PeerManager {
         const sent = await this.sendMessage({ type: 'connect' })
         if (!sent) {
           console.error('Failed to send connect message, triggering reconnect')
-          this.pubsubState = PubSubState.CLOSED
-          this.reconnect(new Error('Failed to send connect message'))
+          handleFailure(new Error('Failed to send connect message'))
         }
       }
       this.ws.onclose = (event: CloseEvent) => {
@@ -257,10 +283,7 @@ class PeerManager {
           console.warn(`websocket closed. reason: ${reason}`)
         }
         startTime = Date.now()
-        this.pubsubState = PubSubState.CLOSED
-        if (!reconnectedFromError) {
-          this.reconnect(new Error(`WebSocket closed (reason: ${reason || 'unknown'})`))
-        }
+        handleFailure(new Error(`WebSocket closed (reason: ${reason || 'unknown'})`))
       }
       this.ws.onerror = (event: Event) => {
         let err: Error
@@ -283,14 +306,7 @@ class PeerManager {
         } else {
           console.error('websocket error', event)
         }
-        this.pubsubState = PubSubState.CLOSED
-
-        if (this.ws!.readyState !== WebSocket.CONNECTING) {
-          reconnectedFromError = true
-          this.reconnect(err)
-        } else {
-          reject(err)
-        }
+        handleFailure(err)
       }
       this.ws.onmessage = async ({ data }: MessageEvent) => {
         try {
@@ -315,6 +331,7 @@ class PeerManager {
           if (this.pubsubState !== PubSubState.CONNECTED) {
             this.onconnect()
             this.pubsubState = PubSubState.CONNECTED
+            settled = true
             resolve()
           }
 
