@@ -400,8 +400,16 @@ export default defineContentScript({
         }
       };
 
-      await client.connect();
-      await setPubsubClient(client);
+      try {
+        await client.connect();
+      } finally {
+        // The first connection attempt can fail (e.g. the network is still
+        // coming back after the laptop wakes up), but the WebSocket keeps
+        // retrying in the background. Register the client anyway so the
+        // QR code is shown and contacts and call results are sent once it
+        // connects, instead of only after the next page load.
+        await setPubsubClient(client);
+      }
     }
 
     // Dev-only: allow tests to set extension storage from the page context

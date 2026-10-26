@@ -7,6 +7,8 @@ import {
   Page,
   WebSocketRoute,
 } from "@playwright/test";
+import http from "http";
+import net from "net";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -319,5 +321,99 @@ test("phone reconnects when it returns after failing to reconnect in the backgro
     await markResultOnPhoneAndExpectNextContact(phone);
   } finally {
     await phone.browser.close();
+  }
+});
+
+/**
+ * A proxy in front of the test server that can refuse WebSocket
+ * connections, to simulate the server being briefly unreachable.
+ */
+async function startProxy() {
+  let refuseWebSockets = false;
+  const target = { host: "127.0.0.1", port: Number(SERVER_PORT) };
+  const server = http.createServer((req, res) => {
+    const upstream = http.request(
+      { ...target, method: req.method, path: req.url, headers: req.headers },
+      (upstreamRes) => {
+        res.writeHead(upstreamRes.statusCode ?? 502, upstreamRes.headers);
+        upstreamRes.pipe(res);
+      },
+    );
+    upstream.on("error", () => res.destroy());
+    req.pipe(upstream);
+  });
+  server.on("upgrade", (req, socket, head) => {
+    if (refuseWebSockets) {
+      socket.destroy();
+      return;
+    }
+    const upstream = net.connect(target, () => {
+      let request = `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`;
+      for (let i = 0; i < req.rawHeaders.length; i += 2) {
+        request += `${req.rawHeaders[i]}: ${req.rawHeaders[i + 1]}\r\n`;
+      }
+      upstream.write(request + "\r\n");
+      upstream.write(head);
+      upstream.pipe(socket);
+      socket.pipe(upstream);
+    });
+    upstream.on("error", () => socket.destroy());
+    upstream.on("close", () => socket.destroy());
+    socket.on("error", () => upstream.destroy());
+    socket.on("close", () => upstream.destroy());
+  });
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const { port } = server.address() as net.AddressInfo;
+  return {
+    url: `http://localhost:${port}`,
+    setRefuseWebSockets: (refuse: boolean) => {
+      refuseWebSockets = refuse;
+    },
+    close: () => {
+      server.closeAllConnections();
+      server.close();
+    },
+  };
+}
+
+test("extension recovers when its first connection to the server fails", async () => {
+  // Fresh context, so there is no stored channel from an earlier page load
+  const proxy = await startProxy();
+  const context = await launchExtensionContext(proxy.url);
+  try {
+    // e.g. VAN loads the page while the laptop is still reconnecting to
+    // Wi-Fi after waking up
+    proxy.setRefuseWebSockets(true);
+    const page = await context.newPage();
+    await page.goto(`${proxy.url}/test-phonebank`);
+    await expect(sidebarInsert(page)).toContainText("Reconnecting", {
+      timeout: 15_000,
+    });
+
+    proxy.setRefuseWebSockets(false);
+
+    await expect(sidebarInsert(page)).toContainText(
+      "Scan QR code to connect",
+      { timeout: 20_000 },
+    );
+    const phone = await connectPhone(await getConnectUrl(page));
+    try {
+      await expect(sidebarInsert(page)).toContainText("Connected");
+
+      // Call results are answered with the next contact
+      await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+      await phone.page
+        .locator("#call-result-links button", { hasText: "Left Voicemail" })
+        .click();
+      await expect(page.locator("#contactName")).toHaveText(SECOND_CONTACT);
+      await expect(phone.page.locator("#name")).toHaveText(SECOND_CONTACT, {
+        timeout: 8_000,
+      });
+    } finally {
+      await phone.browser.close();
+    }
+  } finally {
+    await context.close();
+    proxy.close();
   }
 });
