@@ -263,6 +263,33 @@ test("message template placeholders are substituted on connect page", async () =
   }
 });
 
+test("connect page records stats under the extension's session", async () => {
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const sessionId = new URL(connectUrl).searchParams.get("sessionId");
+  expect(sessionId).toBeTruthy();
+  const { browser: connectBrowser, page: connectPage } =
+    await openConnectPage(connectUrl);
+
+  try {
+    const textLinks = connectPage.locator("#text-message-links a");
+    await expect(textLinks).toHaveCount(2, { timeout: 15_000 });
+    const introLink = textLinks.nth(0);
+    await introLink.evaluate((el: HTMLAnchorElement) => {
+      el.addEventListener("click", (e) => e.preventDefault(), {
+        capture: true,
+        once: true,
+      });
+    });
+    const statsRequest = connectPage.waitForRequest(/\/api\/stats\//);
+    await introLink.click();
+    expect(new URL((await statsRequest).url()).pathname).toBe(
+      `/api/stats/sessions/${sessionId}/texts`,
+    );
+  } finally {
+    await connectBrowser.close();
+  }
+});
+
 test("text message with auto-save sends call result and loads next contact", async () => {
   const connectUrl = await getConnectUrl(phonebankPage);
   const { browser: connectBrowser, page: connectPage } =
