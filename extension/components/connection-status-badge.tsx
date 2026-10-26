@@ -45,6 +45,14 @@ const ConnectionStatusBadge: FunctionComponent<{
         Reconnecting...
       </span>
     );
+  } else if (status === "reloadPage") {
+    return (
+      <span
+        className={`rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-800 text-center ${className}`}
+      >
+        TurboVPB was updated. Reload the page to reconnect.
+      </span>
+    );
   }
 };
 

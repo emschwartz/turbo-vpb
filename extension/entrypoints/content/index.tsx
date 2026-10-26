@@ -367,6 +367,21 @@ export default defineContentScript({
       );
       let gotMessageSinceLastReconnect = false;
 
+      // When the extension is updated or reloaded, this script is cut off
+      // from it: it stops seeing new contacts and can't save anything, so it
+      // would mark the phone's results against a stale contact. Stop
+      // handling them. Reloading the page loads the new version.
+      ctx.onInvalidated(() => {
+        client.onclose = () => {};
+        client.onerror = () => {};
+        client.onmessage = () => {};
+        client.close();
+        batch(() => {
+          setStatus("reloadPage");
+          hideQrCodeModal();
+        });
+      });
+
       // Handle pubsub events
       client.onopen = async () => {
         console.log("connected");
