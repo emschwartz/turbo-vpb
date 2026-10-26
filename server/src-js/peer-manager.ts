@@ -1,8 +1,10 @@
 const FINAL_ERRORS = ['browser-incompatible', 'invalid-id', 'invalid-key', 'ssl-unavailable', 'unavailable-id']
 
-const RECONNECT_BACKOFF = 10
-const RECONNECT_DELAY_START = 25
-const MAX_RECONNECT_ATTEMPTS = 2
+const RECONNECT_BACKOFF = 2
+const RECONNECT_DELAY_START = 250
+const MAX_RECONNECT_DELAY = 8000
+// Report an error after this many failed attempts in a row (but keep retrying)
+const MAX_RECONNECT_ATTEMPTS = 5
 
 const DEFAULT_SERVER_URL = typeof window !== 'undefined' && window.location ? window.location.href : 'https://turbovpb.com'
 
@@ -37,6 +39,7 @@ class PeerManager {
   private reconnectDelay: number
   private reconnectAttempts: number
   private reconnectResolves: Array<() => void>
+  private skipReconnectDelay: (() => void) | null
   private encryptionKey: CryptoKey | null
   private ws: WebSocket | null
   private pubsubState: PubSubState
@@ -68,6 +71,7 @@ class PeerManager {
     this.reconnectDelay = RECONNECT_DELAY_START
     this.reconnectAttempts = 0
     this.reconnectResolves = []
+    this.skipReconnectDelay = null
 
     this.encryptionKey = encryptionKey as CryptoKey | null
     this.ws = null
@@ -99,6 +103,10 @@ class PeerManager {
 
     if (this.isConnecting) {
       console.log('already reconnecting')
+      if (immediate && this.skipReconnectDelay) {
+        // e.g. the page became visible again or the network came back
+        this.skipReconnectDelay()
+      }
       return new Promise<void>((resolve) => {
         this.reconnectResolves.push(resolve)
       })
@@ -107,32 +115,30 @@ class PeerManager {
 
     console.log('PeerManager reconnecting')
 
-    if (++this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
-      console.error('exceeded max number of reconnect attempts')
-
-      // Reset so a later reconnect (e.g. when the page becomes visible
-      // again) starts over instead of waiting on this attempt forever
-      this.isConnecting = false
-      this.reconnectAttempts = 0
-      this.reconnectDelay = RECONNECT_DELAY_START
-      this.resolveReconnects()
-
-      if (err) {
-        this.onerror(err)
-      } else {
-        this.onerror(new Error('Exceeded maximum number of reconnection attempts'))
-      }
-      return
+    // The phone is often briefly offline (e.g. during a call), so keep
+    // retrying, but report the error once it has failed several times in a row
+    if (++this.reconnectAttempts === MAX_RECONNECT_ATTEMPTS + 1) {
+      console.error('exceeded max number of reconnect attempts, still retrying')
+      this.onerror(err || new Error('Exceeded maximum number of reconnection attempts'))
     }
 
     if (!immediate) {
       console.log(`waiting ${this.reconnectDelay}ms before reconnecting`)
       await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          this.reconnectDelay = this.reconnectDelay * RECONNECT_BACKOFF
+        const timer = setTimeout(resolve, this.reconnectDelay)
+        this.skipReconnectDelay = () => {
+          clearTimeout(timer)
           resolve()
-        }, this.reconnectDelay)
+        }
       })
+      this.skipReconnectDelay = null
+      this.reconnectDelay = Math.min(this.reconnectDelay * RECONNECT_BACKOFF, MAX_RECONNECT_DELAY)
+    }
+    if (!this.active) {
+      console.warn('The PeerManager was stopped while waiting to reconnect')
+      this.isConnecting = false
+      this.resolveReconnects()
+      return
     }
     await this.connect()
     this.reconnectDelay = RECONNECT_DELAY_START
