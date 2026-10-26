@@ -23,7 +23,14 @@ const QrCodeInsert: FunctionComponent<{
             Contact details may be incomplete
           </p>
         )}
-        {status.value !== "connected" ? (
+        {status.value === "phoneAway" ? (
+          // The phone reconnects by itself, so keep the QR code out of the
+          // way, but available in case the volunteer needs to re-scan
+          <details class="text-center text-xs text-slate-500">
+            <summary class="cursor-pointer">Show QR code</summary>
+            <ConnectQrCode connectUrl={connectUrl} size={200} />
+          </details>
+        ) : status.value !== "connected" ? (
           <ConnectQrCode connectUrl={connectUrl} size={200} />
         ) : null}
       </div>

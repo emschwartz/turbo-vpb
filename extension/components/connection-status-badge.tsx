@@ -21,6 +21,14 @@ const ConnectionStatusBadge: FunctionComponent<{
         Scan QR code to connect
       </span>
     );
+  } else if (status === "phoneAway") {
+    return (
+      <span
+        className={`rounded-full bg-slate-100 px-2.5 py-0.5 text-sm font-medium text-slate-800 text-center ${className}`}
+      >
+        Waiting for phone to reconnect
+      </span>
+    );
   } else if (status === "connected") {
     return (
       <span

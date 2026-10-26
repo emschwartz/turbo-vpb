@@ -86,7 +86,7 @@ describe("QR code modal", () => {
     handlePhoneDisconnected();
 
     expect(state.showQrCodeModal.value).toBe(false);
-    expect(state.status.value).toBe("waitingForMessage");
+    expect(state.status.value).toBe("phoneAway");
 
     // Volunteer switches back to the browser and it reconnects
     handlePhoneConnected();
@@ -116,6 +116,27 @@ describe("QR code modal", () => {
     handlePhoneDisconnected();
 
     expect(state.showQrCodeModal.value).toBe(true);
+    expect(state.status.value).toBe("waitingForMessage");
+  });
+
+  it("waits for the phone without asking to scan once paired", async () => {
+    const first = await loadContentScriptState();
+    first.state.connectionDetails.value = CHANNEL;
+    first.handlePhoneConnected();
+    await flushStorageWrites();
+
+    // After a reload, connected to the server but not yet to the phone
+    const second = await loadContentScriptState();
+    second.setWaitingForPhone();
+    expect(second.state.status.value).toBe("phoneAway");
+    expect(second.isConnectedToServer.value).toBe(true);
+  });
+
+  it("asks to scan the QR code when connected to the server but never paired", async () => {
+    const { state, setWaitingForPhone } = await loadContentScriptState();
+    state.connectionDetails.value = CHANNEL;
+    setWaitingForPhone();
+    expect(state.status.value).toBe("waitingForMessage");
   });
 
   it("is not shown after a page reload once the channel is paired", async () => {

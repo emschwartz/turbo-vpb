@@ -124,15 +124,20 @@ test("modal does not reopen when the phone disconnects and reconnects for each c
     // Wait until the extension has processed the disconnect, so the
     // following check isn't vacuous
     await expect(sidebarInsert(phonebankPage)).toContainText(
-      "Scan QR code to connect",
+      "Waiting for phone to reconnect",
       { timeout: 15_000 },
     );
     await expectModalToStayHidden(phonebankPage);
 
-    // The sidebar insert still offers the QR code for re-pairing
-    await expect(
-      sidebarInsert(phonebankPage).locator('a[href*="/connect"]'),
-    ).toBeAttached();
+    // The sidebar insert keeps the QR code out of the way, but still offers
+    // it for re-pairing
+    const qrCodeLink = sidebarInsert(phonebankPage).locator(
+      'a[href*="/connect"]',
+    );
+    await expect(qrCodeLink).toBeHidden();
+    await sidebarInsert(phonebankPage).getByText("Show QR code").click();
+    await expect(qrCodeLink).toBeVisible();
+    expect(await qrCodeLink.getAttribute("href")).toBe(connectUrl);
 
     const phone = await connectPhone(connectUrl);
     await expect(sidebarInsert(phonebankPage)).toContainText("Connected", {
@@ -147,7 +152,7 @@ test("modal does not reopen after a page reload while paired", async () => {
   // e.g. VAN loading the next contact while the phone is still in the dialer
   await phonebankPage.reload();
   await expect(sidebarInsert(phonebankPage)).toContainText(
-    "Scan QR code to connect",
+    "Waiting for phone to reconnect",
     { timeout: 15_000 },
   );
   await expectModalToStayHidden(phonebankPage);

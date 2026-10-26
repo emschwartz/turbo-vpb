@@ -408,7 +408,8 @@ test("extension shows waiting status when connect page closes", async () => {
 
     await connectBrowser.close();
 
-    await expect(extensionStatus).toContainText("Scan QR code to connect", {
+    // The phone was paired, so the extension waits for it to reconnect
+    await expect(extensionStatus).toContainText("Waiting for phone to reconnect", {
       timeout: 10_000,
     });
   } finally {
