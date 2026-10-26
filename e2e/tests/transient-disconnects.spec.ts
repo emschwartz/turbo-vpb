@@ -28,9 +28,11 @@ const FIRST_CONTACT = "Alice Johnson";
 const SECOND_CONTACT = "Bob Smith";
 
 // The connect page waits this long after the extension disconnects before
-// showing "Extension disconnected" and then ending the session
+// showing "Extension disconnected" (PEER_DISCONNECTED_GRACE_PERIOD), and
+// this long in total before showing "Session Complete"
 // (PEER_DISCONNECTED_GRACE_PERIOD + PEER_DISCONNECTED_TIMEOUT)
-const PEER_DISCONNECTED_TOTAL_MS = 8_000;
+const PEER_DISCONNECTED_GRACE_MS = 3_000;
+const PEER_DISCONNECTED_TOTAL_MS = 30_000;
 
 let extensionContext: BrowserContext;
 let phonebankPage: Page;
@@ -218,7 +220,7 @@ test("phone session continues when a stale extension socket closes", async () =>
       phone.page,
       phone.page.locator("#status"),
       "Connected",
-      PEER_DISCONNECTED_TOTAL_MS + 2_000,
+      PEER_DISCONNECTED_GRACE_MS + 2_000,
     );
     await expect(phone.page.locator("#session-ended")).toBeHidden();
     await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
@@ -321,6 +323,80 @@ test("phone reconnects when it returns after failing to reconnect in the backgro
     await markResultOnPhoneAndExpectNextContact(phone);
   } finally {
     await phone.browser.close();
+  }
+});
+
+async function reopenPhonebankPage() {
+  // A new tab in the same browser session reuses the stored channel
+  phonebankPage = await extensionContext.newPage();
+  await phonebankPage.goto(`${SERVER_URL}/test-phonebank`);
+}
+
+test("phone session survives a slow phone bank page load", async () => {
+  await phonebankPage.reload();
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const phone = await connectPhone(connectUrl);
+  try {
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+
+    // e.g. VAN taking a while to load the next contact
+    await phonebankPage.close();
+    const status = phone.page.locator("#status");
+    await expect(status).toHaveText("Extension disconnected", {
+      timeout: PEER_DISCONNECTED_GRACE_MS + 5_000,
+    });
+    // This used to end the session after 8 seconds
+    await expectStatusToStay(
+      phone.page,
+      status,
+      "Extension disconnected",
+      8_000,
+    );
+
+    await reopenPhonebankPage();
+    await expect(status).toHaveText("Connected", { timeout: 15_000 });
+    await expect(phone.page.locator("#session-ended")).toBeHidden();
+    await markResultOnPhoneAndExpectNextContact(phone);
+  } finally {
+    await phone.browser.close();
+    if (phonebankPage.isClosed()) {
+      await reopenPhonebankPage();
+    }
+  }
+});
+
+test("phone session resumes when the extension comes back after the session ended", async () => {
+  test.setTimeout(120_000);
+  await phonebankPage.reload();
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const phone = await connectPhone(connectUrl);
+  try {
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+    const status = phone.page.locator("#status");
+
+    await phonebankPage.close();
+    await expect(status).toHaveText("Session Complete", {
+      timeout: PEER_DISCONNECTED_TOTAL_MS + 10_000,
+    });
+    await expect(phone.page.locator("#session-ended")).toBeVisible();
+
+    // Reloading the phone page while the extension is gone still shows the
+    // session as complete, not an error or the last (stale) contact
+    await phone.page.reload();
+    await expectStatusToStay(phone.page, status, "Session Complete", 3_000);
+    await expect(phone.page.locator("#warning-container")).toBeHidden();
+    await expect(phone.page.locator("#contact-details")).toBeHidden();
+
+    // The volunteer reopens the phone bank tab
+    await reopenPhonebankPage();
+    await expect(status).toHaveText("Connected", { timeout: 15_000 });
+    await expect(phone.page.locator("#session-ended")).toBeHidden();
+    await markResultOnPhoneAndExpectNextContact(phone);
+  } finally {
+    await phone.browser.close();
+    if (phonebankPage.isClosed()) {
+      await reopenPhonebankPage();
+    }
   }
 });
 

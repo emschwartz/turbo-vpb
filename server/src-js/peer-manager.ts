@@ -47,6 +47,7 @@ class PeerManager {
   onerror: (err: PeerErrorWithType) => void
   onreconnecting: (target: string) => void
   onpeerdisconnected: () => void
+  onpeerconnected: () => void
   onpeerclosed: () => void
 
   constructor({ remotePeerId, encryptionKey, url = DEFAULT_SERVER_URL }: PeerManagerOptions) {
@@ -60,6 +61,7 @@ class PeerManager {
     this.onerror = () => {}
     this.onreconnecting = () => {}
     this.onpeerdisconnected = () => {}
+    this.onpeerconnected = () => {}
     this.onpeerclosed = () => {}
 
     this.isConnecting = false
@@ -321,6 +323,9 @@ class PeerManager {
               console.log('Peer disconnected')
               this.pubsubState = PubSubState.OPEN
               this.onpeerdisconnected()
+            } else if (control.type === 'peerConnected') {
+              console.log('Peer connected')
+              this.onpeerconnected()
             }
             return
           }
