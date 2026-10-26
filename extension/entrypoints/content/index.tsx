@@ -23,6 +23,9 @@ import {
   setPubsubClient,
   setTotalCalls,
   setResultCodes,
+  autoShowQrCodeModal,
+  handlePhoneConnected,
+  handlePhoneDisconnected,
 } from "./state";
 import "../../assets/main.css";
 
@@ -66,6 +69,10 @@ export default defineContentScript({
         console.error("Failed to connect to server:", err);
         setStatus("disconnected");
       });
+    Promise.all([
+      state.connectionDetails.loaded,
+      state.pairedChannelId.loaded,
+    ]).then(autoShowQrCodeModal);
     const disposeHideQrCode = effect(() => {
       if (state.status.value === "connected") {
         hideQrCodeModal();
@@ -363,9 +370,8 @@ export default defineContentScript({
         }
       };
       client.onpeerdisconnected = () => {
-        setStatus("waitingForMessage");
         gotMessageSinceLastReconnect = false;
-        showQrCodeModal();
+        handlePhoneDisconnected();
       };
       client.onclose = () => {
         setStatus("disconnected");
@@ -376,8 +382,7 @@ export default defineContentScript({
         gotMessageSinceLastReconnect = false;
       };
       client.onmessage = async (message) => {
-        setStatus("connected");
-        hideQrCodeModal();
+        handlePhoneConnected();
         gotMessageSinceLastReconnect = true;
 
         console.log("Received message:", message);

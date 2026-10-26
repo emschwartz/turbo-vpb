@@ -32,7 +32,16 @@ export const state = {
   }),
   totalCalls: signal(0),
   dailyCalls: signal([] as DailyCallHistory),
-  showQrCodeModal: signal(true),
+  // The channel the phone last paired with in this browser session.
+  // Persisted so that page reloads (e.g. VAN loading the next contact)
+  // don't pop the QR code modal back open over an existing pairing.
+  pairedChannelId: sessionStoredSignal<string | undefined>(
+    "turboVpbPairedChannel",
+    undefined,
+  ),
+  // Starts hidden; shown once storage has loaded if we aren't paired yet
+  // (see autoShowQrCodeModal) to avoid flashing it over a paired session.
+  showQrCodeModal: signal(false),
   resultCodes: signal(undefined as string[] | undefined),
   currentContact: signal(undefined as ContactDetails | undefined),
   lastCallResult: signal(undefined as string | undefined),
@@ -103,6 +112,45 @@ export function showQrCodeModal() {
 
 export function hideQrCodeModal() {
   state.showQrCodeModal.value = false;
+}
+
+export const isPaired = computed(
+  () =>
+    !!state.pairedChannelId.value &&
+    state.pairedChannelId.value === state.connectionDetails.value?.channelId,
+);
+
+// Open the modal on page load only if no phone has paired with this channel.
+export function autoShowQrCodeModal() {
+  if (!isPaired.value) {
+    showQrCodeModal();
+  }
+}
+
+// Called for every message decrypted from the phone, which proves it holds
+// the channel's key.
+export function handlePhoneConnected() {
+  batch(() => {
+    setStatus("connected");
+    hideQrCodeModal();
+    const channelId = state.connectionDetails.value?.channelId;
+    if (channelId && state.pairedChannelId.value !== channelId) {
+      state.pairedChannelId.value = channelId;
+    }
+  });
+}
+
+// The phone's socket drops every time the volunteer switches to the dialer
+// or messaging app, and it reconnects on its own when they switch back.
+// So once paired, a disconnect only updates the status (the sidebar insert
+// shows the QR code again) instead of covering the page with the modal.
+export function handlePhoneDisconnected() {
+  batch(() => {
+    setStatus("waitingForMessage");
+    if (!isPaired.value) {
+      showQrCodeModal();
+    }
+  });
 }
 
 export function setLastCallResult(contacted: boolean, result?: string) {

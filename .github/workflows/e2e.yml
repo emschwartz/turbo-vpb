@@ -66,7 +66,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xvfb
 
       - name: Run Chrome E2E tests
-        run: xvfb-run --auto-servernum npx playwright test tests/e2e.spec.ts tests/custom-van-domain.spec.ts
+        run: xvfb-run --auto-servernum npx playwright test tests/e2e.spec.ts tests/custom-van-domain.spec.ts tests/qr-modal.spec.ts
         working-directory: e2e
 
       - name: Run Firefox E2E tests
