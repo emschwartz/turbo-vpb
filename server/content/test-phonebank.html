@@ -43,7 +43,7 @@
     </ul>
 
     <button id="contactresultscancelbutton">Cancel</button>
-    <button id="contactresultssavenextbutton" onclick="nextContact()">
+    <button id="contactresultssavenextbutton" onclick="saveAndNext()">
       Save Results & Load Next
     </button>
   </div>
@@ -55,7 +55,25 @@
     { name: { first: "Bob", last: "Smith" }, phone: "(555)-987-6543", address: "456 Oak Ave, Portland, Oregon" },
     { name: { first: "Carol", last: "Williams" }, phone: "(555)-246-8135", address: "789 Pine Rd, Austin, Texas" },
   ];
-  let contactIndex = 0;
+  // Test options:
+  // ?household: the second contact shares the first one's phone number
+  //   (e.g. two people in the same household), as is common in VAN
+  // ?navigate: "Save Results & Load Next" loads the next contact with a full
+  //   page load, like VAN does, instead of updating the page in place
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("household")) {
+    TEST_CONTACTS[1].phone = TEST_CONTACTS[0].phone;
+  }
+  let contactIndex = Number(params.get("contact")) || 0;
+
+  function saveAndNext() {
+    if (params.has("navigate")) {
+      params.set("contact", String(contactIndex));
+      window.location.search = params.toString();
+    } else {
+      nextContact();
+    }
+  }
 
   function nextContact() {
     const contact = TEST_CONTACTS[contactIndex % TEST_CONTACTS.length];
