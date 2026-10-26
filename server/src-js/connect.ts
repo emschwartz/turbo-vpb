@@ -656,18 +656,15 @@ function createTextMessageLinks(
       .replace(YOUR_NAME_REGEX, yourName)
 
     if (contactAdditionalFields) {
-      let matches: RegExpExecArray | null
-      while ((matches = ADDITIONAL_FIELDS_REGEX.exec(messageBody))) {
-        const keyWithBrackets = matches[0]
-        const key = matches[1]
-        if (typeof key === 'string') {
-          if (contactAdditionalFields[key.toLowerCase()]) {
-            messageBody = messageBody.replace(keyWithBrackets, contactAdditionalFields[key.toLowerCase()])
-          } else {
-            console.warn(`Could not replace [${key}] because that field was not sent by the extension in the contact's additional properites`)
-          }
+      // Replace in one pass over the template, since replacing while
+      // searching the same string skips placeholders after a short value
+      messageBody = messageBody.replace(ADDITIONAL_FIELDS_REGEX, (keyWithBrackets: string, key: string) => {
+        if (contactAdditionalFields[key.toLowerCase()]) {
+          return contactAdditionalFields[key.toLowerCase()]
         }
-      }
+        console.warn(`Could not replace [${key}] because that field was not sent by the extension in the contact's additional properites`)
+        return keyWithBrackets
+      })
     }
 
     a.href = `sms://${contactPhoneNumber};?&body=${encodeURIComponent(messageBody)}`

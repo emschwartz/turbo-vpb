@@ -31,6 +31,12 @@ const MESSAGE_TEMPLATES = [
     message: "Hi [their name], this is [your name] from the campaign.",
     sendTextedResult: false,
   },
+  {
+    label: "Address",
+    // Fields from the page's Additional Info section
+    message: "You're registered at [Voting Address] [Voting City, State, Zip].",
+    sendTextedResult: false,
+  },
 ];
 
 let extensionContext: BrowserContext;
@@ -187,6 +193,16 @@ test("content script works on VAN-style page after permission grant and injectio
 
     const status = connectPage.locator("#status");
     await expect(status).toHaveText("Connected");
+
+    // Every placeholder is replaced with the contact's field
+    const addressLink = connectPage.locator("#text-message-links a", {
+      hasText: "Address",
+    });
+    expect(await addressLink.getAttribute("href")).toContain(
+      encodeURIComponent(
+        "You're registered at 123 Main St Springfield, IL 62701.",
+      ),
+    );
   } finally {
     await connectBrowser.close();
     await vanPage.close();
