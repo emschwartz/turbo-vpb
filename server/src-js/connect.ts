@@ -594,7 +594,7 @@ async function handleExtensionMessage(data: ExtensionMessage): Promise<void> {
       document.getElementById('num-calls')!.innerText = `${data.stats.calls} Call${data.stats.calls > 1 ? 's' : ''}`
       document.getElementById('avg-call-time')!.innerText = msToTimeString((Date.now() - startTime) / data.stats.calls)
 
-      if (data.stats.calls % 10 === 0 && typeof confetti === 'object') {
+      if (data.stats.calls % 10 === 0 && typeof confetti === 'object' && !alreadyCelebrated(data.stats.calls)) {
         const numConfettiPieces = Math.min(150, Math.max(30, data.stats.calls * 2))
         confetti.start(1500, numConfettiPieces)
       }
@@ -967,6 +967,22 @@ function displayError(err: PeerErrorWithType | Event): void {
   if (linkEl) linkEl.href = ''
   const phoneEl = document.getElementById('phone-number')
   if (phoneEl) phoneEl.innerText = ''
+}
+
+/**
+ * The extension sends the same stats again whenever either side reconnects
+ * (and the server replays its last message), so only celebrate each
+ * milestone once.
+ */
+function alreadyCelebrated(calls: number): boolean {
+  const key = `celebratedCalls:${remotePeerId}`
+  try {
+    if (Number(window.sessionStorage.getItem(key)) >= calls) {
+      return true
+    }
+    window.sessionStorage.setItem(key, String(calls))
+  } catch (_err) { /* SecurityError possible */ }
+  return false
 }
 
 function sessionCompleteStorageKey(): string {
