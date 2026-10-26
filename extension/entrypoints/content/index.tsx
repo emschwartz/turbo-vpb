@@ -27,6 +27,7 @@ import {
   handlePhoneConnected,
   handlePhoneDisconnected,
   setWaitingForPhone,
+  claimCallResult,
 } from "./state";
 import "../../assets/main.css";
 
@@ -149,6 +150,21 @@ export default defineContentScript({
           type: "callResultResponse",
           seq: message.seq,
           status: "rejected",
+          phoneNumber: incomingPhone,
+        });
+        return;
+      }
+
+      // Already marked (the next contact can have the same phone number):
+      // don't mark the current contact with it, but send the current contact
+      // in case the phone is still waiting for it
+      if (!(await claimCallResult(message))) {
+        console.log("Ignoring callResult that was already marked:", message);
+        state.pubsubClient.value?.send({
+          ...detailsToSend.value,
+          type: "callResultResponse",
+          seq: message.seq,
+          status: "applied",
           phoneNumber: incomingPhone,
         });
         return;

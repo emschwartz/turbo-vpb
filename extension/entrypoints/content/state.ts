@@ -39,6 +39,12 @@ export const state = {
     "turboVpbPairedChannel",
     undefined,
   ),
+  // Call results already marked in this browser session (see
+  // claimCallResult). Persisted because on VAN each contact is a new page.
+  markedCallResults: sessionStoredSignal<string[]>(
+    "turboVpbMarkedCallResults",
+    [],
+  ),
   // Starts hidden; shown once storage has loaded if we aren't paired yet
   // (see autoShowQrCodeModal) to avoid flashing it over a paired session.
   showQrCodeModal: signal(false),
@@ -193,6 +199,44 @@ export function setLastCallResult(contacted: boolean, result?: string) {
     updated[updated.length - 1] = [todaysRecord[0], todaysRecord[1] + 1];
     state.dailyCalls.value = updated;
   });
+}
+
+const MAX_MARKED_CALL_RESULTS = 50;
+
+/**
+ * The same call result can arrive more than once: the phone retries it until
+ * it gets a response, and the server replays the phone's last message
+ * whenever the extension reconnects. On VAN, where the result's page is gone
+ * by then, it arrives at the next contact, which may be someone in the same
+ * household with the same phone number.
+ *
+ * Returns true if this result hasn't been marked yet, and records it as
+ * marked (once that's saved, since marking it may navigate to a new page).
+ */
+export async function claimCallResult(message: {
+  seq?: unknown;
+  timestamp?: unknown;
+}): Promise<boolean> {
+  await state.markedCallResults.loaded;
+  // Retries resend the same message. The seq restarts when the phone's page
+  // reloads, so the timestamp is needed to tell results apart.
+  if (
+    typeof message.seq !== "number" ||
+    typeof message.timestamp !== "string"
+  ) {
+    return true;
+  }
+  const id = `${message.seq}:${message.timestamp}`;
+  const marked = state.markedCallResults.value;
+  if (marked.includes(id)) {
+    return false;
+  }
+  state.markedCallResults.value = [
+    ...marked.slice(-(MAX_MARKED_CALL_RESULTS - 1)),
+    id,
+  ];
+  await state.markedCallResults.saved;
+  return true;
 }
 
 export function setTotalCalls(totalCalls: number) {
