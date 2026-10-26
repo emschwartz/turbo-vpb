@@ -1,7 +1,10 @@
 import { Signal, signal, effect } from "@preact/signals";
 import { browser } from "wxt/browser";
 
-export type StoredSignal<T> = Signal<T> & { loaded: Promise<void> };
+export type StoredSignal<T> = Signal<T> & {
+  loaded: Promise<void>;
+  saved: Promise<void>;
+};
 
 /**
  * A signal whose value is persisted to browser.storage.session via the
@@ -12,6 +15,8 @@ export type StoredSignal<T> = Signal<T> & { loaded: Promise<void> };
  * The returned signal has a `loaded` property: a Promise that resolves once
  * the initial value has been read from storage. Await it before using the
  * value if you need the persisted state (e.g., before reconnecting).
+ * Its `saved` property is a Promise that resolves once the latest value has
+ * been written (or failed to be written) to storage.
  *
  * @param storageKey - The storage key to store the value under.
  * @param defaultValue - The default value to use if the key is not found in storage.
@@ -39,9 +44,10 @@ export function sessionStoredSignal<T>(
     });
 
   // Save the value when it changes.
+  s.saved = Promise.resolve();
   effect(() => {
     if (s.value != null) {
-      browser.runtime
+      s.saved = browser.runtime
         .sendMessage({
           type: "sessionStorage.set",
           data: { [storageKey]: s.value },

@@ -175,3 +175,42 @@ describe("QR code modal", () => {
     expect(state.showQrCodeModal.value).toBe(true);
   });
 });
+
+describe("claimCallResult", () => {
+  beforeEach(() => {
+    sessionStorage = {};
+    vi.clearAllMocks();
+  });
+
+  const RESULT = { seq: 1, timestamp: "2026-10-26T18:00:00.000Z" };
+
+  it("claims a call result only once", async () => {
+    const { claimCallResult } = await loadContentScriptState();
+    expect(await claimCallResult(RESULT)).toBe(true);
+    expect(await claimCallResult({ ...RESULT })).toBe(false);
+  });
+
+  it("remembers claimed results across page loads", async () => {
+    const first = await loadContentScriptState();
+    // Saved before it returns, since marking the result may navigate away
+    expect(await first.claimCallResult(RESULT)).toBe(true);
+
+    // e.g. VAN loaded the next contact and the phone retried the result
+    const second = await loadContentScriptState();
+    expect(await second.claimCallResult(RESULT)).toBe(false);
+  });
+
+  it("tells apart results from a reloaded phone page that reuse a seq", async () => {
+    const { claimCallResult } = await loadContentScriptState();
+    expect(await claimCallResult(RESULT)).toBe(true);
+    expect(
+      await claimCallResult({ seq: 1, timestamp: "2026-10-26T18:05:00.000Z" }),
+    ).toBe(true);
+  });
+
+  it("always claims results without an id (older connect pages)", async () => {
+    const { claimCallResult } = await loadContentScriptState();
+    expect(await claimCallResult({ seq: 1 })).toBe(true);
+    expect(await claimCallResult({ seq: 1 })).toBe(true);
+  });
+});
