@@ -106,12 +106,15 @@ type Phone = {
  * its WebSocket connections routed through Playwright so the test can drop
  * them.
  */
-async function connectPhone(connectUrl: string): Promise<Phone> {
+async function connectPhone(
+  connectUrl: string,
+  { startWithNetworkDown = false } = {},
+): Promise<Phone> {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   const sockets: WebSocketRoute[] = [];
   let connections = 0;
-  let networkDown = false;
+  let networkDown = startWithNetworkDown;
   await page.routeWebSocket(/\/api\/channels\/[^/]+\/browser$/, (ws) => {
     if (networkDown) {
       ws.close();
@@ -122,9 +125,11 @@ async function connectPhone(connectUrl: string): Promise<Phone> {
     sockets.push(ws);
   });
   await page.goto(connectUrl);
-  await expect(page.locator("#status")).toHaveText("Connected", {
-    timeout: 15_000,
-  });
+  if (!startWithNetworkDown) {
+    await expect(page.locator("#status")).toHaveText("Connected", {
+      timeout: 15_000,
+    });
+  }
   return {
     browser,
     page,
@@ -319,6 +324,54 @@ test("phone reconnects when it returns after failing to reconnect in the backgro
       connections + 1,
     );
     await expect(phone.page.locator("#status")).toHaveText("Connected");
+    await expect(phone.page.locator("#warning-container")).toBeHidden();
+    await markResultOnPhoneAndExpectNextContact(phone);
+  } finally {
+    await phone.browser.close();
+  }
+});
+
+test("phone keeps retrying through a long network outage while visible", async () => {
+  await phonebankPage.reload();
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const phone = await connectPhone(connectUrl);
+  try {
+    // e.g. walking out of Wi-Fi range with the page open. This used to give
+    // up after two quick retries, until the page was hidden and shown again.
+    phone.setNetworkDown(true);
+    const connections = phone.connectionCount();
+    await phone.dropConnection();
+    await phone.page.waitForTimeout(10_000);
+
+    phone.setNetworkDown(false);
+    await expect
+      .poll(phone.connectionCount, { timeout: 15_000 })
+      .toBe(connections + 1);
+    await expect(phone.page.locator("#status")).toHaveText("Connected");
+    await expect(phone.page.locator("#warning-container")).toBeHidden();
+    await markResultOnPhoneAndExpectNextContact(phone);
+  } finally {
+    await phone.browser.close();
+  }
+});
+
+test("phone recovers after its connection times out", async () => {
+  await phonebankPage.reload();
+  const connectUrl = await getConnectUrl(phonebankPage);
+  // The phone opens the page with a bad connection
+  const phone = await connectPhone(connectUrl, { startWithNetworkDown: true });
+  try {
+    // The 15 second connection timeout shows an error. This used to also
+    // stop the phone from ever connecting.
+    await expect(phone.page.locator("#status")).toHaveText(
+      "Error. Reload Tab.",
+      { timeout: 25_000 },
+    );
+
+    phone.setNetworkDown(false);
+    await expect(phone.page.locator("#status")).toHaveText("Connected", {
+      timeout: 15_000,
+    });
     await expect(phone.page.locator("#warning-container")).toBeHidden();
     await markResultOnPhoneAndExpectNextContact(phone);
   } finally {

@@ -276,6 +276,8 @@ async function start(): Promise<void> {
     peerManager.onpeerdisconnected = () => {
       console.log('PeerManager.onpeerdisconnected')
       extensionAway = true
+      // We reached the server, and the extension being away is handled below
+      stopConnectionTimeout()
       if (sessionIsComplete()) return
       clearTimeout(peerDisconnectedTimer)
       // Wait a few seconds before showing "Extension disconnected" so that
@@ -327,6 +329,13 @@ async function start(): Promise<void> {
     }
 
     peerManager.connect()
+
+    window.addEventListener('online', () => {
+      console.log('network is back online')
+      if (peerManager && !peerManager.isStopped() && !peerManager.isConnected()) {
+        peerManager.reconnect(null, true)
+      }
+    })
 
     // Notify the extension immediately when this page is closed
     // (pagehide fires more reliably than beforeunload on mobile browsers)
@@ -473,7 +482,8 @@ function restartConnectionTimeout(): void {
 
     const err = new Error('Timed out trying to connect to the extension. Is the phone bank tab still open?')
     displayError(err)
-    peerManager!.stop()
+    // Keep trying in the background, in case the network or the extension
+    // comes back
   }, CONNECT_TIMEOUT)
 }
 
