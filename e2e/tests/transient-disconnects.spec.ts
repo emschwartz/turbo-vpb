@@ -248,3 +248,76 @@ test("extension stays connected when a stale phone socket closes", async () => {
     await phone.browser.close();
   }
 });
+
+async function markResultOnPhoneAndExpectNextContact(phone: Phone) {
+  const page = phone.page;
+  await expect(page.locator("#name")).toHaveText(FIRST_CONTACT, {
+    timeout: 15_000,
+  });
+  await page
+    .locator("#call-result-links button", { hasText: "Left Voicemail" })
+    .click();
+  // The next contact comes back over the WebSocket, so this only works if
+  // the phone reconnected
+  await expect(page.locator("#name")).toHaveText(SECOND_CONTACT, {
+    timeout: 8_000,
+  });
+  await expect(phonebankPage.locator("#contactName")).toHaveText(
+    SECOND_CONTACT,
+  );
+}
+
+test("phone reconnects when its socket drops after returning from a call", async () => {
+  await phonebankPage.reload();
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const phone = await connectPhone(connectUrl);
+  try {
+    // A quick call or text: the socket survives while the browser is in
+    // the background
+    await setPhoneVisibility(phone.page, "hidden");
+    await setPhoneVisibility(phone.page, "visible");
+    await phone.page.waitForTimeout(1_000);
+    await expect(phone.page.locator("#status")).toHaveText("Connected");
+
+    // On the next call, the socket is dropped
+    const connections = phone.connectionCount();
+    await phone.dropConnection();
+
+    await expect.poll(phone.connectionCount, { timeout: 5_000 }).toBe(
+      connections + 1,
+    );
+    await expect(phone.page.locator("#status")).toHaveText("Connected");
+    await markResultOnPhoneAndExpectNextContact(phone);
+  } finally {
+    await phone.browser.close();
+  }
+});
+
+test("phone reconnects when it returns after failing to reconnect in the background", async () => {
+  await phonebankPage.reload();
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const phone = await connectPhone(connectUrl);
+  try {
+    // During the call the browser is in the background and has no network
+    // (e.g. a carrier without simultaneous voice and data), so its socket
+    // drops and its attempts to reconnect fail
+    await setPhoneVisibility(phone.page, "hidden");
+    phone.setNetworkDown(true);
+    const connections = phone.connectionCount();
+    await phone.dropConnection();
+    await phone.page.waitForTimeout(2_000);
+
+    // The volunteer hangs up and switches back to the browser
+    phone.setNetworkDown(false);
+    await setPhoneVisibility(phone.page, "visible");
+
+    await expect.poll(phone.connectionCount, { timeout: 5_000 }).toBe(
+      connections + 1,
+    );
+    await expect(phone.page.locator("#status")).toHaveText("Connected");
+    await expect(phone.page.locator("#warning-container")).toBeHidden();
+    await markResultOnPhoneAndExpectNextContact(phone);
+  } finally {
+    await phone.browser.close();
+  }
+});
