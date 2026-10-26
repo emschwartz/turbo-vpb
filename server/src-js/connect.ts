@@ -43,7 +43,7 @@ const CONNECT_TIMEOUT = 15000
 const CALL_RESULT_ACK_TIMEOUT = 3000
 const CALL_RESULT_MAX_RETRIES = 3
 const PEER_DISCONNECTED_GRACE_PERIOD = 3000
-const PEER_DISCONNECTED_TIMEOUT = 5000
+const PEER_DISCONNECTED_TIMEOUT = 27000
 const WAIT_AFTER_PAGE_BECOMES_VISIBLE = 100
 const THEIR_NAME_REGEX = /[\[\(\{<]+\s*(?:their|thier|there)\s*name\s*[\]\)\}>]+/ig
 const YOUR_NAME_REGEX = /[\[\(\{<]+\s*(?:your|y[ou]r|you'?re|my)\s*name\s*[\]\)\}>]+/ig
@@ -147,6 +147,9 @@ let connectTimer: ReturnType<typeof setTimeout>
 let connectTimerIsRunning = false
 let pageLastBecameVisible = Date.now()
 let sessionComplete = false
+// Whether the server told us the extension isn't connected. Messages
+// received while it's away are replays of its last message, not live ones.
+let extensionAway = false
 
 /**
  * Contact data sent by the extension
@@ -220,14 +223,17 @@ if (document.readyState !== 'loading') {
 async function start(): Promise<void> {
   showVersionRelatedMessages()
 
-  // Connect to the extension if a remotePeerId is specified and the session isn't complete
-  if (sessionIsComplete()) {
-    markSessionComplete()
-  } else if (!remotePeerId) {
+  if (!remotePeerId) {
     // Show error
     document.getElementById('main-container')!.setAttribute('hidden', 'true')
     document.getElementById('warning-container')!.removeAttribute('hidden')
   } else {
+    // Keep listening even if the session ended, so it resumes if the
+    // extension comes back (e.g. the phone bank tab is reopened)
+    if (sessionIsComplete()) {
+      markSessionComplete()
+    }
+
     // Create PeerManager and set up event handlers
     peerManager = await PeerManager.from({
       remotePeerId,
@@ -235,26 +241,33 @@ async function start(): Promise<void> {
     })
     peerManager.onconnect = () => {
       console.log('PeerManager.onconnect')
-      clearTimeout(peerDisconnectedTimer)
-      setStatus('Connected', 'success')
-      stopConnectionTimeout()
-
-      const warningContainer = document.getElementById('warning-container')
-      if (warningContainer) {
-        warningContainer.setAttribute('hidden', 'true')
-      }
-
-      // Update session time
-      if (!sessionTimeInterval) {
-        sessionTimeInterval = setInterval(() => {
-          document.getElementById('session-time')!.innerText = msToTimeString(Date.now() - startTime)
-        }, 1000)
-      }
+      if (sessionIsComplete() || extensionAway) return
+      showConnected()
     }
     peerManager.onmessage = async (data: unknown) => {
-      clearTimeout(peerDisconnectedTimer)
+      if (!extensionAway) {
+        clearTimeout(peerDisconnectedTimer)
+        if (sessionIsComplete()) {
+          resumeSession()
+          showConnected()
+        }
+      } else if (sessionIsComplete()) {
+        // A replay of the last message from an extension that's gone
+        return
+      }
       stopConnectionTimeout() // we know we're connected if we got a message
       await handleExtensionMessage(data as ExtensionMessage)
+    }
+    peerManager.onpeerconnected = () => {
+      console.log('PeerManager.onpeerconnected')
+      extensionAway = false
+      clearTimeout(peerDisconnectedTimer)
+      if (sessionIsComplete()) {
+        // The extension will send the current contact
+        resumeSession()
+        setStatus('Connecting to Extension', 'warning')
+        setLoading()
+      }
     }
     peerManager.onpeerclosed = () => {
       console.log('PeerManager.onpeerclosed')
@@ -262,7 +275,9 @@ async function start(): Promise<void> {
     }
     peerManager.onpeerdisconnected = () => {
       console.log('PeerManager.onpeerdisconnected')
+      extensionAway = true
       if (sessionIsComplete()) return
+      clearTimeout(peerDisconnectedTimer)
       // Wait a few seconds before showing "Extension disconnected" so that
       // quick reconnections (page reloads, OpenVPB contact transitions) are invisible.
       // If the extension reconnects within the grace period, peerDisconnectedTimer is cleared.
@@ -282,12 +297,12 @@ async function start(): Promise<void> {
     }
     peerManager.onreconnecting = (target: string) => {
       console.log('PeerManager.onreconnecting', target)
-      if (sessionIsComplete()) {
-        stopConnectionTimeout()
-        console.log('Session is complete, stopping peer manager')
-        peerManager!.stop()
-        return
+      if (target === 'Extension') {
+        // Our socket just opened. If the extension isn't connected, the
+        // server says so before anything else.
+        extensionAway = false
       }
+      if (sessionIsComplete()) return
 
       setStatus(`Connecting to ${target || 'Extension'}`, 'warning')
       setLoading()
@@ -301,6 +316,7 @@ async function start(): Promise<void> {
     }
     peerManager.onerror = (err: PeerErrorWithType) => {
       console.log('PeerManager.onerror', err)
+      if (sessionIsComplete()) return
 
       if (document.visibilityState === 'hidden'
         || (Date.now() - pageLastBecameVisible) <= WAIT_AFTER_PAGE_BECOMES_VISIBLE) {
@@ -443,6 +459,7 @@ function stopConnectionTimeout(): void {
 }
 
 function restartConnectionTimeout(): void {
+  if (sessionIsComplete()) return
   if (connectTimerIsRunning) {
     console.log('not restarting connection timer because it is still running')
     return
@@ -942,11 +959,23 @@ function displayError(err: PeerErrorWithType | Event): void {
   if (phoneEl) phoneEl.innerText = ''
 }
 
+function sessionCompleteStorageKey(): string {
+  // Per channel, so scanning a new QR code in this tab starts a new session
+  return `sessionComplete:${remotePeerId}`
+}
+
+/**
+ * Show that the session ended. This keeps listening, and the session resumes
+ * if the extension reconnects, since disconnects are often temporary (e.g. a
+ * slow page load between contacts).
+ */
 function markSessionComplete(): void {
   console.log('Session complete')
   sessionComplete = true
-  window.sessionStorage.setItem('sessionComplete', 'true')
-  document.getElementById('contact-details')!.remove()
+  try {
+    window.sessionStorage.setItem(sessionCompleteStorageKey(), 'true')
+  } catch (_err) { /* SecurityError possible */ }
+  document.getElementById('contact-details')!.hidden = true
   document.getElementById('session-ended')!.removeAttribute('hidden')
 
   if (/Firefox/i.test(extensionUserAgent)) {
@@ -960,10 +989,7 @@ function markSessionComplete(): void {
 
   if (sessionTimeInterval) {
     clearInterval(sessionTimeInterval)
-  }
-
-  if (peerManager) {
-    peerManager.stop()
+    sessionTimeInterval = null
   }
 
   setStatus('Session Complete', 'primary')
@@ -975,11 +1001,38 @@ function sessionIsComplete(): boolean {
     return true
   }
   try {
-    if (window.sessionStorage.getItem('sessionComplete') === 'true') {
+    if (window.sessionStorage.getItem(sessionCompleteStorageKey()) === 'true') {
       return true
     }
   } catch (_err) { /* SecurityError possible */ }
   return false
+}
+
+function resumeSession(): void {
+  console.log('Resuming session')
+  sessionComplete = false
+  try {
+    window.sessionStorage.removeItem(sessionCompleteStorageKey())
+  } catch (_err) { /* SecurityError possible */ }
+  document.getElementById('session-ended')!.setAttribute('hidden', 'true')
+}
+
+function showConnected(): void {
+  clearTimeout(peerDisconnectedTimer)
+  setStatus('Connected', 'success')
+  stopConnectionTimeout()
+
+  const warningContainer = document.getElementById('warning-container')
+  if (warningContainer) {
+    warningContainer.setAttribute('hidden', 'true')
+  }
+
+  // Update session time
+  if (!sessionTimeInterval) {
+    sessionTimeInterval = setInterval(() => {
+      document.getElementById('session-time')!.innerText = msToTimeString(Date.now() - startTime)
+    }, 1000)
+  }
 }
 
 function setLoading(): void {

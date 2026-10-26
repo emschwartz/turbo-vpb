@@ -360,6 +360,8 @@ test("multiple contacts cycle correctly with stats", async () => {
 });
 
 test("connect page shows session complete when phonebank page closes", async () => {
+  // The connect page waits 30s for the extension to come back first
+  test.setTimeout(90_000);
   // Every phonebank tab in this browser session shares the same channel
   // (via storage.session), and the phone stays connected as long as one of
   // them is open. So close the only one, and reopen it for the other tests.
@@ -375,7 +377,7 @@ test("connect page shows session complete when phonebank page closes", async () 
     await phonebankPage.close();
 
     await expect(connectPage.locator("#status")).toHaveText("Session Complete", {
-      timeout: 15_000,
+      timeout: 40_000,
     });
     await expect(connectPage.locator("#session-ended")).toBeVisible();
   } finally {
