@@ -379,6 +379,72 @@ test("phone recovers after its connection times out", async () => {
   }
 });
 
+test("confetti plays once per milestone, not again on every reconnect", async () => {
+  // Start one call away from the 10-call milestone
+  const serviceWorker = extensionContext.serviceWorkers()[0];
+  await serviceWorker.evaluate(() =>
+    (globalThis as any).chrome.storage.session.set({
+      turboVpbStats: { calls: 9, successfulCalls: 0, startTime: Date.now() },
+    }),
+  );
+  await phonebankPage.reload();
+  const phone = await connectPhone(await getConnectUrl(phonebankPage));
+  try {
+    await expect(phone.page.locator("#num-calls")).toHaveText("9 Calls");
+    const countConfetti = async () => {
+      await phone.page.evaluate(() => {
+        const w = window as any;
+        if (w.__confettiCount === undefined) {
+          w.__confettiCount = 0;
+          w.confetti.start = () => w.__confettiCount++;
+        }
+      });
+    };
+    const confettiCount = () =>
+      phone.page.evaluate(() => (window as any).__confettiCount as number);
+    await countConfetti();
+
+    await markResultOnPhoneAndExpectNextContact(phone);
+    await expect(phone.page.locator("#num-calls")).toHaveText("10 Calls");
+    await expect.poll(confettiCount).toBe(1);
+
+    // The phone reconnects after the next call (the server replays the
+    // extension's last message and the extension re-sends the contact)
+    const connections = phone.connectionCount();
+    await phone.dropConnection();
+    await expect
+      .poll(phone.connectionCount, { timeout: 5_000 })
+      .toBe(connections + 1);
+    await expect(phone.page.locator("#status")).toHaveText("Connected");
+    await phone.page.waitForTimeout(1_000);
+    expect(await confettiCount()).toBe(1);
+
+    // And the phone page is reloaded. Count from before the page's scripts
+    // run, since the stats arrive as soon as it connects.
+    await phone.page.addInitScript(() => {
+      const w = window as any;
+      w.__confettiCount = 0;
+      let wrapped: unknown;
+      Object.defineProperty(w, "confetti", {
+        configurable: true,
+        get: () => wrapped,
+        set: (value) => {
+          wrapped = new Proxy(value, {
+            get: (target, prop) =>
+              prop === "start" ? () => w.__confettiCount++ : target[prop],
+          });
+        },
+      });
+    });
+    await phone.page.reload();
+    await expect(phone.page.locator("#num-calls")).toHaveText("10 Calls");
+    await phone.page.waitForTimeout(1_000);
+    expect(await confettiCount()).toBe(0);
+  } finally {
+    await phone.browser.close();
+  }
+});
+
 async function reopenPhonebankPage() {
   // A new tab in the same browser session reuses the stored channel
   phonebankPage = await extensionContext.newPage();
