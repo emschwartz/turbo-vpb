@@ -41,6 +41,8 @@ FROM debian:bookworm-slim
 
 WORKDIR /usr/app
 RUN mkdir -p /data
+# sqlite3 CLI for `just server-stats`
+RUN apt-get update && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/src/app/target/release/turbovpb-server /usr/app/turbovpb-server
 
