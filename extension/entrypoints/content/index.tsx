@@ -222,6 +222,18 @@ export default defineContentScript({
       });
     }
 
+    // The phone's "open TurboVPB's settings on your computer" link. Like a
+    // call result, the message can arrive again (the server replays the
+    // phone's last message when the extension reconnects), and it must not
+    // open the settings again every time VAN loads the next contact.
+    async function handleOpenOptions(message: any) {
+      if (!(await claimMessage(message))) {
+        console.log("Ignoring openOptions that was already handled");
+        return;
+      }
+      await browser.runtime.sendMessage({ type: "openOptions" });
+    }
+
     function waitForContactChange(
       currentNormalizedPhone: string,
       timeoutMs: number,
@@ -467,6 +479,8 @@ export default defineContentScript({
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
           await handleCallResult(message);
+        } else if (message.type === "openOptions") {
+          await handleOpenOptions(message);
         } else if (message.type === "ack" || message.type === "callRecord") {
           // Not used by the extension
         } else {

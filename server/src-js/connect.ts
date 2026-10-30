@@ -438,8 +438,19 @@ async function start(): Promise<void> {
   }
 }
 
+// Whether the extension is at least the given version (major.minor)
+function extensionVersionAtLeast(major: number, minor: number): boolean {
+  const match = /^(\d+)\.(\d+)/.exec(extensionVersion)
+  if (!match) {
+    return false
+  }
+  const [extMajor, extMinor] = [Number(match[1]), Number(match[2])]
+  return extMajor > major || (extMajor === major && extMinor >= minor)
+}
+
 function showVersionRelatedMessages(): void {
-  if (/^(?:0\.[789])|(?:[1-9]\..*)\./.test(extensionVersion)) {
+  // Extensions from 0.7 on open their settings when asked to from here
+  if (extensionVersionAtLeast(0, 7)) {
     document.getElementById('text-message-instructions-text-only')!.setAttribute('hidden', 'true')
     document.getElementById('text-message-instructions-with-link')!.removeAttribute('hidden')
 
@@ -447,7 +458,14 @@ function showVersionRelatedMessages(): void {
       e.preventDefault()
 
       if (peerManager) {
-        await peerManager.sendMessage({ type: 'openOptions' })
+        // Identified like a call result, so the extension opens the
+        // settings once even if it gets the message again (the server
+        // replays our last message whenever the extension reconnects)
+        await peerManager.sendMessage({
+          type: 'openOptions',
+          seq: ++messageSeq,
+          timestamp: new Date().toISOString(),
+        })
       } else {
         console.error('cannot send open options message because peer manager is undefined')
       }
