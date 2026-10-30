@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@preact/signals": "^2.11.4",
-    "preact": "^10.29.8",
+    "preact": "^11.1.0",
     "qrcode-generator": "^2.0.4",
     "reconnecting-websocket": "^4.4.0"
   }
