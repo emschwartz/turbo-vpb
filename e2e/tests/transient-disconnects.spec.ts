@@ -165,35 +165,37 @@ async function setPhoneVisibility(page: Page, state: "hidden" | "visible") {
 }
 
 /**
- * Open a raw WebSocket to the channel and close it again, the way the server
- * sees a stale connection from a peer that already reconnected on a new
- * socket (e.g. after a network change).
+ * Open a raw WebSocket to the channel, the way the server sees a connection
+ * from a peer that has another socket open (e.g. one it reconnected on
+ * after a network change, before the server noticed the old one was dead).
+ * Returns a function that closes it.
  */
+async function holdSocketOpen(
+  channelId: string,
+  identity: "extension" | "browser",
+): Promise<() => Promise<void>> {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(`${SERVER_URL}/api/status`);
+  await page.evaluate(
+    (url) =>
+      new Promise<void>((resolve, reject) => {
+        const ws = new WebSocket(url);
+        ws.onerror = () => reject(new Error("raw socket failed to open"));
+        ws.onopen = () => resolve();
+      }),
+    `${SERVER_URL.replace("http", "ws")}/api/channels/${channelId}/${identity}`,
+  );
+  return () => browser.close();
+}
+
 async function openAndCloseStaleSocket(
   channelId: string,
   identity: "extension" | "browser",
 ) {
-  const browser = await chromium.launch();
-  try {
-    const page = await browser.newPage();
-    await page.goto(`${SERVER_URL}/api/status`);
-    await page.evaluate(
-      (url) =>
-        new Promise<void>((resolve, reject) => {
-          const ws = new WebSocket(url);
-          ws.onerror = () => reject(new Error("stale socket failed to open"));
-          ws.onopen = () => {
-            setTimeout(() => {
-              ws.close();
-              resolve();
-            }, 500);
-          };
-        }),
-      `${SERVER_URL.replace("http", "ws")}/api/channels/${channelId}/${identity}`,
-    );
-  } finally {
-    await browser.close();
-  }
+  const close = await holdSocketOpen(channelId, identity);
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  await close();
 }
 
 function isSnackbarShown(page: Page): Promise<boolean> {
@@ -386,13 +388,20 @@ test("phone recovers after its connection times out", async () => {
 });
 
 test("confetti plays once per milestone, not again on every reconnect", async () => {
-  // Start one call away from the 10-call milestone
+  // Start one call away from the 10-call milestone. The session is stored
+  // per tab (see TabSessionStorage), so find the phone bank tab's id.
   const serviceWorker = extensionContext.serviceWorkers()[0];
-  await serviceWorker.evaluate(() =>
-    (globalThis as any).chrome.storage.session.set({
-      turboVpbStats: { calls: 9, successfulCalls: 0, startTime: Date.now() },
-    }),
-  );
+  await serviceWorker.evaluate(async (url) => {
+    const chrome = (globalThis as any).chrome;
+    const [tab] = await chrome.tabs.query({ url: `${url}*` });
+    await chrome.storage.session.set({
+      [`tab:${tab.id}:turboVpbStats`]: {
+        calls: 9,
+        successfulCalls: 0,
+        startTime: Date.now(),
+      },
+    });
+  }, phonebankPage.url());
   await phonebankPage.reload();
   const phone = await connectPhone(await getConnectUrl(phonebankPage));
   try {
@@ -496,12 +505,13 @@ test("extension shows the phone as away, not connected, after a page load while 
   await phonebankPage.reload();
   const connectUrl = await getConnectUrl(phonebankPage);
   const phone = await connectPhone(connectUrl);
-  // A second tab keeps the channel (and the phone's last message) alive
-  // across the first tab's page load, like a second connection from the
-  // same tab does after a network blip
-  const otherTab = await extensionContext.newPage();
-  await otherTab.goto(`${SERVER_URL}/test-phonebank`);
-  await expect(sidebarInsert(otherTab)).toContainText("Connected");
+  // Another extension socket (e.g. one the server hasn't yet noticed is
+  // dead after a network blip) keeps the channel, and the phone's last
+  // message, alive across the page load
+  const closeOtherSocket = await holdSocketOpen(
+    channelIdFromConnectUrl(connectUrl),
+    "extension",
+  );
   try {
     // The volunteer closes the phone's browser
     await phone.browser.close();
@@ -524,7 +534,7 @@ test("extension shows the phone as away, not connected, after a page load while 
       3_000,
     );
   } finally {
-    await otherTab.close();
+    await closeOtherSocket();
   }
 });
 

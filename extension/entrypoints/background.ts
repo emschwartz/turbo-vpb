@@ -1,4 +1,5 @@
 import { browser } from "wxt/browser";
+import { TabSessionStorage } from "../lib/tab-session-storage";
 
 async function injectContentScriptIntoTab(tabId: number): Promise<void> {
   const [result] = await browser.scripting.executeScript({
@@ -23,14 +24,29 @@ export default defineBackground({
     // Proxy storage.session for content scripts via message passing.
     // Content scripts can't access storage.session directly in Firefox
     // (setAccessLevel doesn't exist), so all session storage goes through
-    // the background script which has unrestricted access.
+    // the background script which has unrestricted access. Each tab gets
+    // its own session, so two phone bank tabs don't share the phone.
+    const sessionStorage = new TabSessionStorage(
+      browser.storage.session,
+      async (tabId) => {
+        try {
+          await browser.tabs.get(tabId);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    );
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (sender.id !== browser.runtime.id) {
         return;
       }
       if (message?.type === "sessionStorage.get") {
-        browser.storage.session
-          .get(message.key)
+        const tabId = sender.tab?.id;
+        (tabId === undefined
+          ? browser.storage.session.get(message.key)
+          : sessionStorage.get(tabId, message.key)
+        )
           .then(sendResponse)
           .catch((err) => {
             console.error("sessionStorage.get error:", err);
@@ -78,8 +94,11 @@ export default defineBackground({
         return true;
       }
       if (message?.type === "sessionStorage.set") {
-        browser.storage.session
-          .set(message.data)
+        const tabId = sender.tab?.id;
+        (tabId === undefined
+          ? browser.storage.session.set(message.data)
+          : sessionStorage.set(tabId, message.data)
+        )
           .then(() => sendResponse(true))
           .catch((err) => {
             console.error("sessionStorage.set error:", err);

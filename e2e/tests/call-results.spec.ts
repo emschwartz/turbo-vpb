@@ -208,29 +208,28 @@ test("phone is told when a result can't be marked on the phone bank page", async
   }
 });
 
-test("call result is marked in the tab showing that contact when two phone bank tabs are open", async () => {
-  // Tabs in the same browser session share the connection to the phone, so
-  // both tabs get every call result
+test("a second phone bank tab gets its own connection instead of sharing the phone", async () => {
   const firstTab = await openPhonebank("");
-  const phone = await connectPhone(await getConnectUrl(firstTab));
+  const connectUrl = await getConnectUrl(firstTab);
+  const phone = await connectPhone(connectUrl);
   const secondTab = await openPhonebank("contact=2");
   try {
     await expect(secondTab.locator("#contactName")).toHaveText(
       "Carol Williams",
     );
-    // Both tabs send their contact when the second one connects, so the
-    // phone can show either one
+    // The second tab has its own QR code, and the phone keeps following
+    // the tab it was paired with
+    expect(await getConnectUrl(secondTab)).not.toBe(connectUrl);
     await phone.page.waitForTimeout(2_000);
-    const name = await phone.page.locator("#name").textContent();
-    const [tab, otherTab] =
-      name === FIRST_CONTACT ? [firstTab, secondTab] : [secondTab, firstTab];
-    const otherName = await otherTab.locator("#contactName").textContent();
-    expect(otherName).not.toBe(name);
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
 
     await tapCallResult(phone.page, "Busy");
-    await expect(tab.locator("#contactName")).not.toHaveText(name!);
+    await expect(firstTab.locator("#contactName")).toHaveText(SECOND_CONTACT);
+    await expect(phone.page.locator("#name")).toHaveText(SECOND_CONTACT);
     await phone.page.waitForTimeout(2_000);
-    await expect(otherTab.locator("#contactName")).toHaveText(otherName!);
+    await expect(secondTab.locator("#contactName")).toHaveText(
+      "Carol Williams",
+    );
   } finally {
     await phone.browser.close();
     await firstTab.close();

@@ -72,7 +72,7 @@ Playwright auto-starts the server on port 8089. Tests run serially (extensions r
 
 ### Extension entry points (WXT conventions in `extension/entrypoints/`)
 
-- **`background.ts`** - Service worker. Handles permission changes, dynamically injects content scripts.
+- **`background.ts`** - Service worker. Handles permission changes, dynamically injects content scripts, and proxies `storage.session` for content scripts, kept per tab (`lib/tab-session-storage.ts`) so two phone bank tabs don't share the phone, while a closed tab's session is resumed by the next new tab.
 - **`content/index.tsx`** - Main content script. Runs on phone bank pages. Scrapes contacts every 500ms, manages WebSocket connection, renders QR code modal for mobile pairing.
 - **`share-integration.content.ts`** - Runs on `turbovpb.com/share*`. Handles message template imports.
 - **`popup/`** - Extension popup. Shows call stats and navigation.
