@@ -99,6 +99,53 @@ async function hideAndShowPhone(page: Page) {
   });
 }
 
+test("texting from a page without a Texted result code is not reported as saved", async () => {
+  await setExtensionSettings({ messageTemplates: [TEXTED_TEMPLATE] });
+  const phonebankPage = await openPhonebank("notexted");
+  const phone = await connectPhone(await getConnectUrl(phonebankPage));
+  const textStatsRequests: string[] = [];
+  phone.page.on("request", (request) => {
+    if (/\/api\/stats\/.*\/texts$/.test(request.url())) {
+      textStatsRequests.push(request.url());
+    }
+  });
+  try {
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+    await expect(
+      phone.page.locator("#texted-result-code-missing-warning"),
+    ).toBeVisible();
+
+    const textLink = phone.page.locator("#text-message-links a").first();
+    await textLink.evaluate((el: HTMLAnchorElement) => {
+      el.addEventListener("click", (e) => e.preventDefault(), {
+        capture: true,
+        once: true,
+      });
+    });
+    await textLink.click();
+    await hideAndShowPhone(phone.page);
+
+    // Nothing was saved on the phone bank, so don't say it was
+    // (checked once, now: a retrying assertion would pass once it hides)
+    expect(
+      await phone.page
+        .locator("#snackbar")
+        .evaluate((el) => el.classList.contains("show")),
+    ).toBe(false);
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+
+    // The volunteer moves on. The text is counted once, not again here.
+    await phonebankPage.locator("#contactresultssavenextbutton").click();
+    await expect(phone.page.locator("#name")).toHaveText(SECOND_CONTACT);
+    await phone.page.waitForTimeout(1_000);
+    expect(textStatsRequests).toHaveLength(1);
+  } finally {
+    await phone.browser.close();
+    await phonebankPage.close();
+    await setExtensionSettings({ messageTemplates: [] });
+  }
+});
+
 test("the settings link on the phone opens the extension's settings once", async () => {
   const phonebankPage = await openPhonebank("navigate");
   const phone = await connectPhone(await getConnectUrl(phonebankPage));
