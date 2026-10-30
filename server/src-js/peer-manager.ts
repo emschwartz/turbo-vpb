@@ -27,7 +27,7 @@ interface PeerManagerOptions {
   remotePeerId: string
   encryptionKey: string | CryptoKey | null
   // Whether the extension understands messages bound to their sender
-  // (0.12.0 and later); older extensions get unbound messages
+  // (0.11.6 and later); older extensions get unbound messages
   bindMessages: boolean
   url?: string
 }
@@ -402,7 +402,7 @@ async function encrypt(encryptionKey: CryptoKey, message: unknown, additionalDat
   return payload
 }
 
-// Accepts messages bound to the extension (0.12.0 and later) and unbound ones
+// Accepts messages bound to the extension (0.11.6 and later) and unbound ones
 // (older extensions). Accepting unbound messages from a new extension is
 // safe: producing one takes the key, and we send a new extension only bound
 // messages, so there are none of ours for anyone to post back to us.

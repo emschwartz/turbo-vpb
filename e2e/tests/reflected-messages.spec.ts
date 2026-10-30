@@ -13,7 +13,7 @@ import { fileURLToPath } from "url";
 // either side from anyone who knows the channel id (it is in the connect
 // URL). Each message is bound to its sender, so posting one back to the side
 // that sent it must not decrypt there. These tests also cover the connect
-// page still pairing with extensions older than 0.12, which do not bind
+// page still pairing with extensions older than 0.11.6, which do not bind
 // their messages.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -180,7 +180,7 @@ test("phone ignores its own message posted back to it as the extension's", async
   }
 });
 
-test("connect page pairs with an extension older than 0.12 using unbound messages", async () => {
+test("connect page pairs with an extension older than 0.11.6 using unbound messages", async () => {
   const phonebankPage = await extensionContext.newPage();
   await phonebankPage.goto(`${SERVER_URL}/test-phonebank`);
   const connectUrl = withVersion(await getConnectUrl(phonebankPage), "0.11.5");

@@ -249,8 +249,8 @@ async function start(): Promise<void> {
     peerManager = await PeerManager.from({
       remotePeerId,
       encryptionKey,
-      // Extensions from 0.12 on expect our messages bound to us as sender
-      bindMessages: extensionVersionAtLeast(0, 12),
+      // Extensions from 0.11.6 on expect our messages bound to us as sender
+      bindMessages: extensionVersionAtLeast(0, 11, 6),
     })
     peerManager.onconnect = () => {
       console.log('PeerManager.onconnect')
@@ -446,13 +446,19 @@ async function start(): Promise<void> {
 }
 
 // Whether the extension is at least the given version (major.minor)
-function extensionVersionAtLeast(major: number, minor: number): boolean {
-  const match = /^(\d+)\.(\d+)/.exec(extensionVersion)
+function extensionVersionAtLeast(major: number, minor: number, patch = 0): boolean {
+  const match = /^(\d+)\.(\d+)(?:\.(\d+))?/.exec(extensionVersion)
   if (!match) {
     return false
   }
-  const [extMajor, extMinor] = [Number(match[1]), Number(match[2])]
-  return extMajor > major || (extMajor === major && extMinor >= minor)
+  const ext = [Number(match[1]), Number(match[2]), Number(match[3] ?? 0)]
+  const wanted = [major, minor, patch]
+  for (let i = 0; i < 3; i++) {
+    if (ext[i] !== wanted[i]) {
+      return ext[i] > wanted[i]
+    }
+  }
+  return true
 }
 
 function showVersionRelatedMessages(): void {

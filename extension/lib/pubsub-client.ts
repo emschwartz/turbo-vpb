@@ -23,11 +23,11 @@ export default class PubSubClient {
   onpeerconnected: () => void;
   private sendQueue: Promise<void> = Promise.resolve();
   // Whether to bind sent messages to the extension as sender. A connect page
-  // older than 0.12 can't decrypt bound messages. The default server always
-  // serves the current page, so only a self-hosted server can be that old,
-  // and only for one (allowUnboundSending) does this follow the last valid
-  // message from the phone: an unbound one switches sending to unbound, a
-  // bound one switches it back.
+  // from before message binding can't decrypt bound messages. The default
+  // server always serves the current page, so only a self-hosted server can
+  // be that old, and only for one (allowUnboundSending) does this follow the
+  // last valid message from the phone: an unbound one switches sending to
+  // unbound, a bound one switches it back.
   //
   // Only a key holder can produce either kind, so an attacker who knows just
   // the channel id can't flip it, except by replaying an unbound message the
