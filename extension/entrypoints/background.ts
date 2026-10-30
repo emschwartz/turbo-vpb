@@ -66,6 +66,17 @@ export default defineBackground({
         })();
         return true;
       }
+      if (message?.type === "openOptions") {
+        // Content scripts can't open the options page themselves
+        browser.runtime
+          .openOptionsPage()
+          .then(() => sendResponse(true))
+          .catch((err) => {
+            console.error("openOptionsPage error:", err);
+            sendResponse(false);
+          });
+        return true;
+      }
       if (message?.type === "sessionStorage.set") {
         browser.storage.session
           .set(message.data)
