@@ -98,6 +98,11 @@ Each file exports a scraper for a specific phone bank platform. `index.ts` auto-
 4. Server forwards to mobile browser (also connected via WebSocket)
 5. Mobile browser decrypts and displays contact for calling/texting
 
+Two transport facts shape every handler on both sides:
+
+- **The phone's socket drops on every call.** Mobile browsers close the WebSocket when the volunteer switches to the dialer or messaging app, and the connect page reconnects when they switch back. A `peerDisconnected` from the phone is routine, not a sign the pairing was lost (issue #2 was the QR code modal reopening on every call).
+- **Every reconnect replays a message.** The server stores each side's last message and sends it to the other side whenever that side (re)connects, so any message can arrive twice and late. Handlers must be idempotent: call results and other one-shot messages carry a `seq` and `timestamp` and are deduplicated (`claimMessage` in the extension, pending seqs on the connect page); presence messages (`peerConnected` / `peerDisconnected`) say whether a message is live.
+
 ## Tech Choices
 
 - **Preact** (not React) with `@preact/signals` for reactivity. React aliases configured in `wxt.config.ts`.
