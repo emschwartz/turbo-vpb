@@ -1,0 +1,4 @@
+# esbuild downloads its binary in a postinstall script, which pnpm 10+
+# refuses to run unless it is allowed here.
+allowBuilds:
+  esbuild: true

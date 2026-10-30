@@ -1,6 +1,6 @@
 FROM node:22-bookworm-slim AS js
 WORKDIR /usr/src/app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable && pnpm install --frozen-lockfile
 COPY build.mjs tsconfig.json ./
 COPY src-js src-js
