@@ -460,14 +460,15 @@ export default defineContentScript({
 
         console.log("Received message:", message);
 
-        // Send the details as soon as we receive a connect message
-        if (message.type === "connect" && detailsToSend.value.contact) {
+        if (message.type === "connect") {
+          // Reply even without a contact (e.g. the page has none yet), since
+          // the phone treats the first reply as the extension being there
           console.log("Sending contact details in response to connect message");
           await client.send(detailsToSend.value);
         } else if (message.type === "callResult") {
           await handleCallResult(message);
-        } else if (message.type === "ack") {
-          // Ack messages are handled by PubSubClient internally
+        } else if (message.type === "ack" || message.type === "callRecord") {
+          // Not used by the extension
         } else {
           console.error("Unknown message type", message);
         }

@@ -60,6 +60,7 @@
   //   (e.g. two people in the same household), as is common in VAN
   // ?navigate: "Save Results & Load Next" loads the next contact with a full
   //   page load, like VAN does, instead of updating the page in place
+  // ?empty: the page has no contact (e.g. the list is finished)
   const params = new URLSearchParams(window.location.search);
   if (params.has("household")) {
     TEST_CONTACTS[1].phone = TEST_CONTACTS[0].phone;
@@ -84,5 +85,7 @@
     phoneNumber.href = `tel:${contact.phone}`;
     phoneNumber.innerText = contact.phone;
   }
-  nextContact();
+  if (!params.has("empty")) {
+    nextContact();
+  }
 </script>
