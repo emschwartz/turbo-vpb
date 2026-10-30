@@ -153,36 +153,34 @@ async fn websocket(channel_id: String, identity: Identity, ws: WebSocket, state:
         channel.num_connections += 1;
         *channel.connections_mut(identity) += 1;
 
-        // Only the connect page (served by this server) is sent peer presence
-        // updates, so older extension versions never see unfamiliar messages.
-        // The connect page uses them to tell whether the extension is
-        // actually there, rather than relying on (possibly replayed) messages.
-        if identity == Identity::Extension && channel.extension_connections == 1 {
-            let _ = channel
-                .browser
-                .send(Message::Text(PEER_CONNECTED_MESSAGE.into()));
-        }
-        let peer_is_absent = identity == Identity::Browser && channel.extension_connections == 0;
-
-        let (sender, receiver, last_message) = match identity {
+        // Both sides use the presence updates to tell whether their peer is
+        // actually there, rather than relying on (possibly replayed)
+        // messages. Extension versions that predate them ignore unfamiliar
+        // control messages.
+        let (sender, receiver, last_message, peer_connections) = match identity {
             Identity::Extension => (
                 channel.browser.clone(),
                 channel.extension.subscribe(),
                 channel.last_browser_message.clone(),
+                channel.browser_connections,
             ),
             Identity::Browser => (
                 channel.extension.clone(),
                 channel.browser.subscribe(),
                 channel.last_extension_message.clone(),
+                channel.extension_connections,
             ),
         };
-        (sender, receiver, last_message, peer_is_absent)
+        if *channel.connections_mut(identity) == 1 {
+            let _ = sender.send(Message::Text(PEER_CONNECTED_MESSAGE.into()));
+        }
+        (sender, receiver, last_message, peer_connections == 0)
     };
 
     let (mut ws_sink, mut ws_stream) = ws.split();
 
-    // Tell the phone the extension isn't connected before replaying the
-    // extension's last message, so it knows that message isn't live
+    // Tell this side its peer isn't connected before replaying the peer's
+    // last message, so it knows that message isn't live
     if peer_is_absent {
         let _ = ws_sink
             .send(Message::Text(PEER_DISCONNECTED_MESSAGE.into()))
@@ -426,28 +424,42 @@ mod tests {
         sleep(Duration::from_millis(100)).await;
     }
 
+    /// Connects the extension before the phone and consumes the presence
+    /// messages that get it to a "phone connected" state
+    async fn connect_extension_then_phone(base: &str) -> (Client, Client) {
+        let mut extension = connect(base, "extension").await;
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(PEER_DISCONNECTED_MESSAGE.to_string())
+        );
+        let phone = connect(base, "browser").await;
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(PEER_CONNECTED_MESSAGE.to_string())
+        );
+        (extension, phone)
+    }
+
     #[tokio::test]
     async fn notifies_extension_when_phone_disconnects() {
         let base = start_server().await;
-        let mut extension = connect(&base, "extension").await;
-        let phone = connect(&base, "browser").await;
+        let (mut extension, phone) = connect_extension_then_phone(&base).await;
         settle().await;
 
         drop(phone);
 
         assert_eq!(
             next_control_message(&mut extension, Duration::from_secs(2)).await,
-            Some(r#"{"type":"peerDisconnected"}"#.to_string())
+            Some(PEER_DISCONNECTED_MESSAGE.to_string())
         );
     }
 
     #[tokio::test]
     async fn stale_phone_socket_closing_does_not_notify_extension() {
         let base = start_server().await;
-        let mut extension = connect(&base, "extension").await;
+        let (mut extension, mut old_phone) = connect_extension_then_phone(&base).await;
         // The phone reconnected (e.g. after switching networks during a
         // call) before the server noticed its old socket was gone
-        let mut old_phone = connect(&base, "browser").await;
         let new_phone = connect(&base, "browser").await;
         settle().await;
 
@@ -463,7 +475,7 @@ mod tests {
         drop(new_phone);
         assert_eq!(
             next_control_message(&mut extension, Duration::from_secs(2)).await,
-            Some(r#"{"type":"peerDisconnected"}"#.to_string())
+            Some(PEER_DISCONNECTED_MESSAGE.to_string())
         );
     }
 
@@ -557,22 +569,86 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn presence_messages_are_only_sent_to_the_phone() {
+    async fn no_absent_notice_when_the_peer_is_already_connected() {
         let base = start_server().await;
         // The phone isn't connected yet when the extension connects
         let mut extension = connect(&base, "extension").await;
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(PEER_DISCONNECTED_MESSAGE.to_string())
+        );
         let mut phone = connect(&base, "browser").await;
         settle().await;
 
         assert_eq!(
-            next_control_message(&mut extension, Duration::from_millis(500)).await,
-            None,
-            "extension was sent a presence message"
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(PEER_CONNECTED_MESSAGE.to_string())
         );
         assert_eq!(
             next_control_message(&mut phone, Duration::from_millis(500)).await,
             None,
             "phone was told the extension is absent while it is connected"
+        );
+    }
+
+    #[tokio::test]
+    async fn extension_is_told_phone_is_absent_before_replayed_message() {
+        let base = start_server().await;
+        let mut phone = connect(&base, "browser").await;
+        // Keep the channel open after the phone leaves
+        let _other_extension = connect(&base, "extension").await;
+        phone
+            .send(tungstenite::Message::Binary(vec![1, 2, 3].into()))
+            .await
+            .unwrap();
+        settle().await;
+        phone.close(None).await.unwrap();
+        settle().await;
+
+        // e.g. VAN loads the next contact while the phone is in the dialer
+        let mut extension = connect(&base, "extension").await;
+
+        let first = timeout(Duration::from_secs(2), extension.next())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            first,
+            tungstenite::Message::Text(PEER_DISCONNECTED_MESSAGE.into())
+        );
+        let second = timeout(Duration::from_secs(2), extension.next())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert_eq!(second, tungstenite::Message::Binary(vec![1, 2, 3].into()));
+    }
+
+    #[tokio::test]
+    async fn extension_is_told_when_phone_comes_back() {
+        let base = start_server().await;
+        let mut extension = connect(&base, "extension").await;
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(PEER_DISCONNECTED_MESSAGE.to_string())
+        );
+
+        let phone = connect(&base, "browser").await;
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(PEER_CONNECTED_MESSAGE.to_string())
+        );
+        drop(phone);
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(PEER_DISCONNECTED_MESSAGE.to_string())
+        );
+        // The phone reconnects after the call
+        let _phone = connect(&base, "browser").await;
+        assert_eq!(
+            next_control_message(&mut extension, Duration::from_secs(2)).await,
+            Some(PEER_CONNECTED_MESSAGE.to_string())
         );
     }
 }

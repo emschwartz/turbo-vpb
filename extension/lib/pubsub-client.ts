@@ -14,6 +14,7 @@ export default class PubSubClient {
   onclose: () => void;
   onopen: () => void;
   onpeerdisconnected: () => void;
+  onpeerconnected: () => void;
 
   constructor(
     serverBase: string,
@@ -30,6 +31,7 @@ export default class PubSubClient {
     this.onerror = () => {};
     this.onopen = () => {};
     this.onpeerdisconnected = () => {};
+    this.onpeerconnected = () => {};
   }
 
   async connect(): Promise<void> {
@@ -69,6 +71,9 @@ export default class PubSubClient {
           ) {
             console.log("Peer disconnected");
             this.onpeerdisconnected();
+          } else if (control.type === "peerConnected") {
+            console.log("Peer connected");
+            this.onpeerconnected();
           }
           return;
         }
