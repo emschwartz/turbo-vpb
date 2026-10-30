@@ -7,6 +7,7 @@ vi.mock("./crypto", () => ({
     new TextEncoder().encode(JSON.stringify(message)),
   ),
   decrypt: vi.fn(),
+  decryptFrom: vi.fn(),
   exportKey: vi.fn(),
 }));
 

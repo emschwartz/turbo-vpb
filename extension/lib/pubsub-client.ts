@@ -1,4 +1,10 @@
-import { generateKey, randomId, encrypt, decrypt, exportKey } from "./crypto";
+import {
+  generateKey,
+  randomId,
+  encrypt,
+  decryptFrom,
+  exportKey,
+} from "./crypto";
 import ReconnectingWebSocket from "reconnecting-websocket";
 
 const CONNECTION_TIMEOUT_MS = 10_000;
@@ -79,7 +85,11 @@ export default class PubSubClient {
           return;
         }
         const data = await (msg.data as Blob).arrayBuffer();
-        const decrypted = await decrypt(this.encryptionKey!, data);
+        const decrypted = await decryptFrom(
+          this.encryptionKey!,
+          data,
+          "browser",
+        );
         this.onmessage(decrypted);
       } catch (err) {
         console.error("Failed to process message, ignoring:", err);
@@ -132,7 +142,7 @@ export default class PubSubClient {
   }
 
   private async sendNow(message: any): Promise<boolean> {
-    const encrypted = await encrypt(this.encryptionKey!, message);
+    const encrypted = await encrypt(this.encryptionKey!, message, "extension");
     try {
       const response = await fetch(this.httpUrl, {
         method: "POST",

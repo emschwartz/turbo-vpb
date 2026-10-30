@@ -249,6 +249,8 @@ async function start(): Promise<void> {
     peerManager = await PeerManager.from({
       remotePeerId,
       encryptionKey,
+      // Extensions from 0.12 on expect our messages bound to us as sender
+      bindMessages: extensionVersionAtLeast(0, 12),
     })
     peerManager.onconnect = () => {
       console.log('PeerManager.onconnect')

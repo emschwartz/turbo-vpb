@@ -32,9 +32,22 @@ export async function importKey(key: string): Promise<CryptoKey> {
   ]);
 }
 
+// The side of the channel that produced a message. Both sides share one key,
+// so the sender is bound into each ciphertext as AES-GCM additional data:
+// otherwise anyone who knows the channel id (it is in the URL) could post a
+// message back to the side that sent it, and it would decrypt.
+export type Sender = "extension" | "browser";
+
+function senderData(sender: Sender | undefined): BufferSource | undefined {
+  return sender === undefined ? undefined : new TextEncoder().encode(sender);
+}
+
+// Encrypts a message bound to its sender. Without a sender, the message is
+// unbound, as older extensions and connect pages produce.
 export async function encrypt(
   encryptionKey: CryptoKey,
   message: any,
+  sender?: Sender,
 ): Promise<Uint8Array<ArrayBuffer>> {
   if (typeof message === "object") {
     message = JSON.stringify(message);
@@ -46,6 +59,7 @@ export async function encrypt(
       {
         name: "AES-GCM",
         iv,
+        ...(sender && { additionalData: senderData(sender) }),
       },
       encryptionKey,
       buffer,
@@ -59,9 +73,12 @@ export async function encrypt(
   return payload;
 }
 
+// Decrypts a message that must have been bound to the given sender (or must
+// be unbound, without one). Throws if it was not.
 export async function decrypt<T>(
   encryptionKey: CryptoKey,
   arrayBuffer: ArrayBuffer,
+  sender?: Sender,
 ): Promise<T> {
   // structuredClone ensures the ArrayBuffer is fully owned by the current
   // context, avoiding Firefox Xray wrapper errors when content scripts
@@ -73,12 +90,30 @@ export async function decrypt<T>(
     {
       name: "AES-GCM",
       iv,
+      ...(sender && { additionalData: senderData(sender) }),
     },
     encryptionKey,
     ciphertext,
   );
   const string = new TextDecoder().decode(plaintext);
   return JSON.parse(string);
+}
+
+// Decrypts a message from the given sender, accepting unbound messages too,
+// since a self-hosted server may still serve a connect page that does not
+// bind its messages. Accepting unbound messages does not reopen reflection:
+// producing one takes the key, and this side never emits unbound messages,
+// so there are none of its own for anyone to post back to it.
+export async function decryptFrom<T>(
+  encryptionKey: CryptoKey,
+  arrayBuffer: ArrayBuffer,
+  sender: Sender,
+): Promise<T> {
+  try {
+    return await decrypt<T>(encryptionKey, arrayBuffer, sender);
+  } catch {
+    return await decrypt<T>(encryptionKey, arrayBuffer);
+  }
 }
 
 export function randomId(byteLength: number): string {

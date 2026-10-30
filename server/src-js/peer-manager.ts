@@ -26,8 +26,18 @@ const enum PubSubState {
 interface PeerManagerOptions {
   remotePeerId: string
   encryptionKey: string | CryptoKey | null
+  // Whether the extension understands messages bound to their sender
+  // (0.12.0 and later); older extensions get unbound messages
+  bindMessages: boolean
   url?: string
 }
+
+// Both sides share one key, so each message has its sender bound into it as
+// AES-GCM additional data. Otherwise anyone who knows the channel id (it is
+// in the URL) could post the extension's own message back to it, or ours
+// back to us, and it would decrypt.
+const SENT_BY_EXTENSION = new TextEncoder().encode('extension')
+const SENT_BY_BROWSER = new TextEncoder().encode('browser')
 
 type PeerErrorWithType = Error & { type?: string }
 
@@ -41,6 +51,7 @@ class PeerManager {
   private reconnectResolves: Array<() => void>
   private skipReconnectDelay: (() => void) | null
   private encryptionKey: CryptoKey | null
+  private bindMessages: boolean
   private ws: WebSocket | null
   private pubsubState: PubSubState
   private httpUrl: string
@@ -54,8 +65,9 @@ class PeerManager {
   onpeerconnected: () => void
   onpeerclosed: () => void
 
-  constructor({ remotePeerId, encryptionKey, url = DEFAULT_SERVER_URL }: PeerManagerOptions) {
+  constructor({ remotePeerId, encryptionKey, bindMessages, url = DEFAULT_SERVER_URL }: PeerManagerOptions) {
     this.remotePeerId = remotePeerId
+    this.bindMessages = bindMessages
     this.url = url
 
     this.active = false
@@ -196,7 +208,7 @@ class PeerManager {
 
     // Send via HTTP POST for immediate delivery confirmation.
     // The WebSocket connection is kept open only for receiving.
-    const encrypted = await encrypt(this.encryptionKey!, message)
+    const encrypted = await encrypt(this.encryptionKey!, message, this.bindMessages ? SENT_BY_BROWSER : undefined)
     try {
       const response = await fetch(this.httpUrl, {
         method: 'POST',
@@ -346,7 +358,7 @@ class PeerManager {
             return
           }
 
-          const message = await decrypt(this.encryptionKey!, data)
+          const message = await decryptFromExtension(this.encryptionKey!, data)
           console.log('got data from pubsub', message)
 
           if (this.pubsubState !== PubSubState.CONNECTED) {
@@ -375,13 +387,14 @@ async function importKey(base64: string): Promise<CryptoKey> {
   }, true, ['encrypt', 'decrypt'])
 }
 
-async function encrypt(encryptionKey: CryptoKey, message: unknown): Promise<Uint8Array> {
+async function encrypt(encryptionKey: CryptoKey, message: unknown, additionalData?: Uint8Array): Promise<Uint8Array> {
   const str = typeof message === 'object' ? JSON.stringify(message) : String(message)
   const buffer = new TextEncoder().encode(str)
   const iv = crypto.getRandomValues(new Uint8Array(ENCRYPTION_IV_BYTE_LENGTH))
   const ciphertext = new Uint8Array(await crypto.subtle.encrypt({
     name: 'AES-GCM',
     iv,
+    ...(additionalData && { additionalData }),
   }, encryptionKey, buffer))
   const payload = new Uint8Array(ciphertext.byteLength + ENCRYPTION_IV_BYTE_LENGTH)
   payload.set(ciphertext, 0)
@@ -389,13 +402,26 @@ async function encrypt(encryptionKey: CryptoKey, message: unknown): Promise<Uint
   return payload
 }
 
-async function decrypt(encryptionKey: CryptoKey, arrayBuffer: ArrayBuffer): Promise<unknown> {
+// Accepts messages bound to the extension (0.12.0 and later) and unbound ones
+// (older extensions). Accepting unbound messages from a new extension is
+// safe: producing one takes the key, and we send a new extension only bound
+// messages, so there are none of ours for anyone to post back to us.
+async function decryptFromExtension(encryptionKey: CryptoKey, arrayBuffer: ArrayBuffer): Promise<unknown> {
+  try {
+    return await decrypt(encryptionKey, arrayBuffer, SENT_BY_EXTENSION)
+  } catch {
+    return await decrypt(encryptionKey, arrayBuffer)
+  }
+}
+
+async function decrypt(encryptionKey: CryptoKey, arrayBuffer: ArrayBuffer, additionalData?: Uint8Array): Promise<unknown> {
   const payload = new Uint8Array(arrayBuffer)
   const ciphertext = payload.slice(0, 0 - ENCRYPTION_IV_BYTE_LENGTH)
   const iv = payload.slice(0 - ENCRYPTION_IV_BYTE_LENGTH)
   const plaintext = await crypto.subtle.decrypt({
     name: 'AES-GCM',
     iv,
+    ...(additionalData && { additionalData }),
   }, encryptionKey, ciphertext)
   const string = new TextDecoder().decode(plaintext)
   return JSON.parse(string)
