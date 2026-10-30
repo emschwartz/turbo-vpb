@@ -8,7 +8,9 @@ interface VpbIntegration {
   type: PhonebankType;
   scrapeContactDetails: () => ContactDetails | undefined;
   scrapeResultCodes: () => Promise<string[] | undefined>;
-  markResult(code: string): Promise<void>;
+  // Resolves to false if the result couldn't be marked (e.g. the page
+  // doesn't have that result code)
+  markResult(code: string): Promise<boolean>;
   turboVpbContainerLocation(): Element | undefined;
   onCallResult(
     callback: (contacted: boolean, result?: string) => void | Promise<void>,

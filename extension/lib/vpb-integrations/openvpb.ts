@@ -97,17 +97,24 @@ export async function scrapeResultCodes(): Promise<string[] | undefined> {
   return resultCodes;
 }
 
-export async function markResult(resultCode: string) {
+export async function markResult(resultCode: string): Promise<boolean> {
   const resultCodes = await getResultCodes();
-  const li = resultCodes[resultCode];
-  if (!li) {
+  const input = resultCodes[resultCode]?.querySelector<HTMLInputElement>(
+    "input[type='radio']",
+  );
+  if (!input) {
     console.warn("Result code not found:", resultCode);
-    return;
+    return false;
   }
-  const input = li.querySelector("input[type='radio']") as HTMLInputElement;
   input.click();
   await sleep();
-  saveNextButton()?.click();
+  const saveNext = saveNextButton();
+  if (!saveNext) {
+    console.warn("Save & Next button not found");
+    return false;
+  }
+  saveNext.click();
+  return true;
 }
 
 export function onCallResult(

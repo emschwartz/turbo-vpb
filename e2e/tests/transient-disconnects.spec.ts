@@ -196,6 +196,12 @@ async function openAndCloseStaleSocket(
   }
 }
 
+function isSnackbarShown(page: Page): Promise<boolean> {
+  return page
+    .locator("#snackbar")
+    .evaluate((el) => el.classList.contains("show"));
+}
+
 async function expectStatusToStay(
   page: Page,
   locator: ReturnType<Page["locator"]>,
@@ -450,6 +456,41 @@ async function reopenPhonebankPage() {
   phonebankPage = await extensionContext.newPage();
   await phonebankPage.goto(`${SERVER_URL}/test-phonebank`);
 }
+
+test("a rejected call result is not announced again when the phone reconnects after a call", async () => {
+  await phonebankPage.reload();
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const phone = await connectPhone(connectUrl);
+  try {
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+    // The phone bank page can't mark this result, so the extension rejects
+    // it and the phone says so
+    await phonebankPage.evaluate(() =>
+      document.getElementById("busy")!.parentElement!.remove(),
+    );
+    const snackbar = phone.page.locator("#snackbar");
+    await phone.page
+      .locator("#call-result-links button", { hasText: "Busy" })
+      .click();
+    await expect(snackbar).toHaveClass(/show/);
+    await expect(snackbar).not.toHaveClass(/show/, { timeout: 10_000 });
+
+    // The volunteer makes a call. On reconnecting, the server replays the
+    // extension's last message, which is that rejection.
+    const connections = phone.connectionCount();
+    await phone.dropConnection();
+    await expect.poll(phone.connectionCount, { timeout: 5_000 }).toBe(
+      connections + 1,
+    );
+    await expect(phone.page.locator("#status")).toHaveText("Connected");
+    await phone.page.waitForTimeout(1_000);
+    // Checked once, now: a retrying assertion would pass once it hides
+    expect(await isSnackbarShown(phone.page)).toBe(false);
+    await expect(phone.page.locator("#contact-details")).toBeVisible();
+  } finally {
+    await phone.browser.close();
+  }
+});
 
 test("phone session survives a slow phone bank page load", async () => {
   await phonebankPage.reload();

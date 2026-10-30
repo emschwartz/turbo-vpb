@@ -27,7 +27,9 @@ import {
   handlePhoneConnected,
   handlePhoneDisconnected,
   setWaitingForPhone,
-  claimCallResult,
+  isMessageHandled,
+  claimMessage,
+  releaseMessage,
 } from "./state";
 import "../../assets/main.css";
 
@@ -135,6 +137,25 @@ export default defineContentScript({
         return;
       }
 
+      // Already marked (a retry, or the server's replay after a page load):
+      // don't mark the current contact with it, whether or not it has the
+      // same phone number, but send the current contact in case the phone
+      // is still waiting for it
+      const sendAlreadyMarked = () => {
+        console.log("Ignoring callResult that was already marked:", message);
+        state.pubsubClient.value?.send({
+          ...detailsToSend.value,
+          type: "callResultResponse",
+          seq: message.seq,
+          status: "applied",
+          phoneNumber: incomingPhone,
+        });
+      };
+      if (await isMessageHandled(message)) {
+        sendAlreadyMarked();
+        return;
+      }
+
       // Phone mismatch: reject the result
       if (incomingPhone !== currentPhone) {
         const reason = sentPhoneNumbers.has(incomingPhone)
@@ -150,32 +171,39 @@ export default defineContentScript({
           type: "callResultResponse",
           seq: message.seq,
           status: "rejected",
+          reason: "contactChanged",
           phoneNumber: incomingPhone,
         });
         return;
       }
 
-      // Already marked (the next contact can have the same phone number):
-      // don't mark the current contact with it, but send the current contact
-      // in case the phone is still waiting for it
-      if (!(await claimCallResult(message))) {
-        console.log("Ignoring callResult that was already marked:", message);
-        state.pubsubClient.value?.send({
-          ...detailsToSend.value,
-          type: "callResultResponse",
-          seq: message.seq,
-          status: "applied",
-          phoneNumber: incomingPhone,
-        });
+      // The same message can be handled concurrently (a retry arriving
+      // during the replay), so claim it before marking
+      if (!(await claimMessage(message))) {
+        sendAlreadyMarked();
         return;
       }
 
       // Phone match: mark the result, then send response with next contact
       console.log("Marking result:", message.result);
+      let marked = false;
       try {
-        await vpb.markResult(message.result);
+        marked = await vpb.markResult(message.result);
       } catch (err) {
         console.error("Failed to mark result:", err);
+      }
+      if (!marked) {
+        // e.g. the page doesn't have that result code for this contact.
+        // Let the phone try again instead of pretending it was saved.
+        await releaseMessage(message);
+        state.pubsubClient.value?.send({
+          type: "callResultResponse",
+          seq: message.seq,
+          status: "rejected",
+          reason: "notMarked",
+          phoneNumber: incomingPhone,
+        });
+        return;
       }
 
       // Wait briefly for the next contact to appear (MutationObserver
