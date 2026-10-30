@@ -394,6 +394,9 @@ export default defineContentScript({
           : undefined,
       );
       let gotMessageSinceLastReconnect = false;
+      // The server says whether the phone is connected. While it isn't, any
+      // message is a replay of its last one, not a sign that it's back.
+      let phoneAbsent = false;
 
       // When the extension is updated or reloaded, this script is cut off
       // from it: it stops seeing new contacts and can't save anything, so it
@@ -413,6 +416,8 @@ export default defineContentScript({
       // Handle pubsub events
       client.onopen = async () => {
         console.log("connected");
+        // The server tells us right away if the phone is absent
+        phoneAbsent = false;
         if (!gotMessageSinceLastReconnect) {
           setWaitingForPhone();
         }
@@ -430,8 +435,14 @@ export default defineContentScript({
         }
       };
       client.onpeerdisconnected = () => {
+        phoneAbsent = true;
         gotMessageSinceLastReconnect = false;
         handlePhoneDisconnected();
+      };
+      client.onpeerconnected = () => {
+        // Only a message from the phone proves it holds the key, so wait
+        // for one before showing it as connected
+        phoneAbsent = false;
       };
       client.onclose = () => {
         setStatus("disconnected");
@@ -442,8 +453,10 @@ export default defineContentScript({
         gotMessageSinceLastReconnect = false;
       };
       client.onmessage = async (message) => {
-        handlePhoneConnected();
-        gotMessageSinceLastReconnect = true;
+        if (!phoneAbsent) {
+          handlePhoneConnected();
+          gotMessageSinceLastReconnect = true;
+        }
 
         console.log("Received message:", message);
 

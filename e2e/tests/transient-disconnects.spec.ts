@@ -492,6 +492,42 @@ test("a rejected call result is not announced again when the phone reconnects af
   }
 });
 
+test("extension shows the phone as away, not connected, after a page load while the phone is gone", async () => {
+  await phonebankPage.reload();
+  const connectUrl = await getConnectUrl(phonebankPage);
+  const phone = await connectPhone(connectUrl);
+  // A second tab keeps the channel (and the phone's last message) alive
+  // across the first tab's page load, like a second connection from the
+  // same tab does after a network blip
+  const otherTab = await extensionContext.newPage();
+  await otherTab.goto(`${SERVER_URL}/test-phonebank`);
+  await expect(sidebarInsert(otherTab)).toContainText("Connected");
+  try {
+    // The volunteer closes the phone's browser
+    await phone.browser.close();
+    await expect(sidebarInsert(phonebankPage)).toContainText(
+      "Waiting for phone to reconnect",
+    );
+
+    // e.g. VAN loading the next contact. The server replays the phone's
+    // last message to the new page, which used to make it think the phone
+    // was back.
+    await phonebankPage.reload();
+    await expect(sidebarInsert(phonebankPage)).toContainText(
+      "Waiting for phone to reconnect",
+      { timeout: 15_000 },
+    );
+    await expectStatusToStay(
+      phonebankPage,
+      sidebarInsert(phonebankPage),
+      "Waiting for phone to reconnect",
+      3_000,
+    );
+  } finally {
+    await otherTab.close();
+  }
+});
+
 test("phone session survives a slow phone bank page load", async () => {
   await phonebankPage.reload();
   const connectUrl = await getConnectUrl(phonebankPage);
