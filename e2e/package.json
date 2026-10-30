@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "playwright test tests/e2e.spec.ts tests/custom-van-domain.spec.ts tests/qr-modal.spec.ts tests/transient-disconnects.spec.ts tests/call-results.spec.ts",
-    "test:headed": "playwright test --headed tests/e2e.spec.ts tests/custom-van-domain.spec.ts tests/qr-modal.spec.ts tests/transient-disconnects.spec.ts tests/call-results.spec.ts",
+    "test": "playwright test tests/e2e.spec.ts tests/custom-van-domain.spec.ts tests/qr-modal.spec.ts tests/transient-disconnects.spec.ts tests/call-results.spec.ts tests/reflected-messages.spec.ts",
+    "test:headed": "playwright test --headed tests/e2e.spec.ts tests/custom-van-domain.spec.ts tests/qr-modal.spec.ts tests/transient-disconnects.spec.ts tests/call-results.spec.ts tests/reflected-messages.spec.ts",
     "test:firefox": "playwright test tests/firefox.spec.ts",
     "test:firefox:headed": "playwright test --headed tests/firefox.spec.ts",
     "test:all": "playwright test"
