@@ -7,11 +7,11 @@ WITH periods(label, since) AS (
          ('Last 90 days', datetime('now', '-90 days'))
 )
 SELECT
-  label AS period,
-  (SELECT count(*) FROM calls WHERE timestamp >= since) AS calls,
-  (SELECT round(coalesce(sum(duration), 0) / 3600000.0, 1) FROM calls WHERE timestamp >= since) AS call_hours,
-  (SELECT count(*) FROM texts WHERE timestamp >= since) AS texts,
+  label AS "Period",
+  (SELECT count(*) FROM calls WHERE timestamp >= since) AS "Calls",
+  (SELECT round(coalesce(sum(duration), 0) / 3600000.0, 1) FROM calls WHERE timestamp >= since) AS "Call hours",
+  (SELECT count(*) FROM texts WHERE timestamp >= since) AS "Texts",
   (SELECT count(DISTINCT session_id) FROM (
      SELECT session_id, timestamp FROM calls UNION ALL SELECT session_id, timestamp FROM texts
-   ) WHERE timestamp >= since) AS sessions
+   ) WHERE timestamp >= since) AS "Sessions"
 FROM periods;

@@ -79,7 +79,7 @@ ssh:
 
 # show production usage stats for the last 7, 30 and 90 days
 server-stats:
-    cd server && fly ssh console --quiet -C "sqlite3 -readonly /data/turbovpb.db" < stats.sql
+    @cd server && fly ssh console --quiet -C "sqlite3 -readonly /data/turbovpb.db" < stats.sql
 
 # build server docker image
 server-docker-build:
