@@ -184,6 +184,18 @@ describe("TabSessionStorage", () => {
     expect(await reloaded.get(1, VAN, "paired")).toEqual({});
   });
 
+  it("does not bring another site's session back to the phone bank", async () => {
+    const { storage } = setup([1]);
+    await storage.get(1, VAN, "connection");
+    await storage.set(1, VAN, { connection: CHANNEL_A });
+
+    // The tab is sent to another site, which pairs its own channel, and is
+    // then sent back to the phone bank. The phone bank must not pick up the
+    // other site's channel (whose key that site knows).
+    await storage.set(1, OTHER_SITE, { connection: CHANNEL_B });
+    expect(await storage.get(1, VAN, "connection")).toEqual({});
+  });
+
   it("drops a session saved before sessions were scoped to a site", async () => {
     const { store, storage } = setup([1]);
     store.items["tab:1:connection"] = CHANNEL_A;

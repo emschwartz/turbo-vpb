@@ -46,10 +46,12 @@ function parse(storageKey: string): { tabId: number; key: string } | undefined {
 }
 
 export class TabSessionStorage {
-  // Tab+origin pairs whose namespace has been set up (or adopted) since the
-  // background script started. The service worker can be restarted at any
-  // time, so this is only a shortcut: storage is the source of truth.
-  private readyTabs = new Map<string, Promise<void>>();
+  // Each tab's in-flight namespace check. Calls for the same tab run one
+  // after another, so a new tab that reads several keys at once adopts a
+  // closed tab's session only once. Nothing is remembered between calls:
+  // the stored origin is checked on every access, since the tab may have
+  // moved to another site (and back) in between.
+  private inFlight = new Map<number, Promise<void>>();
 
   constructor(
     private store: SessionStore,
@@ -91,21 +93,32 @@ export class TabSessionStorage {
   }
 
   private ready(tabId: number, origin: string): Promise<void> {
-    const cacheKey = `${tabId}|${origin}`;
-    let ready = this.readyTabs.get(cacheKey);
-    if (!ready) {
-      ready = this.prepareNamespace(tabId, origin).catch((err) => {
+    const previous = this.inFlight.get(tabId) ?? Promise.resolve();
+    const current = previous
+      .then(() => this.prepareNamespace(tabId, origin))
+      .catch((err) => {
         console.error("Error preparing a tab's session:", err);
+      })
+      .finally(() => {
+        if (this.inFlight.get(tabId) === current) {
+          this.inFlight.delete(tabId);
+        }
       });
-      this.readyTabs.set(cacheKey, ready);
-    }
-    return ready;
+    this.inFlight.set(tabId, current);
+    return current;
   }
 
   // Drop the tab's session if it was created on another site, then, if the
   // tab has no session, take over the most recently used session that a
   // closed tab left behind on this site.
   private async prepareNamespace(tabId: number, origin: string): Promise<void> {
+    // The common case, a page load on the site the session belongs to, is
+    // a single read
+    const originKey = namespaced(tabId, ORIGIN_KEY);
+    if ((await this.store.get([originKey]))[originKey] === origin) {
+      return;
+    }
+
     const all = await this.store.get(null);
     const byTab = new Map<number, Record<string, unknown>>();
     for (const [storageKey, value] of Object.entries(all)) {
@@ -150,6 +163,9 @@ export class TabSessionStorage {
       }
     }
     if (!orphan) {
+      // Claim the namespace for this site, so that later reads take the
+      // single-read path above
+      await this.store.set({ [namespaced(tabId, ORIGIN_KEY)]: origin });
       return;
     }
 
