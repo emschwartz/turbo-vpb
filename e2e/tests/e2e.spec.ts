@@ -263,7 +263,7 @@ test("message template placeholders are substituted on connect page", async () =
   }
 });
 
-test("connect page records stats under the extension's session", async () => {
+test("connect page records stats under the extension's session and source", async () => {
   const connectUrl = await getConnectUrl(phonebankPage);
   const sessionId = new URL(connectUrl).searchParams.get("sessionId");
   expect(sessionId).toBeTruthy();
@@ -282,9 +282,14 @@ test("connect page records stats under the extension's session", async () => {
     });
     const statsRequest = connectPage.waitForRequest(/\/api\/stats\//);
     await introLink.click();
-    expect(new URL((await statsRequest).url()).pathname).toBe(
+    const request = await statsRequest;
+    expect(new URL(request.url()).pathname).toBe(
       `/api/stats/sessions/${sessionId}/texts`,
     );
+    expect(request.postDataJSON()).toEqual({
+      extensionVersion: new URL(connectUrl).searchParams.get("version"),
+      domain: new URL(phonebankPage.url()).host,
+    });
   } finally {
     await connectBrowser.close();
   }

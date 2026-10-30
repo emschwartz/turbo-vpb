@@ -119,6 +119,11 @@ const sessionId = searchParams.get('sessionId') || searchParams.get('session') |
 const extensionVersion = searchParams.get('version') || '<0.6.3'
 const extensionUserAgent = searchParams.get('userAgent') || ''
 const domain = searchParams.get('domain') || ''
+// Sent with call and text stats; the extension URI-encodes these params twice
+const statsSource = {
+  extensionVersion: searchParams.get('version') || undefined,
+  domain: safeDecodeURIComponent(domain) || undefined,
+}
 const remotePeerId = window.location.hash.slice(1).replace(/&.*/, '')
 const encryptionKey = window.location.hash.slice(1).replace(/[^&]*&/, '').replace('&debug', '')
 
@@ -739,7 +744,7 @@ function createTextMessageLinks(
 
       try {
         if (!savedTextStats) {
-          await fetchRetry(`/api/stats/sessions/${sessionId}/texts`, { method: 'POST' }, 3)
+          await postTextStats()
           savedTextStats = true
         }
       } catch (err) {
@@ -769,9 +774,11 @@ function createCallResultButtons(resultCodes: string[]): void {
     button.className = 'block w-full border border-red-300 hover:border-red-400 text-red-700 text-center rounded-lg py-3 my-3 font-medium'
     button.role = 'button'
 
+    // The result code is a string from the phone bank page: look it up only
+    // among our own icons, not inherited properties like "constructor"
     if (result.startsWith('Do Not')) {
       button.innerHTML = CALL_RESULT_ICONS['Do Not']
-    } else if (CALL_RESULT_ICONS[result]) {
+    } else if (Object.prototype.hasOwnProperty.call(CALL_RESULT_ICONS, result)) {
       button.innerHTML = CALL_RESULT_ICONS[result]
     } else {
       button.innerHTML = CALL_RESULT_ICONS.Other
@@ -908,7 +915,7 @@ async function saveCallStats(): Promise<void> {
     const requests: Promise<Response | undefined>[] = []
 
     if (lastCallDuration) {
-      const body: Record<string, unknown> = { duration: lastCallDuration }
+      const body: Record<string, unknown> = { duration: lastCallDuration, ...statsSource }
       if (lastCallResult) {
         body.result = lastCallResult
       }
@@ -920,7 +927,7 @@ async function saveCallStats(): Promise<void> {
     }
 
     if (lastCallResult && lastCallResult.toLowerCase() === 'texted') {
-      requests.push(fetchRetry(`/api/stats/sessions/${sessionId}/texts`, { method: 'POST' }, 3))
+      requests.push(postTextStats())
     }
 
     await Promise.all(requests)
@@ -1139,6 +1146,22 @@ function showSnackbar(message: string, kind: 'info' | 'error'): void {
 /**
  * Utilities
  */
+
+function postTextStats(): Promise<Response | undefined> {
+  return fetchRetry(`/api/stats/sessions/${sessionId}/texts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify(statsSource),
+  }, 3)
+}
+
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
 
 async function fetchRetry(url: string, params: RequestInit, times = 3): Promise<Response | undefined> {
   let backoff = 50

@@ -1,6 +1,6 @@
 use axum::extract::DefaultBodyLimit;
 use std::{env, net::SocketAddr};
-use tokio_rusqlite::{rusqlite, Connection};
+use tokio_rusqlite::Connection;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 use tracing::info;
 
@@ -28,25 +28,9 @@ async fn main() {
     let db = Connection::open(&db_path)
         .await
         .expect("Failed to open SQLite database");
-    db.call(|conn| {
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS calls (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                duration INTEGER NOT NULL,
-                result TEXT,
-                timestamp TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS texts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                timestamp TEXT NOT NULL
-            );",
-        )?;
-        Ok::<(), rusqlite::Error>(())
-    })
-    .await
-    .expect("Failed to create database tables");
+    db.call(|conn| stats::init_db(conn))
+        .await
+        .expect("Failed to create database tables");
     info!("SQLite database initialized at {db_path}");
 
     let api = pubsub::router()
