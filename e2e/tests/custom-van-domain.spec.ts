@@ -162,10 +162,6 @@ test("content script works on VAN-style page after permission grant and injectio
     });
     if (result?.result) throw new Error("Content script already injected");
 
-    await (globalThis as any).chrome.scripting.insertCSS({
-      target: { tabId },
-      files: ["/content-scripts/content.css"],
-    });
     await (globalThis as any).chrome.scripting.executeScript({
       target: { tabId },
       files: ["/content-scripts/content.js"],
@@ -229,10 +225,6 @@ test("call result cycles contacts on VAN-style page", async () => {
 
   // Inject content script manually (simulating post-permission-grant injection)
   await serviceWorker.evaluate(async (tabId: number) => {
-    await (globalThis as any).chrome.scripting.insertCSS({
-      target: { tabId },
-      files: ["/content-scripts/content.css"],
-    });
     await (globalThis as any).chrome.scripting.executeScript({
       target: { tabId },
       files: ["/content-scripts/content.js"],

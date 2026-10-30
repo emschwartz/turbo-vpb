@@ -31,10 +31,6 @@ async function injectContentScriptIntoTab(tabId: number): Promise<void> {
   });
   if (result?.result) return;
 
-  await browser.scripting.insertCSS({
-    target: { tabId },
-    files: ["/content-scripts/content.css"],
-  });
   await browser.scripting.executeScript({
     target: { tabId },
     files: [`/${CONTENT_SCRIPT}`],

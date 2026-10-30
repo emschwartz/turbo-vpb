@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { batch, effect } from "@preact/signals";
-import { browser, type PublicPath } from "wxt/browser";
+import { browser } from "wxt/browser";
 import { importKey } from "../../lib/crypto";
 import { normalizePhoneNumber } from "../../lib/phone";
 import PubSubClient from "../../lib/pubsub-client";
@@ -31,7 +31,7 @@ import {
   claimMessage,
   releaseMessage,
 } from "./state";
-import "../../assets/main.css";
+import css from "../../assets/main.css?inline";
 
 export default defineContentScript({
   cssInjectionMode: "manual",
@@ -351,18 +351,10 @@ export default defineContentScript({
         mode: import.meta.env.DEV ? "open" : "closed",
       });
 
-      // Import the extension's stylesheet into the shadow root. The link
-      // loads asynchronously, so keep the container hidden until it does,
-      // or the unsized logo SVG flashes at full width
-      host.style.visibility = "hidden";
-      const style = document.createElement("link");
-      style.rel = "stylesheet";
-      style.onload = style.onerror = () => {
-        host.style.visibility = "";
-      };
-      style.href = browser.runtime.getURL(
-        "/content-scripts/content.css" as PublicPath,
-      );
+      // The stylesheet goes in as text, not a <link> to a web-accessible
+      // resource: that would let any website probe for the extension.
+      const style = document.createElement("style");
+      style.textContent = css;
       shadow.appendChild(style);
 
       const mountPoint = document.createElement("div");
