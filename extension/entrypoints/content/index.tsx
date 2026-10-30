@@ -539,8 +539,7 @@ export default defineContentScript({
           serverUrl: stored.serverUrl as string | undefined,
           yourName: stored.yourName as string | undefined,
           messageTemplates: stored.messageTemplates as
-            | MessageTemplateDetails[]
-            | undefined,
+            MessageTemplateDetails[] | undefined,
         };
         if (stored.totalCalls) {
           setTotalCalls(stored.totalCalls as number);

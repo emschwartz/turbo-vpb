@@ -28,20 +28,20 @@
   },
   "homepage": "https://github.com/emschwartz/turbo-vpb#readme",
   "devDependencies": {
-    "@preact/preset-vite": "^2.10.5",
-    "@tailwindcss/vite": "^4.2.2",
+    "@preact/preset-vite": "^2.10.6",
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/preact": "^3.2.4",
-    "jsdom": "^29.0.1",
-    "prettier": "^3.8.1",
-    "tailwindcss": "^4.2.2",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.2",
-    "wxt": "^0.20.20"
+    "@testing-library/preact": "^3.2.6",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.12",
+    "wxt": "^0.20.27"
   },
   "dependencies": {
-    "@preact/signals": "^2.9.0",
-    "preact": "^10.29.0",
+    "@preact/signals": "^2.11.4",
+    "preact": "^10.29.8",
     "qrcode-generator": "^2.0.4",
     "reconnecting-websocket": "^4.4.0"
   }
