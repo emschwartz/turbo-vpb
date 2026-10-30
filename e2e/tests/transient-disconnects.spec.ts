@@ -528,6 +528,30 @@ test("extension shows the phone as away, not connected, after a page load while 
   }
 });
 
+test("phone shows the extension as connected when its page has no contact", async () => {
+  // e.g. the list is finished, or the contact couldn't be scraped.
+  // (Tabs in the same browser share the phone's channel, so the tab with a
+  // contact has to go.)
+  await phonebankPage.close();
+  const emptyPage = await extensionContext.newPage();
+  await emptyPage.goto(`${SERVER_URL}/test-phonebank?empty`);
+  const phone = await connectPhone(await getConnectUrl(emptyPage));
+  try {
+    await expectStatusToStay(
+      phone.page,
+      phone.page.locator("#status"),
+      "Connected",
+      16_000,
+    );
+    await expect(phone.page.locator("#warning-container")).toBeHidden();
+    await expect(phone.page.locator("#contact-details")).toBeHidden();
+  } finally {
+    await phone.browser.close();
+    await emptyPage.close();
+    await reopenPhonebankPage();
+  }
+});
+
 test("phone session survives a slow phone bank page load", async () => {
   await phonebankPage.reload();
   const connectUrl = await getConnectUrl(phonebankPage);
