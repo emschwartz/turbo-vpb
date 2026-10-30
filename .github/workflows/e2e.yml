@@ -46,12 +46,14 @@ jobs:
         run: pnpm wxt build --browser firefox --mv3 --mode development
         working-directory: extension
 
+      # Use the pnpm that server/package.json pins; the pnpm 9 set up above can't
+      # read its workspace file or lockfile.
       - name: Install server JS dependencies
-        run: pnpm install --frozen-lockfile
+        run: npx -y "$(node -p "require('./package.json').packageManager")" install --frozen-lockfile
         working-directory: server
 
       - name: Build server JS
-        run: pnpm run build
+        run: npx -y "$(node -p "require('./package.json').packageManager")" run build
         working-directory: server
 
       - name: Install e2e dependencies
