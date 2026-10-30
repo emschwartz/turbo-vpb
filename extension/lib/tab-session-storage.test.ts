@@ -130,6 +130,22 @@ describe("TabSessionStorage", () => {
     expect(stats).toEqual({ stats: 5 });
   });
 
+  it("gives a closed tab's session to only one of two new tabs", async () => {
+    const { tabs, storage } = setup([1]);
+    await storage.set(1, VAN, { connection: CHANNEL_A });
+    tabs.delete(1);
+    tabs.add(2);
+    tabs.add(3);
+
+    // Both tabs load at the same time (e.g. restored together)
+    const [second, third] = await Promise.all([
+      storage.get(2, VAN, "connection"),
+      storage.get(3, VAN, "connection"),
+    ]);
+    expect([second, third]).toContainEqual({ connection: CHANNEL_A });
+    expect([second, third]).toContainEqual({});
+  });
+
   it("does not adopt into a tab that already has a session", async () => {
     const { tabs, storage } = setup([1, 2]);
     await storage.set(1, VAN, { connection: CHANNEL_A });

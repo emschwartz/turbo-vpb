@@ -6,6 +6,7 @@ import MessageTemplateList from "./message-template-list";
 import "../../assets/main.css";
 import { InformationCircleIcon } from "../../components/icons";
 import TurboVpbLogoAndName from "../../components/turbovpb-logo-and-name";
+import { isAllowedServerUrl } from "../../lib/server-url";
 
 const serverUrl = signal("");
 const yourName = signal("");
@@ -134,13 +135,11 @@ const AdvancedSettings: FunctionComponent = () => (
           value={serverUrl as unknown as string}
           onInput={(e) => setServerUrl((e.target as HTMLInputElement).value)}
         />
-        {serverUrl.value &&
-          !serverUrl.value.startsWith("https://") &&
-          !serverUrl.value.startsWith("http://localhost") && (
-            <p class="mt-1 text-sm text-red-600">
-              Server URL must use HTTPS to protect the encryption key.
-            </p>
-          )}
+        {serverUrl.value && !isAllowedServerUrl(serverUrl.value) && (
+          <p class="mt-1 text-sm text-red-600">
+            Server URL must use HTTPS to protect the encryption key.
+          </p>
+        )}
       </div>
     </div>
   </div>

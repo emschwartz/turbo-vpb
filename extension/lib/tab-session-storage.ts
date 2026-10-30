@@ -46,12 +46,12 @@ function parse(storageKey: string): { tabId: number; key: string } | undefined {
 }
 
 export class TabSessionStorage {
-  // Each tab's in-flight namespace check. Calls for the same tab run one
-  // after another, so a new tab that reads several keys at once adopts a
-  // closed tab's session only once. Nothing is remembered between calls:
-  // the stored origin is checked on every access, since the tab may have
-  // moved to another site (and back) in between.
-  private inFlight = new Map<number, Promise<void>>();
+  // The namespace checks run one after another, across all tabs: a new tab
+  // that reads several keys at once adopts a closed tab's session only once,
+  // and two new tabs opened together can't both adopt it. Nothing is
+  // remembered between calls: the stored origin is checked on every access,
+  // since the tab may have moved to another site (and back) in between.
+  private chain: Promise<void> = Promise.resolve();
 
   constructor(
     private store: SessionStore,
@@ -93,18 +93,12 @@ export class TabSessionStorage {
   }
 
   private ready(tabId: number, origin: string): Promise<void> {
-    const previous = this.inFlight.get(tabId) ?? Promise.resolve();
-    const current = previous
+    const current = this.chain
       .then(() => this.prepareNamespace(tabId, origin))
       .catch((err) => {
         console.error("Error preparing a tab's session:", err);
-      })
-      .finally(() => {
-        if (this.inFlight.get(tabId) === current) {
-          this.inFlight.delete(tabId);
-        }
       });
-    this.inFlight.set(tabId, current);
+    this.chain = current;
     return current;
   }
 

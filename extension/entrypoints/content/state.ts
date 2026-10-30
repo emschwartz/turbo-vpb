@@ -12,6 +12,7 @@ import {
 } from "../../lib/types";
 import { browser } from "wxt/browser";
 import { randomId } from "../../lib/crypto";
+import { isAllowedServerUrl } from "../../lib/server-url";
 
 const DEFAULT_SERVER_URL = import.meta.env.DEV
   ? "http://localhost:8080"
@@ -53,11 +54,7 @@ export const state = {
 
 export const serverUrl = computed(() => {
   const url = state.settings.value?.serverUrl;
-  if (
-    url &&
-    !url.startsWith("https://") &&
-    !url.startsWith("http://localhost")
-  ) {
+  if (url && !isAllowedServerUrl(url)) {
     console.error("Custom server URL must use HTTPS, falling back to default");
     return DEFAULT_SERVER_URL;
   }

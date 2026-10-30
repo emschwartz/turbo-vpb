@@ -342,7 +342,14 @@ export default defineContentScript({
       console.log("Rendering turbovpb container");
       const host = document.createElement("div");
       host.id = "turbovpb-insert";
-      const shadow = host.attachShadow({ mode: "open" });
+      // Closed, so the page can't read the connect URL (channel and key)
+      // out of the QR code: the content script also runs on pages that
+      // aren't phone banks (any https://*/ContactDetailScript, since VAN
+      // uses custom domains). Open in development so that the E2E tests can
+      // read the QR code link.
+      const shadow = host.attachShadow({
+        mode: import.meta.env.DEV ? "open" : "closed",
+      });
 
       // Import the extension's stylesheet into the shadow root. The link
       // loads asynchronously, so keep the container hidden until it does,

@@ -97,18 +97,6 @@ describe("background message handler", () => {
       expect(mockBrowser.storage.session.get).not.toHaveBeenCalled();
     });
 
-    it("rejects storage.local.set from external sender", () => {
-      const sendResponse = vi.fn();
-      const result = messageListener(
-        { type: "storage.local.set", data: { key: "value" } },
-        { id: "external-extension-id" },
-        sendResponse,
-      );
-
-      expect(result).toBeUndefined();
-      expect(mockBrowser.storage.local.set).not.toHaveBeenCalled();
-    });
-
     it("rejects sessionStorage.set from external sender", () => {
       const sendResponse = vi.fn();
       const result = messageListener(
@@ -145,44 +133,48 @@ describe("background message handler", () => {
       expect(mockBrowser.storage.session.get).not.toHaveBeenCalled();
     });
 
-    it("accepts sessionStorage.get from the extension itself", () => {
+    it("accepts sessionStorage.get from the extension's content script", async () => {
       const sendResponse = vi.fn();
       const result = messageListener(
         { type: "sessionStorage.get", key: "someKey" },
-        { id: EXTENSION_ID },
+        { id: EXTENSION_ID, url: "https://www.openvpb.com/x", tab: { id: 7 } },
         sendResponse,
       );
 
       expect(result).toBe(true);
-      expect(mockBrowser.storage.session.get).toHaveBeenCalledWith("someKey");
+      await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({}));
+      expect(mockBrowser.storage.session.get).toHaveBeenCalledWith([
+        "tab:7:origin",
+      ]);
     });
 
-    it("accepts storage.local.set from the extension itself", () => {
+    it("gives no session to a sender without a tab", () => {
       const sendResponse = vi.fn();
-      const result = messageListener(
-        { type: "storage.local.set", data: { key: "value" } },
+      messageListener(
+        { type: "sessionStorage.get", key: null },
         { id: EXTENSION_ID },
         sendResponse,
       );
-
-      expect(result).toBe(true);
-      expect(mockBrowser.storage.local.set).toHaveBeenCalledWith({
-        key: "value",
-      });
+      expect(sendResponse).toHaveBeenCalledWith({});
+      expect(mockBrowser.storage.session.get).not.toHaveBeenCalled();
     });
 
-    it("accepts sessionStorage.set from the extension itself", () => {
+    it("accepts sessionStorage.set from the extension's content script", async () => {
       const sendResponse = vi.fn();
       const result = messageListener(
         { type: "sessionStorage.set", data: { key: "value" } },
-        { id: EXTENSION_ID },
+        { id: EXTENSION_ID, url: "https://www.openvpb.com/x", tab: { id: 7 } },
         sendResponse,
       );
 
       expect(result).toBe(true);
-      expect(mockBrowser.storage.session.set).toHaveBeenCalledWith({
-        key: "value",
-      });
+      await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith(true));
+      expect(mockBrowser.storage.session.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          "tab:7:key": "value",
+          "tab:7:origin": "https://www.openvpb.com",
+        }),
+      );
     });
 
     it("accepts injectContentScript from the extension itself", () => {

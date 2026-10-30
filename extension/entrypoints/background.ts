@@ -78,28 +78,22 @@ export default defineBackground({
       if (sender.id !== browser.runtime.id) {
         return;
       }
+      // Only content scripts use the session, and they always come with a
+      // tab; nothing else gets at the store
       if (message?.type === "sessionStorage.get") {
         const tabId = sender.tab?.id;
-        (tabId === undefined
-          ? browser.storage.session.get(message.key)
-          : sessionStorage.get(tabId, senderOrigin(sender), message.key)
-        )
+        if (tabId === undefined) {
+          sendResponse({});
+          return;
+        }
+        sessionStorage
+          .get(tabId, senderOrigin(sender), message.key)
           .then(sendResponse)
           .catch((err) => {
             console.error("sessionStorage.get error:", err);
             sendResponse({});
           });
         return true; // async response
-      }
-      if (message?.type === "storage.local.set") {
-        browser.storage.local
-          .set(message.data)
-          .then(() => sendResponse(true))
-          .catch((err) => {
-            console.error("storage.local.set error:", err);
-            sendResponse(false);
-          });
-        return true;
       }
       // Only the E2E tests ask for this (through the dev-only postMessage
       // bridge in the content script), to put the script on test pages the
@@ -136,10 +130,12 @@ export default defineBackground({
       }
       if (message?.type === "sessionStorage.set") {
         const tabId = sender.tab?.id;
-        (tabId === undefined
-          ? browser.storage.session.set(message.data)
-          : sessionStorage.set(tabId, senderOrigin(sender), message.data)
-        )
+        if (tabId === undefined) {
+          sendResponse(false);
+          return;
+        }
+        sessionStorage
+          .set(tabId, senderOrigin(sender), message.data)
           .then(() => sendResponse(true))
           .catch((err) => {
             console.error("sessionStorage.set error:", err);
