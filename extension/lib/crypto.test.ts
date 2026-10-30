@@ -9,9 +9,10 @@ describe("sender binding", () => {
     for (const sender of ["extension", "browser"] as const) {
       const ciphertext = await encrypt(key, message, sender);
       expect(await decrypt(key, ciphertext.buffer, sender)).toEqual(message);
-      expect(await decryptFrom(key, ciphertext.buffer, sender)).toEqual(
+      expect(await decryptFrom(key, ciphertext.buffer, sender)).toEqual({
         message,
-      );
+        bound: true,
+      });
     }
   });
 
@@ -33,9 +34,10 @@ describe("sender binding", () => {
   it("still accepts unbound messages from an older connect page", async () => {
     const key = await generateKey();
     const ciphertext = await encrypt(key, message);
-    expect(await decryptFrom(key, ciphertext.buffer, "browser")).toEqual(
+    expect(await decryptFrom(key, ciphertext.buffer, "browser")).toEqual({
       message,
-    );
+      bound: false,
+    });
   });
 
   it("rejects a message under another key", async () => {

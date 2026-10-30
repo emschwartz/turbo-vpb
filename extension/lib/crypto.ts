@@ -101,18 +101,25 @@ export async function decrypt<T>(
 
 // Decrypts a message from the given sender, accepting unbound messages too,
 // since a self-hosted server may still serve a connect page that does not
-// bind its messages. Accepting unbound messages does not reopen reflection:
-// producing one takes the key, and this side never emits unbound messages,
-// so there are none of its own for anyone to post back to it.
+// bind its messages. Says which it was, so the caller can answer an old peer
+// in kind. Accepting unbound messages does not reopen reflection: producing
+// one takes the key, and this side sends unbound messages only to a peer
+// that has itself sent one.
 export async function decryptFrom<T>(
   encryptionKey: CryptoKey,
   arrayBuffer: ArrayBuffer,
   sender: Sender,
-): Promise<T> {
+): Promise<{ message: T; bound: boolean }> {
   try {
-    return await decrypt<T>(encryptionKey, arrayBuffer, sender);
+    return {
+      message: await decrypt<T>(encryptionKey, arrayBuffer, sender),
+      bound: true,
+    };
   } catch {
-    return await decrypt<T>(encryptionKey, arrayBuffer);
+    return {
+      message: await decrypt<T>(encryptionKey, arrayBuffer),
+      bound: false,
+    };
   }
 }
 

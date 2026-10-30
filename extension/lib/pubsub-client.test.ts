@@ -11,6 +11,37 @@ vi.mock("./crypto", () => ({
   exportKey: vi.fn(),
 }));
 
+// A socket the test drives: it opens right away, and the test delivers
+// messages to it
+vi.mock("reconnecting-websocket", () => {
+  class FakeSocket {
+    static last: FakeSocket;
+    binaryType = "";
+    private listeners: Record<string, Array<(event: any) => void>> = {};
+    constructor() {
+      FakeSocket.last = this;
+      setTimeout(() => this.emit("open", {}), 0);
+    }
+    addEventListener(type: string, listener: (event: any) => void) {
+      (this.listeners[type] ??= []).push(listener);
+    }
+    removeEventListener(type: string, listener: (event: any) => void) {
+      this.listeners[type] = (this.listeners[type] ?? []).filter(
+        (l) => l !== listener,
+      );
+    }
+    emit(type: string, event: any) {
+      for (const listener of [...(this.listeners[type] ?? [])]) {
+        listener(event);
+      }
+    }
+    close() {}
+  }
+  return { default: FakeSocket };
+});
+
+import ReconnectingWebSocket from "reconnecting-websocket";
+import { encrypt, decryptFrom } from "./crypto";
 import PubSubClient from "./pubsub-client";
 
 // Records the order the server receives messages in, and lets the test
@@ -77,5 +108,79 @@ describe("PubSubClient.send", () => {
     );
     expect(await client.send({ type: "a" })).toBe(false);
     expect(await client.send({ type: "b" })).toBe(true);
+  });
+});
+
+describe("PubSubClient sender binding", () => {
+  const socket = () => (ReconnectingWebSocket as any).last;
+
+  beforeEach(() => {
+    vi.mocked(encrypt).mockClear();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true }) as Response),
+    );
+  });
+
+  async function connectedClient() {
+    const client = new PubSubClient(
+      "http://server",
+      "channel",
+      {} as CryptoKey,
+    );
+    await client.connect();
+    return client;
+  }
+
+  // Delivers a message from the phone that decrypts as bound or unbound
+  async function receive(client: PubSubClient, bound: boolean) {
+    const received = new Promise<void>((resolve) => {
+      client.onmessage = () => resolve();
+    });
+    vi.mocked(decryptFrom).mockResolvedValueOnce({
+      message: { type: "ack" },
+      bound,
+    });
+    socket().emit("message", { data: new Blob([new Uint8Array([1])]) });
+    await received;
+  }
+
+  // The sender the last sent message was bound to (undefined: unbound)
+  async function sentAs(client: PubSubClient) {
+    await client.send({ type: "connect" });
+    return vi.mocked(encrypt).mock.lastCall![2];
+  }
+
+  it("binds messages to the extension while the phone sends bound messages", async () => {
+    const client = await connectedClient();
+    expect(await sentAs(client)).toBe("extension");
+    await receive(client, true);
+    await receive(client, true);
+    expect(await sentAs(client)).toBe("extension");
+  });
+
+  it("sends unbound messages once the phone sends one (an old connect page)", async () => {
+    const client = await connectedClient();
+    await receive(client, false);
+    expect(await sentAs(client)).toBeUndefined();
+    await receive(client, false);
+    expect(await sentAs(client)).toBeUndefined();
+  });
+
+  // A bound message proves a current connect page holding the key, so
+  // switching back restores protection against reflection, and an old
+  // connect page never sends one
+  it("binds messages again once the phone sends a bound one", async () => {
+    const client = await connectedClient();
+    await receive(client, false);
+    await receive(client, true);
+    expect(await sentAs(client)).toBe("extension");
+  });
+
+  it("starts out bound on each connection", async () => {
+    const client = await connectedClient();
+    await receive(client, false);
+    await client.connect();
+    expect(await sentAs(client)).toBe("extension");
   });
 });

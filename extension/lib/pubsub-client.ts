@@ -22,6 +22,19 @@ export default class PubSubClient {
   onpeerdisconnected: () => void;
   onpeerconnected: () => void;
   private sendQueue: Promise<void> = Promise.resolve();
+  // Whether to bind sent messages to the extension as sender. A connect page
+  // older than 0.12 (e.g. on a self-hosted server) can't decrypt bound
+  // messages, so this follows the last valid message from the phone: an
+  // unbound one switches sending to unbound, a bound one switches it back.
+  //
+  // Only a key holder can produce either kind, so an attacker who knows just
+  // the channel id can't flip it. Sending unbound does let anyone post our
+  // messages back to us as the phone's, but only once the phone has shown
+  // it is an old connect page, which can be reflected the same way anyway;
+  // with a current connect page no unbound message of ours exists to
+  // reflect. A bound message proves a current connect page, so switching
+  // back restores the protection rather than weakening anything.
+  private sendBound = true;
 
   constructor(
     serverBase: string,
@@ -45,6 +58,10 @@ export default class PubSubClient {
     if (!this.encryptionKey) {
       this.encryptionKey = await generateKey();
     }
+    // Each page load connects a new client, which starts out bound until the
+    // phone shows otherwise. (Not reset when the socket reconnects: the old
+    // connect page would ignore everything until it next sent a message.)
+    this.sendBound = true;
 
     // WebSocket is used only for receiving messages
     this.ws = new ReconnectingWebSocket(this.wsUrl, [], {
@@ -85,12 +102,13 @@ export default class PubSubClient {
           return;
         }
         const data = await (msg.data as Blob).arrayBuffer();
-        const decrypted = await decryptFrom(
+        const { message, bound } = await decryptFrom(
           this.encryptionKey!,
           data,
           "browser",
         );
-        this.onmessage(decrypted);
+        this.sendBound = bound;
+        this.onmessage(message);
       } catch (err) {
         console.error("Failed to process message, ignoring:", err);
       }
@@ -142,7 +160,11 @@ export default class PubSubClient {
   }
 
   private async sendNow(message: any): Promise<boolean> {
-    const encrypted = await encrypt(this.encryptionKey!, message, "extension");
+    const encrypted = await encrypt(
+      this.encryptionKey!,
+      message,
+      this.sendBound ? "extension" : undefined,
+    );
     try {
       const response = await fetch(this.httpUrl, {
         method: "POST",
