@@ -107,7 +107,7 @@ Two transport facts shape every handler on both sides:
 
 ## Tech Choices
 
-- **Preact** (not React) with `@preact/signals` for reactivity. React aliases configured in `wxt.config.ts`.
+- **Preact** (not React) with `@preact/signals` for reactivity.
 - **WXT** (Web eXtension Tooling) for building the Manifest V3 extension. Config in `wxt.config.ts`.
 - Server pages use **Tailwind CSS** compiled via standalone CLI binary (`./tailwindcss`), not via npm.
 - Server client-side JS (`server/src-js/`) is written in **TypeScript** and compiled to `server/static/js/` via **esbuild** (pnpm). The compiled JS files are gitignored.
