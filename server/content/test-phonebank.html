@@ -61,9 +61,13 @@
   // ?navigate: "Save Results & Load Next" loads the next contact with a full
   //   page load, like VAN does, instead of updating the page in place
   // ?empty: the page has no contact (e.g. the list is finished)
+  // ?notexted: the page has no "Texted" result code
   const params = new URLSearchParams(window.location.search);
   if (params.has("household")) {
     TEST_CONTACTS[1].phone = TEST_CONTACTS[0].phone;
+  }
+  if (params.has("notexted")) {
+    document.getElementById("texted").parentElement.remove();
   }
   let contactIndex = Number(params.get("contact")) || 0;
 

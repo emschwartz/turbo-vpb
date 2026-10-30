@@ -700,10 +700,15 @@ function createTextMessageLinks(
 
     let savedTextStats = false
     a.addEventListener('click', async (e) => {
-      lastCallResult = result || null
-      pendingSaveMessage = result || null
+      const longPressMode = !!storage.getItem('requireLongPressMode')
+      // Only count the result as saved if it's actually sent below: not when
+      // the page has no Texted result code, and not in long-press mode,
+      // which just copies the message
+      const sendResult = !!result && autoSaveTextedResultEnabled && !longPressMode
+      lastCallResult = sendResult ? result! : null
+      pendingSaveMessage = sendResult ? result! : null
 
-      if (storage.getItem('requireLongPressMode')) {
+      if (longPressMode) {
         console.log('long press mode enabled, ignoring click')
         e.preventDefault()
         if (navigator && navigator.clipboard) {
@@ -727,9 +732,9 @@ function createTextMessageLinks(
             a.classList.replace('text-red-700', 'text-slate-700')
           }, 800)
         }
-      } else if (result && autoSaveTextedResultEnabled) {
+      } else if (sendResult) {
         console.log(`sending call result: ${result}`)
-        return sendCallResult(result)
+        return sendCallResult(result!)
       }
 
       try {
