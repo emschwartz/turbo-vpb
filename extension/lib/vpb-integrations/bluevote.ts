@@ -52,24 +52,26 @@ export async function scrapeResultCodes(): Promise<string[] | undefined> {
   return elements.map((e) => e.value);
 }
 
-export async function markResult(result: string) {
+export async function markResult(result: string): Promise<boolean> {
   let resultCode = result.toLowerCase();
   if (resultCode !== "texted") {
     resultCode = "not home";
   }
-  try {
-    for (let radioUnit of nonContactRadioButtons()) {
-      if (radioUnit.parentNode?.textContent?.toLowerCase() === resultCode) {
-        radioUnit.click();
-        await sleep();
-        saveNextButton()?.click();
-        return;
+  for (const radioUnit of nonContactRadioButtons()) {
+    if (radioUnit.parentNode?.textContent?.toLowerCase() === resultCode) {
+      radioUnit.click();
+      await sleep();
+      const saveNext = saveNextButton();
+      if (!saveNext) {
+        console.warn("Save & Next button not found");
+        return false;
       }
+      (saveNext as HTMLElement).click();
+      return true;
     }
-    console.warn("Result code not found:", result);
-  } catch (err) {
-    console.error(err);
   }
+  console.warn("Result code not found:", result);
+  return false;
 }
 
 export function onCallResult(

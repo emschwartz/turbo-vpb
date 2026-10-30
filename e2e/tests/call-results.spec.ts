@@ -146,6 +146,68 @@ test("call result is not applied again to the next household member after a page
   }
 });
 
+test("call result is reported saved, not rejected, when the next contact after a page load has a different number", async () => {
+  // Same as above, but Bob has his own number. The result for Alice must
+  // still be recognized as already saved (rather than rejected as being for
+  // the wrong contact), so the phone isn't told it wasn't saved.
+  const phonebankPage = await openPhonebank("navigate");
+  const phone = await connectPhone(await getConnectUrl(phonebankPage));
+  const rejections: string[] = [];
+  phone.page.on("console", (message) => {
+    if (/rejected/.test(message.text())) {
+      rejections.push(message.text());
+    }
+  });
+  try {
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+    await tapCallResult(phone.page, "Refused");
+    await expect(phonebankPage.locator("#contactName")).toHaveText(
+      SECOND_CONTACT,
+    );
+    await expect(phone.page.locator("#name")).toHaveText(SECOND_CONTACT);
+
+    await phonebankPage.waitForTimeout(CALL_RESULT_RETRY_WINDOW_MS);
+    await expect(phone.page.locator("#name")).toHaveText(SECOND_CONTACT);
+    expect(rejections).toEqual([]);
+  } finally {
+    await phone.browser.close();
+    await phonebankPage.close();
+  }
+});
+
+test("phone is told when a result can't be marked on the phone bank page", async () => {
+  const phonebankPage = await openPhonebank("");
+  const phone = await connectPhone(await getConnectUrl(phonebankPage));
+  try {
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+    // e.g. this contact's script doesn't offer that result code
+    await phonebankPage.evaluate(() =>
+      document.getElementById("busy")!.parentElement!.remove(),
+    );
+
+    await tapCallResult(phone.page, "Busy");
+
+    await expect(phone.page.locator("#snackbar")).toContainText(
+      "Couldn't save the result on the phone bank page",
+    );
+    // Nothing was saved, so both sides stay on the same contact for the
+    // volunteer to pick another result
+    await expect(phone.page.locator("#contact-details")).toBeVisible();
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+    await expect(phonebankPage.locator("#contactName")).toHaveText(
+      FIRST_CONTACT,
+    );
+    await tapCallResult(phone.page, "Refused");
+    await expect(phonebankPage.locator("#contactName")).toHaveText(
+      SECOND_CONTACT,
+    );
+    await expect(phone.page.locator("#name")).toHaveText(SECOND_CONTACT);
+  } finally {
+    await phone.browser.close();
+    await phonebankPage.close();
+  }
+});
+
 test("call result is marked in the tab showing that contact when two phone bank tabs are open", async () => {
   // Tabs in the same browser session share the connection to the phone, so
   // both tabs get every call result

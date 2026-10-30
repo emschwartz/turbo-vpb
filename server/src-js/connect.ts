@@ -15,6 +15,7 @@ interface ExtensionMessage {
   ackType?: string
   seq?: number
   status?: 'applied' | 'rejected'
+  reason?: 'contactChanged' | 'notMarked'
   phoneNumber?: string
   yourName?: string
   messageTemplates?: MessageTemplate[]
@@ -838,19 +839,32 @@ function handleCallResultResponse(data: ExtensionMessage): void {
 
   // Stop retries for this seq
   const timer = pendingCallResultAcks.get(data.seq)
-  if (timer) {
-    console.log(`callResult seq=${data.seq} responded: ${data.status}`)
-    clearInterval(timer)
-    pendingCallResultAcks.delete(data.seq)
+  if (!timer) {
+    // Not waiting for this response: it's a replay of the extension's last
+    // message (the server sends it whenever this page reconnects, i.e.
+    // after every call) or the retries already gave up. Any contact bundled
+    // with it is still processed by the caller.
+    console.log(`callResult seq=${data.seq} response is not pending, ignoring status`)
+    return
   }
+  console.log(`callResult seq=${data.seq} responded: ${data.status}`)
+  clearInterval(timer)
+  pendingCallResultAcks.delete(data.seq)
 
   if (data.status === 'rejected') {
-    // The extension did not mark this result (phone mismatch).
+    // The extension did not mark this result: the phone bank page moved on
+    // to another contact, or it couldn't select the result on the page.
     // Clear loading state and re-show the current contact.
-    console.log(`callResult seq=${data.seq} rejected, re-showing current contact`)
+    console.log(`callResult seq=${data.seq} rejected (${data.reason}), re-showing current contact`)
     waitForNewContact = false
     clearTimeout(loadingTimer)
     setLoadingFinished()
+    showSnackbar(
+      data.reason === 'notMarked'
+        ? "Couldn't save the result on the phone bank page"
+        : "Couldn't save the result: the phone bank moved on to another contact",
+      'error',
+    )
   }
   // For 'applied': the loading state is cleared when the bundled contact
   // (or a subsequent standalone contact message) is processed by the
@@ -1079,11 +1093,23 @@ function setLoadingFinished(): void {
 }
 
 function showSaveMessage(result: string): void {
-  document.getElementById('snackbar')!.classList.add('show')
-  document.getElementById('snackbar-message')!.innerText = `Saved Call Result: ${result}`
-  setTimeout(() => {
-    document.getElementById('snackbar')!.classList.remove('show')
-  }, 2500)
+  showSnackbar(`Saved Call Result: ${result}`, 'info')
+}
+
+let snackbarTimer: ReturnType<typeof setTimeout> | undefined
+
+function showSnackbar(message: string, kind: 'info' | 'error'): void {
+  const snackbar = document.getElementById('snackbar')!
+  snackbar.classList.toggle('bg-blue-50', kind === 'info')
+  snackbar.classList.toggle('text-blue-800', kind === 'info')
+  snackbar.classList.toggle('bg-red-50', kind === 'error')
+  snackbar.classList.toggle('text-red-800', kind === 'error')
+  snackbar.classList.add('show')
+  document.getElementById('snackbar-message')!.innerText = message
+  clearTimeout(snackbarTimer)
+  snackbarTimer = setTimeout(() => {
+    snackbar.classList.remove('show')
+  }, kind === 'error' ? 5000 : 2500)
 }
 
 
