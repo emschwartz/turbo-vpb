@@ -44,6 +44,7 @@ class PeerManager {
   private ws: WebSocket | null
   private pubsubState: PubSubState
   private httpUrl: string
+  private sendQueue: Promise<void> = Promise.resolve()
 
   onmessage: (data: unknown) => void
   onconnect: () => void | Promise<void>
@@ -177,7 +178,16 @@ class PeerManager {
     }
   }
 
-  async sendMessage(message: unknown): Promise<boolean> {
+  // Sends are made one at a time, in order, since the server relays (and
+  // stores as the last message) in the order it receives them, and
+  // concurrent POSTs can arrive out of order.
+  sendMessage(message: unknown): Promise<boolean> {
+    const send = this.sendQueue.then(() => this.sendNow(message))
+    this.sendQueue = send.then(() => {})
+    return send
+  }
+
+  private async sendNow(message: unknown): Promise<boolean> {
     if (this.active === false) {
       console.error('Not sending message because PeerManager has already been stopped')
       return false

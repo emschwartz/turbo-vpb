@@ -64,12 +64,21 @@ async function launchExtensionContext(serverUrl: string) {
 test.beforeAll(async () => {
   extensionContext = await launchExtensionContext(SERVER_URL);
   phonebankPage = await extensionContext.newPage();
+  forwardConsole(phonebankPage, "EXT");
   await phonebankPage.goto(`${SERVER_URL}/test-phonebank`);
 });
 
 test.afterAll(async () => {
   await extensionContext?.close();
 });
+
+// TURBOVPB_DEBUG=1 prints both pages' console output, with timestamps
+function forwardConsole(page: Page, label: string) {
+  if (!process.env.TURBOVPB_DEBUG) return;
+  page.on("console", (message) => {
+    console.log(`${new Date().toISOString()} ${label}: ${message.text()}`);
+  });
+}
 
 function sidebarInsert(page: Page) {
   return page.locator("#turbovpb-insert");
@@ -112,6 +121,7 @@ async function connectPhone(
 ): Promise<Phone> {
   const browser = await chromium.launch();
   const page = await browser.newPage();
+  forwardConsole(page, "PHONE");
   const sockets: WebSocketRoute[] = [];
   let connections = 0;
   let networkDown = startWithNetworkDown;
@@ -463,6 +473,7 @@ test("confetti plays once per milestone, not again on every reconnect", async ()
 async function reopenPhonebankPage() {
   // A new tab in the same browser session reuses the stored channel
   phonebankPage = await extensionContext.newPage();
+  forwardConsole(phonebankPage, "EXT");
   await phonebankPage.goto(`${SERVER_URL}/test-phonebank`);
 }
 

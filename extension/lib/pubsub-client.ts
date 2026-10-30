@@ -15,6 +15,7 @@ export default class PubSubClient {
   onopen: () => void;
   onpeerdisconnected: () => void;
   onpeerconnected: () => void;
+  private sendQueue: Promise<void> = Promise.resolve();
 
   constructor(
     serverBase: string,
@@ -118,7 +119,19 @@ export default class PubSubClient {
   // Send messages via HTTP POST for immediate delivery confirmation.
   // The server stores the message so late-joining subscribers get it,
   // regardless of whether there's an active receiver right now.
-  async send(message: any): Promise<boolean> {
+  //
+  // Sends are made one at a time, in order. The server relays messages in
+  // the order it receives them, and concurrent POSTs can arrive out of
+  // order: when a result is saved, the previous contact is sent once more
+  // with the updated stats just before the next contact, and the phone
+  // would show the previous contact again if that arrived last.
+  send(message: any): Promise<boolean> {
+    const send = this.sendQueue.then(() => this.sendNow(message));
+    this.sendQueue = send.then(() => {});
+    return send;
+  }
+
+  private async sendNow(message: any): Promise<boolean> {
     const encrypted = await encrypt(this.encryptionKey!, message);
     try {
       const response = await fetch(this.httpUrl, {

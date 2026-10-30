@@ -101,6 +101,7 @@ Each file exports a scraper for a specific phone bank platform. `index.ts` auto-
 Two transport facts shape every handler on both sides:
 
 - **The phone's socket drops on every call.** Mobile browsers close the WebSocket when the volunteer switches to the dialer or messaging app, and the connect page reconnects when they switch back. A `peerDisconnected` from the phone is routine, not a sign the pairing was lost (issue #2 was the QR code modal reopening on every call).
+- **Messages are relayed in the order the server receives them.** Each side sends one message at a time (`PubSubClient.send`, `PeerManager.sendMessage`), since concurrent POSTs can arrive out of order: the extension re-sends the previous contact with updated stats just before the next contact, and the phone showed the previous contact again when that arrived last.
 - **Every reconnect replays a message.** The server stores each side's last message and sends it to the other side whenever that side (re)connects, so any message can arrive twice and late. Handlers must be idempotent: call results and other one-shot messages carry a `seq` and `timestamp` and are deduplicated (`claimMessage` in the extension, pending seqs on the connect page); presence messages (`peerConnected` / `peerDisconnected`) say whether a message is live.
 
 ## Tech Choices
