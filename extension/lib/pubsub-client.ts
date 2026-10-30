@@ -23,26 +23,31 @@ export default class PubSubClient {
   onpeerconnected: () => void;
   private sendQueue: Promise<void> = Promise.resolve();
   // Whether to bind sent messages to the extension as sender. A connect page
-  // older than 0.12 (e.g. on a self-hosted server) can't decrypt bound
-  // messages, so this follows the last valid message from the phone: an
-  // unbound one switches sending to unbound, a bound one switches it back.
+  // older than 0.12 can't decrypt bound messages. The default server always
+  // serves the current page, so only a self-hosted server can be that old,
+  // and only for one (allowUnboundSending) does this follow the last valid
+  // message from the phone: an unbound one switches sending to unbound, a
+  // bound one switches it back.
   //
   // Only a key holder can produce either kind, so an attacker who knows just
-  // the channel id can't flip it. Sending unbound does let anyone post our
-  // messages back to us as the phone's, but only once the phone has shown
-  // it is an old connect page, which can be reflected the same way anyway;
-  // with a current connect page no unbound message of ours exists to
-  // reflect. A bound message proves a current connect page, so switching
-  // back restores the protection rather than weakening anything.
+  // the channel id can't flip it, except by replaying an unbound message the
+  // phone sent earlier on this channel. Sending unbound lets anyone post our
+  // messages back to us as the phone's (faking its presence), which is why it
+  // is never allowed for the default server: there, the phone's messages are
+  // always bound, so there is nothing to replay. A bound message proves a
+  // current connect page, so switching back restores the protection.
   private sendBound = true;
+  private readonly allowUnboundSending: boolean;
 
   constructor(
     serverBase: string,
     channelId = randomId(16),
     encryptionKey?: CryptoKey,
+    { allowUnboundSending = false } = {},
   ) {
     this.channelId = channelId;
     this.encryptionKey = encryptionKey;
+    this.allowUnboundSending = allowUnboundSending;
     const channelPath = `/api/channels/${this.channelId}/extension`;
     this.wsUrl = `${serverBase.replace(/^http/, "ws")}${channelPath}`;
     this.httpUrl = `${serverBase}${channelPath}`;
@@ -107,7 +112,7 @@ export default class PubSubClient {
           data,
           "browser",
         );
-        this.sendBound = bound;
+        this.sendBound = bound || !this.allowUnboundSending;
         this.onmessage(message);
       } catch (err) {
         console.error("Failed to process message, ignoring:", err);

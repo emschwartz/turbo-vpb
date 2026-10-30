@@ -122,11 +122,13 @@ describe("PubSubClient sender binding", () => {
     );
   });
 
-  async function connectedClient() {
+  async function connectedClient({ selfHosted = true } = {}) {
     const client = new PubSubClient(
       "http://server",
       "channel",
       {} as CryptoKey,
+      // A self-hosted server may still serve an old connect page
+      { allowUnboundSending: selfHosted },
     );
     await client.connect();
     return client;
@@ -174,6 +176,15 @@ describe("PubSubClient sender binding", () => {
     const client = await connectedClient();
     await receive(client, false);
     await receive(client, true);
+    expect(await sentAs(client)).toBe("extension");
+  });
+
+  // The default server always serves a current connect page, so an unbound
+  // message there can only be a replay of one an old page sent earlier, and
+  // must not make this side reflectable
+  it("never sends unbound messages to the default server", async () => {
+    const client = await connectedClient({ selfHosted: false });
+    await receive(client, false);
     expect(await sentAs(client)).toBe("extension");
   });
 

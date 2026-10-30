@@ -17,6 +17,7 @@ import {
   connectUrl,
   showQrCodeModal,
   serverUrl,
+  isCustomServer,
   setStatus,
   detailsToSend,
   isConnectedToServer,
@@ -409,6 +410,7 @@ export default defineContentScript({
         state.connectionDetails.value?.encryptionKey
           ? await importKey(state.connectionDetails.value.encryptionKey)
           : undefined,
+        { allowUnboundSending: isCustomServer.value },
       );
       let gotMessageSinceLastReconnect = false;
       // The server says whether the phone is connected. While it isn't, any

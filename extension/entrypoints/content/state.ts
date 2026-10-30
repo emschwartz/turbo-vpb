@@ -61,6 +61,11 @@ export const serverUrl = computed(() => {
   return url || DEFAULT_SERVER_URL;
 });
 
+// A self-hosted server, which may still serve an older connect page
+export const isCustomServer = computed(
+  () => serverUrl.value !== DEFAULT_SERVER_URL,
+);
+
 // SECURITY NOTE: The encryption key is placed in the URL fragment (hash)
 // so the server never receives it. Accepted tradeoffs:
 // - The key is visible in the QR code displayed on the phone bank page
