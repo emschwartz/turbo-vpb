@@ -344,9 +344,15 @@ export default defineContentScript({
       host.id = "turbovpb-insert";
       const shadow = host.attachShadow({ mode: "open" });
 
-      // Import the extension's stylesheet into the shadow root
+      // Import the extension's stylesheet into the shadow root. The link
+      // loads asynchronously, so keep the container hidden until it does,
+      // or the unsized logo SVG flashes at full width
+      host.style.visibility = "hidden";
       const style = document.createElement("link");
       style.rel = "stylesheet";
+      style.onload = style.onerror = () => {
+        host.style.visibility = "";
+      };
       style.href = browser.runtime.getURL(
         "/content-scripts/content.css" as PublicPath,
       );
