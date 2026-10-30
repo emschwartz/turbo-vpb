@@ -101,7 +101,13 @@ async function expectModalToStayHidden(page: Page, durationMs = 3_000) {
 }
 
 test("modal is shown on first load before the phone has paired", async () => {
-  await expect(qrModalContent(phonebankPage)).toBeVisible({ timeout: 15_000 });
+  // The page decides whether to open the modal only after reading its
+  // session through the background script, which does several
+  // storage.session round trips for a fresh tab. On a busy machine (other
+  // browsers or builds running) a fresh browser takes over 10 s to answer
+  // them, so allow far longer than the 15 s used once the browser is warm.
+  test.setTimeout(90_000);
+  await expect(qrModalContent(phonebankPage)).toBeVisible({ timeout: 60_000 });
   await expect(qrModal(phonebankPage)).toContainText("Scan QR code to connect");
   connectUrl = await getConnectUrl(phonebankPage);
 });
