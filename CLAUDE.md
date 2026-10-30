@@ -62,11 +62,11 @@ The pre-commit hook (`.githooks/pre-commit`) runs all four checks above.
 
 ### E2E tests
 ```bash
-just test         # Build extension then run Playwright tests (headless)
-just e2e          # Run Playwright tests only (extension must be pre-built)
+just test         # Build server JS and extension, then run Playwright tests (headless)
+just e2e          # Run Playwright tests only (server JS and extension must be pre-built)
 just e2e-headed   # Run with visible browser
 ```
-Playwright auto-starts the server on port 8089. Tests run serially (extensions require single worker).
+Playwright auto-starts the server on port 8089, with its metrics on an OS-assigned port so a concurrent dev server or test run can't collide on 8081. Tests run serially (extensions require single worker).
 
 ## Architecture
 

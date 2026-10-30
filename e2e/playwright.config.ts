@@ -21,7 +21,7 @@ export default defineConfig({
     video: "on-first-retry",
   },
   webServer: {
-    command: `PORT=${serverPort} cargo run --manifest-path ${path.resolve(serverDir, "Cargo.toml")}`,
+    command: `PORT=${serverPort} METRICS_PORT=0 cargo run --manifest-path ${path.resolve(serverDir, "Cargo.toml")}`,
     port: serverPort,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -167,9 +167,11 @@ publish:
     just ext-package firefox
     just ext-source
 
-# run e2e tests (builds extension dev build first, since tests use chrome-mv3-dev)
+# run e2e tests (builds the server JS and the extension dev build first, since tests use chrome-mv3-dev)
 test browser='chrome':
     #!/usr/bin/env bash
+    set -e
+    just server-js
     MV3_FLAG=$([[ "{{browser}}" == "firefox" ]] && echo "--mv3" || echo "")
     cd extension && pnpm wxt build --browser {{browser}} --mode development $MV3_FLAG
     if [[ "{{browser}}" == "firefox" ]]; then
