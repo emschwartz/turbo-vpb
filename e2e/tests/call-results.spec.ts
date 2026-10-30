@@ -22,6 +22,7 @@ const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
 const FIRST_CONTACT = "Alice Johnson";
 const SECOND_CONTACT = "Bob Smith";
+const FIRST_CONTACT_PHONE = "(555)-123-4567";
 
 // The connect page retries a call result 3 times, 3 seconds apart, until the
 // extension responds (CALL_RESULT_MAX_RETRIES, CALL_RESULT_ACK_TIMEOUT)
@@ -140,6 +141,55 @@ test("call result is not applied again to the next household member after a page
       "Carol Williams",
     );
     await expect(phone.page.locator("#name")).toHaveText("Carol Williams");
+  } finally {
+    await phone.browser.close();
+    await phonebankPage.close();
+  }
+});
+
+test("a retried call result is answered after the first copy is saved, not before", async () => {
+  // The phone resends a call result that isn't answered within 3 seconds.
+  // When saving the first copy is slow, the retry used to be answered right
+  // away as "already marked", bundling the contact that was still on the
+  // page, so the phone showed the volunteer the person they had just called
+  // as saved and current. The retry must wait for the first copy.
+  const phonebankPage = await openPhonebank("household");
+  const phone = await connectPhone(await getConnectUrl(phonebankPage));
+  const logs: string[] = [];
+  phonebankPage.on("console", (message) => logs.push(message.text()));
+  try {
+    await expect(phone.page.locator("#name")).toHaveText(FIRST_CONTACT);
+
+    // Two copies of one result, as sent by the phone and its retry, arriving
+    // back to back
+    await phonebankPage.evaluate((phoneNumber) => {
+      const message = {
+        type: "callResult",
+        result: "Left Voicemail",
+        phoneNumber,
+        seq: 9001,
+        timestamp: new Date().toISOString(),
+      };
+      for (let i = 0; i < 2; i++) {
+        window.postMessage(
+          { type: "turbovpb-test:inject-call-result", message },
+          "*",
+        );
+      }
+    }, FIRST_CONTACT_PHONE);
+
+    await expect(phonebankPage.locator("#contactName")).toHaveText(
+      SECOND_CONTACT,
+    );
+    await expect
+      .poll(() => logs.some((log) => /already marked/.test(log)), {
+        timeout: 10_000,
+      })
+      .toBe(true);
+    const marked = logs.findIndex((log) => /Marking result/.test(log));
+    const retryAnswered = logs.findIndex((log) => /already marked/.test(log));
+    expect(marked).toBeGreaterThanOrEqual(0);
+    expect(retryAnswered).toBeGreaterThan(marked);
   } finally {
     await phone.browser.close();
     await phonebankPage.close();
