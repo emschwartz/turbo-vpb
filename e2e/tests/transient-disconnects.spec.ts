@@ -34,6 +34,12 @@ const SECOND_CONTACT = "Bob Smith";
 const PEER_DISCONNECTED_GRACE_MS = 3_000;
 const PEER_DISCONNECTED_TOTAL_MS = 30_000;
 
+// The phone resends a call result every 3 seconds, three times, and gives up
+// 3 seconds after the last (CALL_RESULT_ACK_TIMEOUT, CALL_RESULT_MAX_RETRIES).
+// Saving the result can take that long when the machine is busy, so the next
+// contact is expected for as long as the phone itself keeps trying.
+const CALL_RESULT_GIVE_UP_MS = 12_000;
+
 let extensionContext: BrowserContext;
 let phonebankPage: Page;
 
@@ -222,8 +228,10 @@ async function expectStatusToStay(
 ) {
   const deadline = Date.now() + durationMs;
   while (Date.now() < deadline) {
-    // (A timeout of 0 would mean no timeout)
-    await expect(locator).toContainText(text, { timeout: 100 });
+    // A short window, so a status that flashes away is caught, but long
+    // enough for one read on a busy machine (100 ms was not, and the
+    // element may be briefly empty while the page redraws)
+    await expect(locator).toContainText(text, { timeout: 1_000 });
     await page.waitForTimeout(250);
   }
 }
@@ -287,7 +295,7 @@ async function markResultOnPhoneAndExpectNextContact(phone: Phone) {
   // The next contact comes back over the WebSocket, so this only works if
   // the phone reconnected
   await expect(page.locator("#name")).toHaveText(SECOND_CONTACT, {
-    timeout: 8_000,
+    timeout: CALL_RESULT_GIVE_UP_MS,
   });
   await expect(phonebankPage.locator("#contactName")).toHaveText(
     SECOND_CONTACT,

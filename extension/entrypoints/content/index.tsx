@@ -113,7 +113,20 @@ export default defineContentScript({
     });
     ctx.onInvalidated(disposeSendContact);
 
-    async function handleCallResult(message: any) {
+    // Call results are handled one at a time. The phone retries a result
+    // that isn't answered within 3 seconds, and when saving the claim is
+    // slow (the background script is busy) the retry arrives while the
+    // first copy is still being claimed. Handled concurrently, the retry
+    // would see the result as already marked and answer "applied" before it
+    // was marked. Queued, it is answered after the first copy is done.
+    let callResultQueue: Promise<void> = Promise.resolve();
+    function handleCallResult(message: any): Promise<void> {
+      const run = callResultQueue.then(() => handleCallResultNow(message));
+      callResultQueue = run.catch(() => {});
+      return run;
+    }
+
+    async function handleCallResultNow(message: any) {
       const incomingPhone = message.phoneNumber
         ? normalizePhoneNumber(message.phoneNumber)
         : undefined;
