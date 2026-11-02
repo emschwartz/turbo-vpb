@@ -28,6 +28,7 @@ const PAGES: &[(&str, &str)] = &[
     ("index", include_str!("../content/index.html")),
     ("connect", include_str!("../content/connect.html")),
     ("share", include_str!("../content/share.html")),
+    ("privacy", include_str!("../content/privacy.html")),
     (
         "test-phonebank",
         include_str!("../content/test-phonebank.html"),
@@ -113,7 +114,7 @@ mod tests {
     async fn other_pages_keep_their_inline_scripts() {
         // The share and test pages have inline scripts, which this CSP
         // would block
-        for path in ["/", "/share", "/test-phonebank"] {
+        for path in ["/", "/share", "/privacy", "/test-phonebank"] {
             assert_eq!(csp_of(path).await, None, "{path}");
         }
     }

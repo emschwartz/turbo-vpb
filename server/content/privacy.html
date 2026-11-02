@@ -1,0 +1,228 @@
+<nav class="bg-white border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center">
+        <a class="flex items-center gap-2 text-slate-900 font-semibold text-lg no-underline" href="/">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"
+                xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd"
+                    d="M2.267.98a1.636 1.636 0 0 1 2.448.152l1.681 2.162c.309.396.418.913.296 1.4l-.513 2.053a.636.636 0 0 0 .167.604L8.65 9.654a.636.636 0 0 0 .604.167l2.052-.513a1.636 1.636 0 0 1 1.401.296l2.162 1.681c.777.604.849 1.753.153 2.448l-.97.97c-.693.693-1.73.998-2.697.658a17.471 17.471 0 0 1-6.571-4.144A17.47 17.47 0 0 1 .639 4.646c-.34-.967-.035-2.004.658-2.698l.97-.969zM11 .5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1.707l-4.146 4.147a.5.5 0 0 1-.708-.708L14.293 1H11.5a.5.5 0 0 1-.5-.5z" />
+            </svg>
+            TurboVPB
+        </a>
+    </div>
+</nav>
+
+<div class="max-w-2xl mx-auto px-6 py-12 space-y-12">
+
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 mb-2">Privacy Policy</h1>
+        <p class="text-sm text-slate-400">Effective November 2, 2026</p>
+    </div>
+
+    <section>
+        <div class="rounded-lg p-6 bg-blue-50 border border-blue-200 text-blue-900 space-y-3">
+            <p>
+                TurboVPB sends the contact shown on your phone bank page to your phone. Those contact details are
+                encrypted end to end: the key is created in your browser and never sent to the server, so only your
+                computer and your phone can read them.
+            </p>
+            <p>
+                The TurboVPB server relays the encrypted messages and keeps anonymous counts of calls and texts, listed
+                below. There are no accounts, no ads, no tracking scripts, and no selling of data.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">What the extension reads and keeps on your computer</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                The extension only runs on phone bank pages: OpenVPB, VAN (VoteBuilder and EveryAction, including
+                campaign-specific VAN domains), and BlueVote. It also runs on turbovpb.com to import message templates.
+                It does not read any other site.
+            </p>
+            <p>
+                On a phone bank page it reads the contact the page is currently showing: their name, phone number, and
+                the other details the page displays. It sends that contact to your phone, encrypted, and does not store it
+                anywhere.
+            </p>
+            <p>The extension keeps these settings in your browser's extension storage, on your computer only:</p>
+            <ul class="list-disc pl-5 space-y-2">
+                <li>Your text message templates and the name you enter for them.</li>
+                <li>A custom server URL, if you set one.</li>
+                <li>Your call counts (total and per day), which the extension popup shows you.</li>
+                <li>For each open phone bank tab, the pairing with your phone (a random channel id and the encryption
+                    key) and which call results have already been handled. Your browser clears these when it closes.</li>
+            </ul>
+            <p>
+                Uninstalling the extension deletes all of this.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">What passes through the relay server</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                When you scan the QR code, your computer and your phone join a channel on the TurboVPB server with a
+                random id. Every message between them is encrypted in your browser with AES-GCM. The key is in the part
+                of the link after the <code class="bg-slate-100 px-1 rounded text-sm">#</code> (the URL fragment),
+                which browsers never send to a server.
+            </p>
+            <p>The server sees the channel id, whether each side is connected, and the encrypted messages, including their
+                size and timing. It cannot read them.</p>
+            <p>
+                The server holds the most recent encrypted message from each side in memory, so it can deliver it again
+                when your phone reconnects (your phone's browser drops the connection every time you switch to the dialer
+                or messaging app). Nothing is written to disk. A connection that is idle for 30 minutes is closed, and as
+                soon as the last connection to a channel closes, the channel and the messages it held are dropped.
+            </p>
+            <p>
+                The link in the QR code also carries a random session id, the extension version, the phone bank site's
+                domain, and your desktop browser's user agent string. The server receives these when the page loads. It
+                stores the first three only as part of the usage statistics below, and does not store the user agent.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Anonymous usage statistics</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                To see how much TurboVPB is used and whether an update broke something, the page on your phone sends a
+                small record to the server after each call and each text. The records contain exactly these fields:
+            </p>
+            <ul class="list-disc pl-5 space-y-2">
+                <li><strong>Each call:</strong> a random session id (new each time you pair), how long the call lasted,
+                    the result code you picked (for example "Not Home"), the extension version, the phone bank site's
+                    domain (for example www.openvpb.com), and the time.</li>
+                <li><strong>Each text:</strong> the session id, the extension version, the phone bank site's domain, and
+                    the time.</li>
+            </ul>
+            <p>
+                The records never include names, phone numbers, or any other contact details, and no IP addresses or
+                browser details. The session id is random and is not linked to you, your campaign, or an account.
+            </p>
+            <p>
+                These records are kept in a database on the server. There is currently no automatic deletion, so they
+                are kept indefinitely.
+            </p>
+            <p>
+                The server also keeps running totals (such as the number of open channels and messages relayed) for
+                monitoring. These are aggregate counters with no per-user information.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">The website</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                Like any web server, the TurboVPB server receives your IP address and standard browser headers with each
+                request, including from the page on your phone. The server does not log or store them.
+            </p>
+            <p>
+                TurboVPB sets no cookies and uses no analytics or tracking scripts. The page on your phone loads nothing
+                from third parties. The home page embeds videos from YouTube (through youtube-nocookie.com): if you play
+                one, YouTube receives your request and Google's privacy policy applies to it.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Hosting</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                The server runs on <a href="https://fly.io" target="_blank" class="text-blue-600 hover:text-blue-700">Fly.io</a>,
+                which processes data on TurboVPB's behalf. Fly.io's network necessarily sees the IP addresses of
+                connections to the server and may keep its own infrastructure logs, which TurboVPB does not control.
+                See <a href="https://fly.io/legal/privacy-policy/" target="_blank" class="text-blue-600 hover:text-blue-700">Fly.io's privacy policy</a>.
+            </p>
+            <p>No one else receives any data from TurboVPB.</p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">What TurboVPB does not collect</h2>
+        <ul class="list-disc pl-5 space-y-2 text-slate-500">
+            <li>No accounts, sign-ups, or email addresses (unless you email us).</li>
+            <li>No contact details on the server. They only ever exist unencrypted on your own devices.</li>
+            <li>No browsing history. The extension does not look at pages outside the phone bank sites listed above.</li>
+            <li>No IP addresses or user agents stored by TurboVPB.</li>
+            <li>No advertising, no data brokers, no selling or sharing of data for marketing.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Chrome Web Store</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                TurboVPB uses the information it reads from phone bank pages only to send the current contact to your
+                phone and to show you your call counts. TurboVPB complies with
+                the <a href="https://developer.chrome.com/docs/webstore/program-policies/limited-use" target="_blank" class="text-blue-600 hover:text-blue-700">Chrome Web Store User Data Policy</a>,
+                including the Limited Use requirements.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Self-hosted servers</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                This policy covers the server at turbovpb.com. If you enter a custom server URL in the extension's
+                options, your relay traffic and usage statistics go to that server instead, and whoever runs it is
+                responsible for them.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Open source</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                The extension and the server are open source, so you can check everything on this page against the code:
+                <a href="https://github.com/emschwartz/turbo-vpb" target="_blank" class="text-blue-600 hover:text-blue-700">github.com/emschwartz/turbo-vpb</a>.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Your choices and rights</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                Everything the extension keeps is on your own devices, and you can delete it by uninstalling the
+                extension or clearing your browser data. The usage statistics on the server are tied only to a random
+                session id, so there is no record that TurboVPB can look up or delete for a particular person.
+            </p>
+            <p>
+                If you are in the European Economic Area or the United Kingdom: TurboVPB is operated by Evan Schwartz,
+                who is the data controller. The legal basis for relaying messages and keeping usage statistics is a
+                legitimate interest in running and improving the service (GDPR Article 6(1)(f)). You have the right to
+                access, correct, or delete personal data, to object to its processing, and to complain to your data
+                protection authority. The server is in the United States.
+            </p>
+            <p>
+                If you are in California: TurboVPB does not sell or share personal information.
+            </p>
+            <p>To exercise any of these rights, email us at the address below.</p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Contact</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>Questions about this policy or about your data: <a href="mailto:privacy@turbovpb.com" class="text-blue-600 hover:text-blue-700">privacy@turbovpb.com</a>.</p>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-2xl font-semibold text-slate-900 mb-4">Changes to this policy</h2>
+        <div class="text-slate-500 space-y-4">
+            <p>
+                Changes are posted on this page with a new effective date. Every change is also visible in the
+                <a href="https://github.com/emschwartz/turbo-vpb/commits/main/server/content/privacy.html" target="_blank" class="text-blue-600 hover:text-blue-700">page's history</a>
+                in the source repository.
+            </p>
+        </div>
+    </section>
+
+</div>
