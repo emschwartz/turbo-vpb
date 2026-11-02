@@ -12,6 +12,9 @@ let permissionsAddedListener: (changes: {
   origins?: string[];
 }) => Promise<void>;
 
+// Captured listener from browser.runtime.onInstalled.addListener
+let installedListener: (details: { reason: string }) => void;
+
 const EXTENSION_ID = "test-extension-id";
 
 const mockBrowser = {
@@ -32,6 +35,12 @@ const mockBrowser = {
         },
       ],
     }),
+    getURL: (path: string) => `chrome-extension://${EXTENSION_ID}${path}`,
+    onInstalled: {
+      addListener: vi.fn((listener: typeof installedListener) => {
+        installedListener = listener;
+      }),
+    },
     onMessage: {
       addListener: vi.fn((listener: typeof messageListener) => {
         messageListener = listener;
@@ -49,6 +58,7 @@ const mockBrowser = {
   },
   tabs: {
     query: vi.fn().mockResolvedValue([]),
+    create: vi.fn().mockResolvedValue({}),
   },
   scripting: {
     executeScript: vi.fn().mockResolvedValue([{ result: false }]),
@@ -82,6 +92,22 @@ describe("background message handler", () => {
     // Import the background module and call main() to register listeners
     const mod = await import("../background");
     mod.default.main();
+  });
+
+  describe("welcome page", () => {
+    it("opens on install", () => {
+      installedListener({ reason: "install" });
+
+      expect(mockBrowser.tabs.create).toHaveBeenCalledWith({
+        url: `chrome-extension://${EXTENSION_ID}/welcome.html`,
+      });
+    });
+
+    it("does not open on update", () => {
+      installedListener({ reason: "update" });
+
+      expect(mockBrowser.tabs.create).not.toHaveBeenCalled();
+    });
   });
 
   describe("sender validation", () => {

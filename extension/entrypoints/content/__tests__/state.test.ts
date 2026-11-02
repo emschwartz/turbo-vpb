@@ -31,13 +31,15 @@ const CHANNEL = {
 
 // Simulate a fresh content script load (e.g. a page reload) and wait for
 // stored state to load, mirroring the startup sequence in index.tsx.
-async function loadContentScriptState() {
+async function loadContentScriptState({ consent = true } = {}) {
   vi.resetModules();
   const mod = await import("../state");
   await Promise.all([
     mod.state.connectionDetails.loaded,
     mod.state.pairedChannelId.loaded,
   ]);
+  // The consent is read from storage.local at startup in index.tsx
+  mod.state.dataConsent.value = consent;
   mod.autoShowQrCodeModal();
   return mod;
 }
@@ -61,6 +63,18 @@ describe("QR code modal", () => {
   it("is shown on load when the stored channel was never paired", async () => {
     sessionStorage.turboVpbConnection = CHANNEL;
     const { state } = await loadContentScriptState();
+    expect(state.showQrCodeModal.value).toBe(true);
+  });
+
+  it("is shown on load without data consent, even once paired", async () => {
+    sessionStorage.turboVpbConnection = CHANNEL;
+    sessionStorage.turboVpbPairedChannel = CHANNEL.channelId;
+
+    const { state, isPaired } = await loadContentScriptState({
+      consent: false,
+    });
+
+    expect(isPaired.value).toBe(true);
     expect(state.showQrCodeModal.value).toBe(true);
   });
 
