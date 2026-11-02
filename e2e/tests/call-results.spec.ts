@@ -33,7 +33,7 @@ test.beforeAll(async () => {
     serviceWorker = await extensionContext.waitForEvent("serviceworker");
   }
   await serviceWorker.evaluate(
-    (serverUrl) => (globalThis as any).chrome.storage.local.set({ serverUrl }),
+    (serverUrl) => (globalThis as any).chrome.storage.local.set({ serverUrl, dataConsent: true }),
     SERVER_URL,
   );
 });
@@ -282,7 +282,7 @@ test("call results aren't marked against a stale contact after the extension is 
     }
     await serviceWorker.evaluate(
       (serverUrl) =>
-        (globalThis as any).chrome.storage.local.set({ serverUrl }),
+        (globalThis as any).chrome.storage.local.set({ serverUrl, dataConsent: true }),
       SERVER_URL,
     );
     const phonebankPage = await context.newPage();

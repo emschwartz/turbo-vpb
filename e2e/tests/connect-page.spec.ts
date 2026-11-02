@@ -22,7 +22,7 @@ test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async () => {
   extensionContext = await launchExtensionContext();
-  await setExtensionSettings({ serverUrl: SERVER_URL });
+  await setExtensionSettings({ serverUrl: SERVER_URL, dataConsent: true });
 });
 
 test.afterAll(async () => {

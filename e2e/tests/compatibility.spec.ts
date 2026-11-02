@@ -34,7 +34,7 @@ test.beforeAll(async () => {
     serviceWorker = await extensionContext.waitForEvent("serviceworker");
   }
   await serviceWorker.evaluate(
-    (serverUrl) => (globalThis as any).chrome.storage.local.set({ serverUrl }),
+    (serverUrl) => (globalThis as any).chrome.storage.local.set({ serverUrl, dataConsent: true }),
     SERVER_URL,
   );
 });

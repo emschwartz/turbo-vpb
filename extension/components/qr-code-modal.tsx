@@ -11,7 +11,9 @@ const QrCodeModal: FunctionComponent<{
   open: Signal<boolean>;
   status: Signal<ConnectionStatus>;
   connectUrl: ReadonlySignal<URL | undefined>;
-}> = ({ open, status, connectUrl }) => {
+  hasConsent: ReadonlySignal<boolean>;
+  onAgree: () => void;
+}> = ({ open, status, connectUrl, hasConsent, onAgree }) => {
   const close = useCallback(() => {
     open.value = false;
   }, [open]);
@@ -58,8 +60,40 @@ const QrCodeModal: FunctionComponent<{
                   </div>
                 </h2>
               </div>
-              <ConnectionStatusBadge status={status.value} class="text-lg" />
-              <ConnectQrCode connectUrl={connectUrl} size={300} />
+              {hasConsent.value ? (
+                <>
+                  <ConnectionStatusBadge
+                    status={status.value}
+                    class="text-lg"
+                  />
+                  <ConnectQrCode connectUrl={connectUrl} size={300} />
+                </>
+              ) : (
+                <>
+                  <p class="text-sm text-slate-700">
+                    TurboVPB reads the name, phone number, and other details of
+                    the contact on this page and sends them to your phone,
+                    encrypted so that only your devices can read them. The
+                    TurboVPB server only relays the encrypted messages. See the{" "}
+                    <a
+                      href="https://turbovpb.com/privacy"
+                      target="_blank"
+                      rel="noopener"
+                      class="underline text-blue-600 hover:text-blue-700"
+                    >
+                      privacy policy
+                    </a>
+                    .
+                  </p>
+                  <button
+                    type="button"
+                    class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    onClick={onAgree}
+                  >
+                    Agree and connect
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

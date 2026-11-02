@@ -46,7 +46,7 @@ async function launchConfiguredContext(serverUrl: string) {
     serviceWorker = await context.waitForEvent("serviceworker");
   }
   await serviceWorker.evaluate(
-    (serverUrl) => (globalThis as any).chrome.storage.local.set({ serverUrl }),
+    (serverUrl) => (globalThis as any).chrome.storage.local.set({ serverUrl, dataConsent: true }),
     serverUrl,
   );
   return context;

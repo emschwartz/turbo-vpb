@@ -20,6 +20,10 @@ const DEFAULT_SERVER_URL = import.meta.env.DEV
 
 export const state = {
   settings: signal(undefined as ExtensionSettings | undefined),
+  // Whether the user agreed to TurboVPB reading the contact's details and
+  // sending them to their phone (storage.local `dataConsent`). Undefined
+  // until storage has loaded. Nothing is sent to a server before this is true.
+  dataConsent: signal(undefined as boolean | undefined),
   pubsubClient: signal(undefined as PubSubClient | undefined),
   status: signal("connectingToServer" as ConnectionStatus),
   connectionDetails: sessionStoredSignal<ConnectionDetails | undefined>(
@@ -111,6 +115,13 @@ export const detailsToSend = computed(() => {
   };
 });
 
+export const hasDataConsent = computed(() => state.dataConsent.value === true);
+
+export async function agreeToDataConsent() {
+  state.dataConsent.value = true;
+  await browser.storage.local.set({ dataConsent: true });
+}
+
 export function showQrCodeModal() {
   state.showQrCodeModal.value = true;
 }
@@ -126,8 +137,9 @@ export const isPaired = computed(
 );
 
 // Open the modal on page load only if no phone has paired with this channel.
+// Also open it until the user has agreed to the data disclosure.
 export function autoShowQrCodeModal() {
-  if (!isPaired.value) {
+  if (!isPaired.value || !hasDataConsent.value) {
     showQrCodeModal();
   }
 }

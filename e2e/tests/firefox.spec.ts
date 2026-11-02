@@ -150,6 +150,7 @@ test.beforeAll(async () => {
     },
     {
       serverUrl: SERVER_URL,
+      dataConsent: true,
       yourName: "Test Volunteer",
       messageTemplates: MESSAGE_TEMPLATES,
     },

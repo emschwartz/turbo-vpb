@@ -49,12 +49,14 @@ test.beforeAll(async () => {
     ({ serverUrl, yourName, messageTemplates }) => {
       return (globalThis as any).chrome.storage.local.set({
         serverUrl,
+        dataConsent: true,
         yourName,
         messageTemplates,
       });
     },
     {
       serverUrl: SERVER_URL,
+      dataConsent: true,
       yourName: "Test Volunteer",
       messageTemplates: MESSAGE_TEMPLATES,
     },

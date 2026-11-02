@@ -25,6 +25,8 @@ import {
   setTotalCalls,
   setResultCodes,
   autoShowQrCodeModal,
+  agreeToDataConsent,
+  hasDataConsent,
   handlePhoneConnected,
   handlePhoneDisconnected,
   setWaitingForPhone,
@@ -68,13 +70,18 @@ export default defineContentScript({
     // before connecting. The connection details come from storage.session
     // via message passing (async), so we must await them to reuse an
     // existing channelId after a page reload.
-    Promise.all([loadSettings(), state.connectionDetails.loaded])
+    // Nothing leaves the page until the user has agreed (see
+    // QrCodeModal), so the connection waits for that too.
+    const settingsLoaded = loadSettings();
+    Promise.all([settingsLoaded, state.connectionDetails.loaded])
+      .then(() => waitForDataConsent())
       .then(connectPubsubClient)
       .catch((err) => {
         console.error("Failed to connect to server:", err);
         setStatus("disconnected");
       });
     Promise.all([
+      settingsLoaded,
       state.connectionDetails.loaded,
       state.pairedChannelId.loaded,
     ]).then(autoShowQrCodeModal);
@@ -102,7 +109,11 @@ export default defineContentScript({
 
     // Send the contact details whenever there is a new contact
     const disposeSendContact = effect(() => {
-      if (state.pubsubClient.value && detailsToSend.value) {
+      if (
+        hasDataConsent.value &&
+        state.pubsubClient.value &&
+        detailsToSend.value
+      ) {
         console.log("Sending contact details", detailsToSend.value);
         const phone = detailsToSend.value.contact?.phoneNumber;
         if (phone) {
@@ -282,6 +293,18 @@ export default defineContentScript({
       });
     }
 
+    function waitForDataConsent(): Promise<void> {
+      return new Promise((resolve) => {
+        const dispose = effect(() => {
+          if (hasDataConsent.value) {
+            queueMicrotask(() => dispose());
+            resolve();
+          }
+        });
+        ctx.onInvalidated(dispose);
+      });
+    }
+
     function listenForExtensionMessages() {
       const handler = (message: any) => {
         if (message.type === "openQrCodeModal") {
@@ -381,12 +404,16 @@ export default defineContentScript({
             hide={state.showQrCodeModal}
             status={state.status}
             connectUrl={connectUrl}
+            hasConsent={hasDataConsent}
+            onShowDisclosure={showQrCodeModal}
             scrapingConfidence={state.scrapingConfidence}
           />
           <QrCodeModal
             open={state.showQrCodeModal}
             status={state.status}
             connectUrl={connectUrl}
+            hasConsent={hasDataConsent}
+            onAgree={agreeToDataConsent}
           />
         </>,
         mountPoint,
@@ -553,8 +580,10 @@ export default defineContentScript({
         "messageTemplates",
         "totalCalls",
         "dailyCalls",
+        "dataConsent",
       ]);
       batch(() => {
+        state.dataConsent.value = stored.dataConsent === true;
         state.settings.value = {
           serverUrl: stored.serverUrl as string | undefined,
           yourName: stored.yourName as string | undefined,
@@ -571,6 +600,9 @@ export default defineContentScript({
 
       const onChangedHandler = (changes: any, area: string) => {
         if (area === "local") {
+          if (changes.dataConsent?.newValue === true) {
+            state.dataConsent.value = true;
+          }
           state.settings.value = {
             serverUrl:
               changes.serverUrl?.newValue ?? state.settings.value?.serverUrl,
