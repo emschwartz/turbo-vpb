@@ -1,14 +1,6 @@
 import { test, expect, chromium, BrowserContext, Page } from "@playwright/test";
-import path from "path";
-import { fileURLToPath } from "url";
+import { launchExtensionContext } from "./helpers/launch";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Use the dev build which includes http://localhost/* in content_scripts,
-// needed for testing against the local server.
-const EXTENSION_PATH = path.resolve(
-  __dirname,
-  "../../extension/.output/chrome-mv3-dev",
-);
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
@@ -46,16 +38,7 @@ let extensionContext: BrowserContext;
 let phonebankPage: Page;
 
 test.beforeAll(async () => {
-  extensionContext = await chromium.launchPersistentContext("", {
-    headless: false,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-      "--no-first-run",
-      "--disable-gpu",
-      "--no-default-browser-check",
-    ],
-  });
+  extensionContext = await launchExtensionContext();
 
   // Find the extension's background/service worker and set serverUrl
   let serviceWorker = extensionContext.serviceWorkers()[0];
@@ -412,9 +395,12 @@ test("connect page shows session complete when phonebank page closes", async () 
     // After a grace period + timeout, the connect page marks session complete.
     await phonebankPage.close();
 
-    await expect(connectPage.locator("#status")).toHaveText("Session Complete", {
-      timeout: 40_000,
-    });
+    await expect(connectPage.locator("#status")).toHaveText(
+      "Session Complete",
+      {
+        timeout: 40_000,
+      },
+    );
     await expect(connectPage.locator("#session-ended")).toBeVisible();
   } finally {
     await connectBrowser.close();
@@ -448,9 +434,12 @@ test("extension shows waiting status when connect page closes", async () => {
     await connectBrowser.close();
 
     // The phone was paired, so the extension waits for it to reconnect
-    await expect(extensionStatus).toContainText("Waiting for phone to reconnect", {
-      timeout: 10_000,
-    });
+    await expect(extensionStatus).toContainText(
+      "Waiting for phone to reconnect",
+      {
+        timeout: 10_000,
+      },
+    );
   } finally {
     // connectBrowser already closed above, but handle the case where test fails early
     try {

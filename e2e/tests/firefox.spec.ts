@@ -125,7 +125,7 @@ test.beforeAll(async () => {
   const rdpPort = await findFreePort();
 
   firefoxContext = await firefox.launchPersistentContext("", {
-    headless: false,
+    headless: process.env.HEADED !== "1",
     args: firefoxExtensionArgs(rdpPort),
     firefoxUserPrefs: firefoxExtensionPrefs(rdpPort),
   });

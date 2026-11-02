@@ -1,16 +1,10 @@
 import { test, expect, chromium, BrowserContext, Page } from "@playwright/test";
-import path from "path";
-import { fileURLToPath } from "url";
+import { launchExtensionContext } from "./helpers/launch";
 
 // These tests cover when the QR code modal opens. They use their own
 // extension context so storage.session starts empty (never paired), which
 // the shared context in e2e.spec.ts can't guarantee.
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXTENSION_PATH = path.resolve(
-  __dirname,
-  "../../extension/.output/chrome-mv3-dev",
-);
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
@@ -21,16 +15,7 @@ let connectUrl: string;
 test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async () => {
-  extensionContext = await chromium.launchPersistentContext("", {
-    headless: false,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-      "--no-first-run",
-      "--disable-gpu",
-      "--no-default-browser-check",
-    ],
-  });
+  extensionContext = await launchExtensionContext();
 
   let serviceWorker = extensionContext.serviceWorkers()[0];
   if (!serviceWorker) {

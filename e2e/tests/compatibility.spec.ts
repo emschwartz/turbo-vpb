@@ -6,19 +6,13 @@ import {
   BrowserContext,
   Page,
 } from "@playwright/test";
-import path from "path";
-import { fileURLToPath } from "url";
+import { launchExtensionContext } from "./helpers/launch";
 
 // The extension and the connect page are never updated together, so each
 // side must ignore message types and fields it doesn't know, which a newer
 // peer will send. Each test posts such a message to one side, as the other
 // side, and checks the receiver keeps working afterwards.
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXTENSION_PATH = path.resolve(
-  __dirname,
-  "../../extension/.output/chrome-mv3-dev",
-);
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
@@ -34,16 +28,7 @@ let extensionContext: BrowserContext;
 test.describe.configure({ mode: "serial", timeout: 90_000 });
 
 test.beforeAll(async () => {
-  extensionContext = await chromium.launchPersistentContext("", {
-    headless: false,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-      "--no-first-run",
-      "--disable-gpu",
-      "--no-default-browser-check",
-    ],
-  });
+  extensionContext = await launchExtensionContext();
   let serviceWorker = extensionContext.serviceWorkers()[0];
   if (!serviceWorker) {
     serviceWorker = await extensionContext.waitForEvent("serviceworker");

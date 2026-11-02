@@ -128,9 +128,9 @@ e2e:
     fi
     cd e2e && $XVFB npm test
 
-# run e2e tests with visible browser
+# run Chrome e2e tests with a visible browser (they are headless by default)
 e2e-headed:
-    cd e2e && npm run test:headed
+    cd e2e && HEADED=1 npm test
 
 # --- Setup ---
 

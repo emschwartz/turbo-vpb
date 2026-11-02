@@ -1,15 +1,9 @@
 import { test, expect, chromium, BrowserContext, Page } from "@playwright/test";
-import path from "path";
-import { fileURLToPath } from "url";
+import { launchExtensionContext } from "./helpers/launch";
 
 // These tests cover what the connect page (the phone) tells the volunteer
 // and the extension, beyond relaying contacts and call results.
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXTENSION_PATH = path.resolve(
-  __dirname,
-  "../../extension/.output/chrome-mv3-dev",
-);
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
@@ -27,16 +21,7 @@ let extensionContext: BrowserContext;
 test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async () => {
-  extensionContext = await chromium.launchPersistentContext("", {
-    headless: false,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-      "--no-first-run",
-      "--disable-gpu",
-      "--no-default-browser-check",
-    ],
-  });
+  extensionContext = await launchExtensionContext();
   await setExtensionSettings({ serverUrl: SERVER_URL });
 });
 

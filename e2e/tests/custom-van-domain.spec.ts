@@ -1,15 +1,9 @@
 import { test, expect, chromium, BrowserContext, Page } from "@playwright/test";
-import path from "path";
-import { fileURLToPath } from "url";
+import { launchExtensionContext } from "./helpers/launch";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Use the dev build which includes http://localhost/* in host_permissions,
 // needed because these tests simulate manual content script injection
 // (chrome.scripting.executeScript) on localhost pages.
-const EXTENSION_PATH = path.resolve(
-  __dirname,
-  "../../extension/.output/chrome-mv3-dev",
-);
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
@@ -43,16 +37,7 @@ let extensionContext: BrowserContext;
 let serviceWorker: Awaited<ReturnType<BrowserContext["waitForEvent"]>>;
 
 test.beforeAll(async () => {
-  extensionContext = await chromium.launchPersistentContext("", {
-    headless: false,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-      "--no-first-run",
-      "--disable-gpu",
-      "--no-default-browser-check",
-    ],
-  });
+  extensionContext = await launchExtensionContext();
 
   serviceWorker = extensionContext.serviceWorkers()[0];
   if (!serviceWorker) {
@@ -145,12 +130,15 @@ test("content script works on VAN-style page after permission grant and injectio
 
   // Find the new tab by diffing tab IDs (chrome.tabs.query can't see URLs
   // without host_permissions for localhost in a production build)
-  const newTabId: number = await serviceWorker.evaluate(async (knownIds: number[]) => {
-    const tabs = await (globalThis as any).chrome.tabs.query({});
-    const newTab = tabs.find((t: any) => !knownIds.includes(t.id));
-    if (!newTab?.id) throw new Error("Could not find new tab");
-    return newTab.id;
-  }, existingTabIds);
+  const newTabId: number = await serviceWorker.evaluate(
+    async (knownIds: number[]) => {
+      const tabs = await (globalThis as any).chrome.tabs.query({});
+      const newTab = tabs.find((t: any) => !knownIds.includes(t.id));
+      if (!newTab?.id) throw new Error("Could not find new tab");
+      return newTab.id;
+    },
+    existingTabIds,
+  );
 
   // Simulate the background script's permissions.onAdded handler:
   // inject the content script into the tab (just like background.ts does)
@@ -216,12 +204,15 @@ test("call result cycles contacts on VAN-style page", async () => {
   await vanPage.goto(`${SERVER_URL}/test-van-custom-domain`);
 
   // Find the new tab by diffing tab IDs
-  const newTabId: number = await serviceWorker.evaluate(async (knownIds: number[]) => {
-    const tabs = await (globalThis as any).chrome.tabs.query({});
-    const newTab = tabs.find((t: any) => !knownIds.includes(t.id));
-    if (!newTab?.id) throw new Error("Could not find new tab");
-    return newTab.id;
-  }, existingTabIds);
+  const newTabId: number = await serviceWorker.evaluate(
+    async (knownIds: number[]) => {
+      const tabs = await (globalThis as any).chrome.tabs.query({});
+      const newTab = tabs.find((t: any) => !knownIds.includes(t.id));
+      if (!newTab?.id) throw new Error("Could not find new tab");
+      return newTab.id;
+    },
+    existingTabIds,
+  );
 
   // Inject content script manually (simulating post-permission-grant injection)
   await serviceWorker.evaluate(async (tabId: number) => {
@@ -243,9 +234,10 @@ test("call result cycles contacts on VAN-style page", async () => {
     );
 
     // Wait for result buttons (Texted is hidden when message templates are configured)
-    await expect(
-      connectPage.locator("#call-result-links button"),
-    ).toHaveCount(3, { timeout: 10_000 });
+    await expect(connectPage.locator("#call-result-links button")).toHaveCount(
+      3,
+      { timeout: 10_000 },
+    );
 
     // Click "Left Voicemail" to mark result and load next contact
     await connectPage

@@ -7,20 +7,14 @@ import {
   Page,
   WebSocketRoute,
 } from "@playwright/test";
+import { launchExtensionContext } from "./helpers/launch";
 import http from "http";
 import net from "net";
-import path from "path";
-import { fileURLToPath } from "url";
 
 // These tests cover connection events that happen during normal use (the
 // phone's browser being backgrounded for every call, sockets dropping and
 // reconnecting) and check that they don't break or end the session.
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXTENSION_PATH = path.resolve(
-  __dirname,
-  "../../extension/.output/chrome-mv3-dev",
-);
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
@@ -45,17 +39,8 @@ let phonebankPage: Page;
 
 test.describe.configure({ mode: "serial" });
 
-async function launchExtensionContext(serverUrl: string) {
-  const context = await chromium.launchPersistentContext("", {
-    headless: false,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-      "--no-first-run",
-      "--disable-gpu",
-      "--no-default-browser-check",
-    ],
-  });
+async function launchConfiguredContext(serverUrl: string) {
+  const context = await launchExtensionContext();
   let serviceWorker = context.serviceWorkers()[0];
   if (!serviceWorker) {
     serviceWorker = await context.waitForEvent("serviceworker");
@@ -68,7 +53,7 @@ async function launchExtensionContext(serverUrl: string) {
 }
 
 test.beforeAll(async () => {
-  extensionContext = await launchExtensionContext(SERVER_URL);
+  extensionContext = await launchConfiguredContext(SERVER_URL);
   phonebankPage = await extensionContext.newPage();
   forwardConsole(phonebankPage, "EXT");
   await phonebankPage.goto(`${SERVER_URL}/test-phonebank`);
@@ -318,9 +303,9 @@ test("phone reconnects when its socket drops after returning from a call", async
     const connections = phone.connectionCount();
     await phone.dropConnection();
 
-    await expect.poll(phone.connectionCount, { timeout: 5_000 }).toBe(
-      connections + 1,
-    );
+    await expect
+      .poll(phone.connectionCount, { timeout: 5_000 })
+      .toBe(connections + 1);
     await expect(phone.page.locator("#status")).toHaveText("Connected");
     await markResultOnPhoneAndExpectNextContact(phone);
   } finally {
@@ -346,9 +331,9 @@ test("phone reconnects when it returns after failing to reconnect in the backgro
     phone.setNetworkDown(false);
     await setPhoneVisibility(phone.page, "visible");
 
-    await expect.poll(phone.connectionCount, { timeout: 5_000 }).toBe(
-      connections + 1,
-    );
+    await expect
+      .poll(phone.connectionCount, { timeout: 5_000 })
+      .toBe(connections + 1);
     await expect(phone.page.locator("#status")).toHaveText("Connected");
     await expect(phone.page.locator("#warning-container")).toBeHidden();
     await markResultOnPhoneAndExpectNextContact(phone);
@@ -507,9 +492,9 @@ test("a rejected call result is not announced again when the phone reconnects af
     // extension's last message, which is that rejection.
     const connections = phone.connectionCount();
     await phone.dropConnection();
-    await expect.poll(phone.connectionCount, { timeout: 5_000 }).toBe(
-      connections + 1,
-    );
+    await expect
+      .poll(phone.connectionCount, { timeout: 5_000 })
+      .toBe(connections + 1);
     await expect(phone.page.locator("#status")).toHaveText("Connected");
     await phone.page.waitForTimeout(1_000);
     // Checked once, now: a retrying assertion would pass once it hides
@@ -704,7 +689,7 @@ async function startProxy() {
 test("extension recovers when its first connection to the server fails", async () => {
   // Fresh context, so there is no stored channel from an earlier page load
   const proxy = await startProxy();
-  const context = await launchExtensionContext(proxy.url);
+  const context = await launchConfiguredContext(proxy.url);
   try {
     // e.g. VAN loads the page while the laptop is still reconnecting to
     // Wi-Fi after waking up
@@ -717,10 +702,9 @@ test("extension recovers when its first connection to the server fails", async (
 
     proxy.setRefuseWebSockets(false);
 
-    await expect(sidebarInsert(page)).toContainText(
-      "Scan QR code to connect",
-      { timeout: 20_000 },
-    );
+    await expect(sidebarInsert(page)).toContainText("Scan QR code to connect", {
+      timeout: 20_000,
+    });
     const phone = await connectPhone(await getConnectUrl(page));
     try {
       await expect(sidebarInsert(page)).toContainText("Connected");

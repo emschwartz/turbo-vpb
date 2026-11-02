@@ -6,8 +6,7 @@ import {
   BrowserContext,
   Page,
 } from "@playwright/test";
-import path from "path";
-import { fileURLToPath } from "url";
+import { launchExtensionContext } from "./helpers/launch";
 
 // Both sides encrypt with one shared key, and the relay accepts a message for
 // either side from anyone who knows the channel id (it is in the connect
@@ -16,11 +15,6 @@ import { fileURLToPath } from "url";
 // page still pairing with extensions older than 0.11.6, which do not bind
 // their messages.
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXTENSION_PATH = path.resolve(
-  __dirname,
-  "../../extension/.output/chrome-mv3-dev",
-);
 const SERVER_PORT = process.env.TURBOVPB_TEST_PORT || "8089";
 const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
@@ -33,16 +27,7 @@ let attackerPage: Page;
 test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async () => {
-  extensionContext = await chromium.launchPersistentContext("", {
-    headless: false,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-      "--no-first-run",
-      "--disable-gpu",
-      "--no-default-browser-check",
-    ],
-  });
+  extensionContext = await launchExtensionContext();
   let serviceWorker = extensionContext.serviceWorkers()[0];
   if (!serviceWorker) {
     serviceWorker = await extensionContext.waitForEvent("serviceworker");
