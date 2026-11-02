@@ -5,6 +5,7 @@ import { XMarkIconOutline as XMarkIcon } from "./icons";
 import { ConnectionStatus } from "../lib/types";
 import ConnectionStatusBadge from "./connection-status-badge";
 import ConnectQrCode from "./qr-code";
+import DataDisclosure from "./data-disclosure";
 import TurboVpbIcon from "./turbovpb-icon";
 
 const QrCodeModal: FunctionComponent<{
@@ -69,30 +70,7 @@ const QrCodeModal: FunctionComponent<{
                   <ConnectQrCode connectUrl={connectUrl} size={300} />
                 </>
               ) : (
-                <>
-                  <p class="text-sm text-slate-700">
-                    TurboVPB reads the name, phone number, and other details of
-                    the contact on this page and sends them to your phone,
-                    encrypted so that only your devices can read them. The
-                    TurboVPB server only relays the encrypted messages. See the{" "}
-                    <a
-                      href="https://turbovpb.com/privacy"
-                      target="_blank"
-                      rel="noopener"
-                      class="underline text-blue-600 hover:text-blue-700"
-                    >
-                      privacy policy
-                    </a>
-                    .
-                  </p>
-                  <button
-                    type="button"
-                    class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    onClick={onAgree}
-                  >
-                    Agree and connect
-                  </button>
-                </>
+                <DataDisclosure onAgree={onAgree} />
               )}
             </div>
           </div>

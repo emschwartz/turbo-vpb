@@ -53,6 +53,15 @@ function senderOrigin(sender: { url?: string; origin?: string }): string {
 export default defineBackground({
   type: "module",
   main() {
+    // Show the data disclosure up front on a fresh install. Firefox has no
+    // welcome page: its content script shows the same disclosure instead.
+    if (import.meta.env.BROWSER !== "firefox") {
+      browser.runtime.onInstalled.addListener(({ reason }) => {
+        if (reason === "install") {
+          browser.tabs.create({ url: browser.runtime.getURL("/welcome.html") });
+        }
+      });
+    }
     // Proxy storage.session for content scripts via message passing.
     // Content scripts can't access storage.session directly in Firefox
     // (setAccessLevel doesn't exist), so all session storage goes through

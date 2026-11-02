@@ -39,10 +39,14 @@ test("nothing is sent before the user agrees, and contacts flow after", async ()
 
   const modal = page.locator('#turbovpb-insert [role="dialog"]');
   await expect(modal.locator("h2")).toBeVisible({ timeout: 60_000 });
+  await expect(modal).toContainText("Private and secure by design");
   await expect(modal).toContainText(
-    "TurboVPB reads the name, phone number, and other details of the contact on this page and sends them to your phone, encrypted so that only your devices can read them. The TurboVPB server only relays the encrypted messages. See the privacy policy.",
+    "TurboVPB sends the name, phone number, and other details of each contact on your phone bank page to your phone.",
   );
-  const link = modal.getByRole("link", { name: "privacy policy" });
+  await expect(modal).toContainText("End-to-end encrypted:");
+  await expect(modal).toContainText("We never see contact details:");
+  await expect(modal).toContainText("No accounts or ads");
+  const link = modal.getByRole("link", { name: "Privacy policy" });
   await expect(link).toHaveAttribute("href", "https://turbovpb.com/privacy");
   await expect(link).toHaveAttribute("target", "_blank");
   await expect(
@@ -71,7 +75,6 @@ test("nothing is sent before the user agrees, and contacts flow after", async ()
     await phone.close();
   }
 
-  // Asked once: consent is stored, so a reload doesn't ask again
   const stored = await serviceWorker.evaluate(() =>
     (globalThis as any).chrome.storage.local.get("dataConsent"),
   );
