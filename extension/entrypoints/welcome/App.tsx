@@ -3,6 +3,7 @@ import { signal } from "@preact/signals";
 import { browser } from "wxt/browser";
 import "../../assets/main.css";
 import DataDisclosure from "../../components/data-disclosure";
+import { CheckIcon } from "../../components/icons";
 import TurboVpbIcon from "../../components/turbovpb-icon";
 
 const agreed = signal(false);
@@ -24,9 +25,12 @@ const App: FunctionComponent = () => (
     <div class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center shadow-xl sm:p-8">
       <div class="flex flex-col space-y-4">
         {agreed.value ? (
-          <p id="welcome-done" class="text-sm text-balance text-slate-700">
-            Done. Open your phone bank page to get started.
-          </p>
+          <div id="welcome-done" class="flex flex-col items-center space-y-3">
+            <CheckIcon class="h-10 w-10 text-green-600" aria-hidden={true} />
+            <p class="text-sm text-balance text-slate-700">
+              Ready to go. Open your phone bank page to get started.
+            </p>
+          </div>
         ) : (
           <DataDisclosure onAgree={agree} />
         )}

@@ -42,7 +42,7 @@ test("install opens the welcome page, and agreeing there stores consent", async 
   await welcome.getByRole("button", { name: "Agree and connect" }).click();
 
   await expect(welcome.locator("body")).toContainText(
-    "Done. Open your phone bank page to get started.",
+    "Ready to go. Open your phone bank page to get started.",
   );
   await expect(
     welcome.getByRole("button", { name: "Agree and connect" }),
