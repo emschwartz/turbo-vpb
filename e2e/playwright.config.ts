@@ -15,6 +15,17 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 1,
   workers: 1, // Extensions require serial execution
   reporter: process.env.CI ? "github" : "list",
+  projects: [
+    {
+      name: "chrome",
+      // Firefox needs its own extension build and has its own project
+      testIgnore: "**/firefox.spec.ts",
+    },
+    {
+      name: "firefox",
+      testMatch: "**/firefox.spec.ts",
+    },
+  ],
   use: {
     baseURL: `http://localhost:${serverPort}`,
     trace: "on-first-retry",
