@@ -66,14 +66,21 @@ export default defineContentScript({
     if (import.meta.env.DEV) {
       listenForTestMessages(ctx);
     }
-    // Wait for both settings and persisted connection details to load
-    // before connecting. The connection details come from storage.session
-    // via message passing (async), so we must await them to reuse an
-    // existing channelId after a page reload.
+    // Wait for the settings and the persisted session to load before
+    // connecting. The session comes from storage.session via message
+    // passing (async): the connection details are needed to reuse the
+    // channel after a page reload, and the pairing to tell the server's
+    // first presence message apart. Without it, a phone that is away
+    // looks like no phone was ever paired, and the page asks for a new
+    // QR code scan.
     // Nothing leaves the page until the user has agreed (see
     // QrCodeModal), so the connection waits for that too.
     const settingsLoaded = loadSettings();
-    Promise.all([settingsLoaded, state.connectionDetails.loaded])
+    Promise.all([
+      settingsLoaded,
+      state.connectionDetails.loaded,
+      state.pairedChannelId.loaded,
+    ])
       .then(() => waitForDataConsent())
       .then(connectPubsubClient)
       .catch((err) => {
