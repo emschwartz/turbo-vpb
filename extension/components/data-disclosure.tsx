@@ -18,10 +18,10 @@ const DataDisclosure: FunctionComponent<{ onAgree: () => void }> = ({
   onAgree,
 }) => (
   <>
-    <h3 class="text-lg font-semibold text-balance text-slate-900">
+    <h3 class="text-left text-lg font-semibold text-slate-900">
       Private and secure by design
     </h3>
-    <p class="text-sm text-balance text-slate-700">
+    <p class="text-left text-sm text-pretty text-slate-700">
       TurboVPB sends the name, phone number, and other details of each contact
       on your phone bank page to your phone.
     </p>
