@@ -56,9 +56,10 @@ cd server && cargo clippy -- -D warnings  # Lint
 # Extension (TypeScript)
 cd extension && pnpm typecheck    # Type check
 cd extension && pnpm format:check # Prettier check
+cd extension && pnpm test         # Vitest unit tests (~2s)
 ```
 
-The pre-commit hook (`.githooks/pre-commit`) runs all four checks above.
+The pre-commit hook (`.githooks/pre-commit`) runs all five checks above.
 
 ### E2E tests
 ```bash

@@ -24,4 +24,8 @@ echo "=== Extension: prettier --check ==="
 (cd extension && pnpm format:check)
 
 echo ""
+echo "=== Extension: unit tests ==="
+(cd extension && pnpm test)
+
+echo ""
 echo "All pre-commit checks passed."
