@@ -77,7 +77,7 @@ server-deploy:
 ssh:
     cd server && fly ssh console
 
-# show production usage stats for the last 7, 30 and 90 days
+# show production usage stats for the last 7, 30 and 90 days, and calls per week
 server-stats:
     @cd server && fly ssh console --quiet -C "sqlite3 -readonly /data/turbovpb.db" < stats.sql
 
